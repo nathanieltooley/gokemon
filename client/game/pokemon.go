@@ -1,0 +1,422 @@
+package game
+
+import (
+	"encoding/csv"
+	"fmt"
+	"math"
+	"math/rand/v2"
+	"os"
+	"strconv"
+	"strings"
+
+	err "errors"
+
+	"github.com/nathanieltooley/gokemon/client/errors"
+)
+
+const (
+	MAX_IV       = 31
+	MAX_EV       = 252
+	MAX_TOTAL_EV = 510
+)
+
+const (
+	DAMAGETYPE_PHYSICAL = "physical"
+	DAMAGETYPE_SPECIAL  = "special"
+)
+
+const (
+	TYPENAME_NORMAL   = "Normal"
+	TYPENAME_FIRE     = "Fire"
+	TYPENAME_WATER    = "Water"
+	TYPENAME_ELECTRIC = "Electric"
+	TYPENAME_GRASS    = "Grass"
+	TYPENAME_ICE      = "Ice"
+	TYPENAME_FIGHTING = "Fighting"
+	TYPENAME_POISON   = "Poison"
+	TYPENAME_GROUND   = "Ground"
+	TYPENAME_FLYING   = "Flying"
+	TYPENAME_PSYCHIC  = "Psychic"
+	TYPENAME_BUG      = "Bug"
+	TYPENAME_ROCK     = "Rock"
+	TYPENAME_GHOST    = "Ghost"
+	TYPENAME_DRAGON   = "Dragon"
+	TYPENAME_DARK     = "Dark"
+	TYPENAME_STEEL    = "Steel"
+	TYPENAME_FAIRY    = "Fairy"
+)
+
+type PokemonType struct {
+	name          string
+	effectiveness map[string]float32
+}
+
+func (t PokemonType) AttackEffectiveness(attackType string) float32 {
+	effectiveness, ok := t.effectiveness[attackType]
+
+	if !ok {
+		return 1
+	} else {
+		return effectiveness
+	}
+}
+
+type BasePokemon struct {
+	PokedexNumber int16
+	Name          string
+	Type1         *PokemonType
+	Type2         *PokemonType
+	Hp            int16
+	Attack        int16
+	Def           int16
+	SpAttack      int16
+	SpDef         int16
+	Speed         int16
+}
+
+type Stat struct {
+	value int16
+	ev    uint8
+	iv    uint8
+}
+
+type Nature struct {
+	name          string
+	statModifiers [5]float32
+}
+
+type Pokemon struct {
+	Base     *BasePokemon
+	Nickname string
+	Level    uint8
+	Hp       Stat
+	Attack   Stat
+	Def      Stat
+	SpAttack Stat
+	SpDef    Stat
+	Speed    Stat
+	Moves    [4]*MoveFull
+	Nature   Nature
+}
+
+type PokemonBuilder struct {
+	poke *Pokemon
+}
+
+func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
+	poke := Pokemon{
+		Base:     base,
+		Nickname: base.Name,
+		Level:    0,
+		Hp:       Stat{0, 0, 0},
+		Attack:   Stat{0, 0, 0},
+		Def:      Stat{0, 0, 0},
+		SpAttack: Stat{0, 0, 0},
+		SpDef:    Stat{0, 0, 0},
+		Speed:    Stat{0, 0, 0},
+	}
+
+	return &PokemonBuilder{&poke}
+}
+
+func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
+	pb.poke.Hp.ev = evs[0]
+	pb.poke.Attack.ev = evs[1]
+	pb.poke.Def.ev = evs[2]
+	pb.poke.SpAttack.ev = evs[3]
+	pb.poke.SpDef.ev = evs[4]
+	pb.poke.Speed.ev = evs[5]
+
+	return pb
+}
+
+func (pb *PokemonBuilder) SetIvs(ivs [6]uint8) *PokemonBuilder {
+	pb.poke.Hp.iv = ivs[0]
+	pb.poke.Attack.iv = ivs[1]
+	pb.poke.Def.iv = ivs[2]
+	pb.poke.SpAttack.iv = ivs[3]
+	pb.poke.SpDef.iv = ivs[4]
+	pb.poke.Speed.iv = ivs[5]
+
+	return pb
+}
+
+func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
+	pb.poke.Hp.iv = MAX_IV
+	pb.poke.Attack.iv = MAX_IV
+	pb.poke.Def.iv = MAX_IV
+	pb.poke.SpAttack.iv = MAX_IV
+	pb.poke.SpDef.iv = MAX_IV
+	pb.poke.Speed.iv = MAX_IV
+
+	return pb
+}
+
+func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
+	var ivs [6]uint8
+
+	for i := range ivs {
+		iv := rand.UintN(MAX_IV + 1)
+		ivs[i] = uint8(iv)
+	}
+
+	pb.SetIvs(ivs)
+
+	return pb
+}
+
+// Returns an array of EV spreads whose total == 510
+// and follow the order of HP, ATTACK, DEF, SPATTACK, SPDEF, SPEED
+func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
+	evPool := MAX_TOTAL_EV
+	var evs [6]uint8
+
+	for evPool > 0 {
+		// randomly select a stat to add EVs to
+		randomIndex := rand.UintN(6)
+		currentEv := evs[randomIndex]
+
+		remainingEvSpace := MAX_EV - currentEv
+
+		if remainingEvSpace <= 0 {
+			continue
+		}
+
+		// Get a random value to increase the EV by
+		// ranges from 0 to (remainingEvSpace or MAX_EV) + 1
+		randomEv := rand.UintN(uint(math.Max(float64(remainingEvSpace), MAX_EV)) + 1)
+		evs[randomEv] += uint8(randomEv)
+		evPool -= int(randomEv)
+	}
+
+	pb.SetEvs(evs)
+	return pb
+}
+
+func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
+	pb.poke.Level = level
+	return pb
+}
+
+func (pb *PokemonBuilder) Build() *Pokemon {
+	hpNumerator := ((2*pb.poke.Base.Hp + int16(pb.poke.Hp.iv) + int16(pb.poke.Hp.ev/4)) * int16(pb.poke.Level))
+	pb.poke.Hp.value = (hpNumerator / 100) + int16(pb.poke.Level) + 10
+	pb.poke.Attack.value = calcStat(pb.poke.Base.Attack, pb.poke.Level, pb.poke.Attack.iv, pb.poke.Attack.ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.Def.value = calcStat(pb.poke.Base.Def, pb.poke.Level, pb.poke.Def.iv, pb.poke.Def.ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.SpAttack.value = calcStat(pb.poke.Base.SpAttack, pb.poke.Level, pb.poke.SpAttack.iv, pb.poke.SpAttack.ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.SpDef.value = calcStat(pb.poke.Base.SpDef, pb.poke.Level, pb.poke.SpDef.iv, pb.poke.SpDef.ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.Speed.value = calcStat(pb.poke.Base.Speed, pb.poke.Level, pb.poke.Speed.iv, pb.poke.Speed.ev, pb.poke.Nature.statModifiers[0])
+
+	return pb.poke
+}
+
+// type PokemonRegistry struct {
+// 	pkm []BasePokemon
+// }
+
+type PokemonRegistry []BasePokemon
+
+func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *BasePokemon {
+	for _, pkm := range p {
+		if pkm.PokedexNumber == int16(pkdNumber) {
+			return &pkm
+		}
+	}
+
+	return nil
+}
+
+func (p PokemonRegistry) GetPokemonByName(pkmName string) *BasePokemon {
+	for _, pkm := range p {
+		if strings.ToLower(pkm.Name) == strings.ToLower(pkmName) {
+			return &pkm
+		}
+	}
+
+	return nil
+}
+
+func LoadBasePokemon(dataFile string) (PokemonRegistry, error) {
+	fileReader, err := os.Open(dataFile)
+	defer fileReader.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	csvReader := csv.NewReader(fileReader)
+	csvReader.Read()
+	rows, err := csvReader.ReadAll()
+
+	if err != nil {
+		return nil, err
+	}
+
+	pokemonList := make([]BasePokemon, 0, len(rows))
+
+	// Load CSV data
+	for _, row := range rows {
+		// These are "unwraped" because the data inserted should always follow this format
+		pokedexNumber := int16(errors.Must(strconv.ParseInt(row[0], 10, 16)))
+		hp := int16(errors.Must(strconv.ParseInt(row[4], 10, 16)))
+		attack := int16(errors.Must(strconv.ParseInt(row[5], 10, 16)))
+		def := int16(errors.Must(strconv.ParseInt(row[6], 10, 16)))
+		spAttack := int16(errors.Must(strconv.ParseInt(row[7], 10, 16)))
+		spDef := int16(errors.Must(strconv.ParseInt(row[8], 10, 16)))
+		speed := int16(errors.Must(strconv.ParseInt(row[9], 10, 16)))
+
+		name := row[1]
+		type1Name := row[2]
+		type2Name := row[3]
+
+		var type1 *PokemonType = TYPE_MAP[type1Name]
+		var type2 *PokemonType = nil
+
+		if type2Name != "" {
+			type2 = TYPE_MAP[type2Name]
+		}
+
+		newPokemon := BasePokemon{
+			pokedexNumber,
+			name,
+			type1,
+			type2,
+			hp,
+			attack,
+			def,
+			spAttack,
+			spDef,
+			speed,
+		}
+
+		pokemonList = append(pokemonList, newPokemon)
+	}
+
+	return pokemonList, nil
+}
+
+func calcStat(baseValue int16, level uint8, iv uint8, ev uint8, natureMod float32) int16 {
+	statNumerator := (2*baseValue + int16(iv) + int16(ev/4)) * int16(level)
+	statValue := float32((statNumerator/100)+5) * natureMod
+	return int16(statValue)
+}
+
+func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
+	var evs [6]uint8
+	if hp > MAX_EV {
+		return evs, err.New("hp is too high")
+	}
+	if attack > MAX_EV {
+		return evs, err.New("attack is too high")
+	}
+	if def > MAX_EV {
+		return evs, err.New("def is too high")
+	}
+	if spAttack > MAX_EV {
+		return evs, err.New("special attack is too high")
+	}
+	if spDef > MAX_EV {
+		return evs, err.New("special defense is too high")
+	}
+	if speed > MAX_EV {
+		return evs, err.New("speed is too high")
+	}
+
+	evTotal := hp + attack + def + spAttack + spDef + speed
+
+	if evTotal > MAX_TOTAL_EV {
+		return evs, err.New(fmt.Sprintf("stat total (%d) is greater than the max allowed: %d\n", evTotal, MAX_TOTAL_EV))
+	}
+
+	evs[0] = uint8(hp)
+	evs[1] = uint8(attack)
+	evs[2] = uint8(def)
+	evs[3] = uint8(spAttack)
+	evs[4] = uint8(spDef)
+	evs[5] = uint8(speed)
+
+	return evs, nil
+}
+
+func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
+	var ivs [6]uint8
+	if hp > MAX_IV {
+		return ivs, err.New("hp is too high")
+	}
+	if attack > MAX_IV {
+		return ivs, err.New("attack is too high")
+	}
+	if def > MAX_IV {
+		return ivs, err.New("def is too high")
+	}
+	if spAttack > MAX_IV {
+		return ivs, err.New("special attack is too high")
+	}
+	if spDef > MAX_IV {
+		return ivs, err.New("special defense is too high")
+	}
+	if speed > MAX_IV {
+		return ivs, err.New("speed is too high")
+	}
+
+	ivs[0] = uint8(hp)
+	ivs[1] = uint8(attack)
+	ivs[2] = uint8(def)
+	ivs[3] = uint8(spAttack)
+	ivs[4] = uint8(spDef)
+	ivs[5] = uint8(speed)
+
+	return ivs, nil
+}
+
+// FIX: NEED TO TEST THIS!!!
+func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
+	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
+	var a, d int16                  // TODO: Add exception for Beat Up
+
+	// Determine damage type
+	if move.DamageClass == DAMAGETYPE_PHYSICAL {
+		a = attacker.Base.Attack
+	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
+		a = attacker.Base.SpAttack
+	}
+
+	if move.DamageClass == DAMAGETYPE_PHYSICAL {
+		d = defendent.Base.Def
+	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
+		d = defendent.Base.SpDef
+	}
+
+	power := move.Power
+
+	type1Effectiveness := defendent.Base.Type1.AttackEffectiveness(move.Type)
+	type2Effectiveness := defendent.Base.Type2.AttackEffectiveness(move.Type)
+
+	if type1Effectiveness == 0 || type2Effectiveness == 0 {
+		return 0
+	}
+
+	// Calculate the part of the damage function in brackets
+	damageInner := ((((float32(2*attackerLevel) / 5) + 2) * float32(power) * (float32(a) / float32(d))) / 50) + 2
+	randomSpread := float32(rand.UintN(15)+85) / 100
+	var stab float32 = 1
+
+	if move.Type == attacker.Base.Type1.name || move.Type == attacker.Base.Type2.name {
+		stab = 1.5
+	}
+
+	// TODO: Add crits, exceptions for Battle Armor and Shell Armor
+	// TODO: Add burn check for 1/2 damage which needs its own expection for Guts and Facade
+
+	// TODO: Maybe add weather
+	// TODO: Maybe check for parental bond, glaive rush, targets in DBs, ZMoves
+
+	// TODO: There are about 20 different moves, abilities, and items that have some sort of
+	// random effect to the damage calcs. Maybe implement the most impactful ones?
+
+	// This seems to mostly work, however there are issue when it comes to rounding
+	// and it seems that the lowest possible value in a damage range may not be able
+	// to show up as often because rounding is a bit different
+	// TODO: maybe make a custom rounding function that rounds DOWN at .5
+	return uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab)))
+}
