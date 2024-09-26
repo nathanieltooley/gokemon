@@ -1,21 +1,16 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"log"
-	// "strings"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	pokeselection "github.com/nathanieltooley/gokemon/client/views/pokeSelection"
 )
 
 type model struct {
-	list     list.Model
-	choice   *game.BasePokemon
-	quitting bool
+	currentView tea.Model
+	quitting    bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -23,56 +18,14 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	newView, cmd := m.currentView.Update(msg)
 
-	m.list, cmd = m.list.Update(msg)
-	choice, _ := m.list.Items()[m.list.Index()].(item)
-	m.choice = choice.BasePokemon
-
+	m.currentView = newView
 	return m, cmd
 }
 
 func (m model) View() string {
-	style := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Margin(2).Width(30)
-	headerStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, true).Width(30).Align(lipgloss.Center)
-
-	var body string
-	header := "Pokemon Selection"
-	if m.choice != nil {
-		body = fmt.Sprintf("Hp: %d\nAttack: %d\nDef: %d\nSpAttack: %d\nSpDef: %d\nSpeed: %d\n", m.choice.Hp, m.choice.Attack, m.choice.Def, m.choice.SpAttack, m.choice.SpDef, m.choice.Speed)
-		header = fmt.Sprintf("Pokemon: %s", m.choice.Name)
-	} else {
-		body = ""
-	}
-
-	dialog := lipgloss.JoinVertical(lipgloss.Left, headerStyle.Render(header), body)
-
-	return lipgloss.JoinVertical(lipgloss.Center, style.Render(dialog), m.list.View())
-}
-
-type item struct {
-	*game.BasePokemon
-}
-
-func (i item) FilterValue() string {
-	return i.Name
-}
-
-type itemDelegate struct{}
-
-func (i itemDelegate) Height() int                             { return 1 }
-func (i itemDelegate) Spacing() int                            { return 0 }
-func (i itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (i itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	item := listItem.(item)
-
-	var renderStr string
-	renderStr = fmt.Sprintf("%d. %s", item.PokedexNumber, item.Name)
-	if m.Index() == index {
-		renderStr = fmt.Sprintf("> %d. %s", item.PokedexNumber, item.Name)
-	}
-
-	fmt.Fprint(w, renderStr)
+	return m.currentView.View()
 }
 
 func main() {
@@ -101,18 +54,9 @@ func main() {
 	//
 	// log.Fatalln(game.Damage(b1, b2, moves.GetMove("pound")))
 
-	items := make([]list.Item, len(basePokemon))
-	for i, pkm := range basePokemon {
-		items[i] = item{&pkm}
+	m := model{
+		currentView: pokeselection.NewModel(basePokemon),
 	}
-
-	list := list.New(items, itemDelegate{}, 20, 24)
-	list.Title = "Pokemon Selection"
-	list.SetShowStatusBar(false)
-	list.SetFilteringEnabled(true)
-	list.SetShowFilter(true)
-
-	m := model{list: list}
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		log.Fatalln("Error running program: ", err)
