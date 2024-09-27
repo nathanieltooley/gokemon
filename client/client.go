@@ -21,6 +21,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newView, cmd := m.currentView.Update(msg)
 
 	m.currentView = newView
+
+	// Disables the closing of the program when pressing ESC
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyEscape {
+			return m, nil
+		}
+	}
+
 	return m, cmd
 }
 
