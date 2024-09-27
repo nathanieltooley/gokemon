@@ -47,7 +47,7 @@ const (
 )
 
 type PokemonType struct {
-	name          string
+	Name          string
 	effectiveness map[string]float32
 }
 
@@ -75,9 +75,9 @@ type BasePokemon struct {
 }
 
 type Stat struct {
-	value int16
-	ev    uint8
-	iv    uint8
+	Value int16
+	Ev    uint8
+	Iv    uint8
 }
 
 type Nature struct {
@@ -120,34 +120,34 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
-	pb.poke.Hp.ev = evs[0]
-	pb.poke.Attack.ev = evs[1]
-	pb.poke.Def.ev = evs[2]
-	pb.poke.SpAttack.ev = evs[3]
-	pb.poke.SpDef.ev = evs[4]
-	pb.poke.Speed.ev = evs[5]
+	pb.poke.Hp.Ev = evs[0]
+	pb.poke.Attack.Ev = evs[1]
+	pb.poke.Def.Ev = evs[2]
+	pb.poke.SpAttack.Ev = evs[3]
+	pb.poke.SpDef.Ev = evs[4]
+	pb.poke.Speed.Ev = evs[5]
 
 	return pb
 }
 
 func (pb *PokemonBuilder) SetIvs(ivs [6]uint8) *PokemonBuilder {
-	pb.poke.Hp.iv = ivs[0]
-	pb.poke.Attack.iv = ivs[1]
-	pb.poke.Def.iv = ivs[2]
-	pb.poke.SpAttack.iv = ivs[3]
-	pb.poke.SpDef.iv = ivs[4]
-	pb.poke.Speed.iv = ivs[5]
+	pb.poke.Hp.Iv = ivs[0]
+	pb.poke.Attack.Iv = ivs[1]
+	pb.poke.Def.Iv = ivs[2]
+	pb.poke.SpAttack.Iv = ivs[3]
+	pb.poke.SpDef.Iv = ivs[4]
+	pb.poke.Speed.Iv = ivs[5]
 
 	return pb
 }
 
 func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
-	pb.poke.Hp.iv = MAX_IV
-	pb.poke.Attack.iv = MAX_IV
-	pb.poke.Def.iv = MAX_IV
-	pb.poke.SpAttack.iv = MAX_IV
-	pb.poke.SpDef.iv = MAX_IV
-	pb.poke.Speed.iv = MAX_IV
+	pb.poke.Hp.Iv = MAX_IV
+	pb.poke.Attack.Iv = MAX_IV
+	pb.poke.Def.Iv = MAX_IV
+	pb.poke.SpAttack.Iv = MAX_IV
+	pb.poke.SpDef.Iv = MAX_IV
+	pb.poke.Speed.Iv = MAX_IV
 
 	return pb
 }
@@ -199,13 +199,13 @@ func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) Build() *Pokemon {
-	hpNumerator := ((2*pb.poke.Base.Hp + int16(pb.poke.Hp.iv) + int16(pb.poke.Hp.ev/4)) * int16(pb.poke.Level))
-	pb.poke.Hp.value = (hpNumerator / 100) + int16(pb.poke.Level) + 10
-	pb.poke.Attack.value = calcStat(pb.poke.Base.Attack, pb.poke.Level, pb.poke.Attack.iv, pb.poke.Attack.ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.Def.value = calcStat(pb.poke.Base.Def, pb.poke.Level, pb.poke.Def.iv, pb.poke.Def.ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.SpAttack.value = calcStat(pb.poke.Base.SpAttack, pb.poke.Level, pb.poke.SpAttack.iv, pb.poke.SpAttack.ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.SpDef.value = calcStat(pb.poke.Base.SpDef, pb.poke.Level, pb.poke.SpDef.iv, pb.poke.SpDef.ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.Speed.value = calcStat(pb.poke.Base.Speed, pb.poke.Level, pb.poke.Speed.iv, pb.poke.Speed.ev, pb.poke.Nature.statModifiers[0])
+	hpNumerator := ((2*pb.poke.Base.Hp + int16(pb.poke.Hp.Iv) + int16(pb.poke.Hp.Ev/4)) * int16(pb.poke.Level))
+	pb.poke.Hp.Value = (hpNumerator / 100) + int16(pb.poke.Level) + 10
+	pb.poke.Attack.Value = calcStat(pb.poke.Base.Attack, pb.poke.Level, pb.poke.Attack.Iv, pb.poke.Attack.Ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.Def.Value = calcStat(pb.poke.Base.Def, pb.poke.Level, pb.poke.Def.Iv, pb.poke.Def.Ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.SpAttack.Value = calcStat(pb.poke.Base.SpAttack, pb.poke.Level, pb.poke.SpAttack.Iv, pb.poke.SpAttack.Ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.SpDef.Value = calcStat(pb.poke.Base.SpDef, pb.poke.Level, pb.poke.SpDef.Iv, pb.poke.SpDef.Ev, pb.poke.Nature.statModifiers[0])
+	pb.poke.Speed.Value = calcStat(pb.poke.Base.Speed, pb.poke.Level, pb.poke.Speed.Iv, pb.poke.Speed.Ev, pb.poke.Nature.statModifiers[0])
 
 	return pb.poke
 }
@@ -401,7 +401,7 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	randomSpread := float32(rand.UintN(15)+85) / 100
 	var stab float32 = 1
 
-	if move.Type == attacker.Base.Type1.name || move.Type == attacker.Base.Type2.name {
+	if move.Type == attacker.Base.Type1.Name || move.Type == attacker.Base.Type2.Name {
 		stab = 1.5
 	}
 
