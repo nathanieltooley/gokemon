@@ -17,6 +17,8 @@ var (
 
 	unselectedEditorStyle = lipgloss.NewStyle().Margin(2)
 	selectedEditorStyle   = lipgloss.NewStyle().Margin(2).Bold(true).Border(lipgloss.BlockBorder(), true)
+
+	pokemonTeamStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Width(20)
 )
 
 var (
@@ -43,7 +45,8 @@ type SelectionModel struct {
 	list                list.Model
 	mode                int
 	currentPokemonIndex int
-	currentEditor       int
+	currentEditorIndex  int
+	editorModels        [len(editors)]editor
 }
 
 func NewModel(pokemon game.PokemonRegistry) SelectionModel {
@@ -58,7 +61,10 @@ func NewModel(pokemon game.PokemonRegistry) SelectionModel {
 	list.SetFilteringEnabled(true)
 	list.SetShowFilter(true)
 
-	return SelectionModel{list: list}
+	var editorModels [len(editors)]editor
+	editorModels[0] = newDetailsEditor()
+
+	return SelectionModel{list: list, editorModels: editorModels}
 }
 
 func (m SelectionModel) Init() tea.Cmd {
@@ -89,14 +95,11 @@ func (m SelectionModel) View() string {
 		teamPanels := make([]string, 0)
 
 		for _, pokemon := range m.Team {
-			panel := fmt.Sprintf(`
-                %s
-                Level: %d
-                `, pokemon.Base.Name, pokemon.Level)
+			panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Base.Name, pokemon.Level)
 			teamPanels = append(teamPanels, panel)
 		}
 
-		teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
+		teamView := pokemonTeamStyle.Render(lipgloss.JoinVertical(lipgloss.Center, teamPanels...))
 
 		return lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView)
 	} else if m.mode == MODE_EDITPOKE {
@@ -104,6 +107,7 @@ func (m SelectionModel) View() string {
 		// var body string
 
 		currentPokemon := m.Team[m.currentPokemonIndex]
+		currentEditor := m.editorModels[m.currentEditorIndex]
 
 		type1 := currentPokemon.Base.Type1.Name
 		type2 := ""
@@ -173,15 +177,21 @@ func (m SelectionModel) View() string {
 		// editorTabs := strings.Builder{}
 
 		for i, editor := range editors {
-			if i == int(m.currentEditor) {
+			if i == m.currentEditorIndex {
 				newEditors[i] = selectedEditorStyle.Render(editor + "\t")
 			} else {
 				newEditors[i] = unselectedEditorStyle.Render(editor + "\t")
 			}
 		}
 
+		var editorView string
+
+		if currentEditor != nil {
+			editorView = currentEditor.View()
+		}
+
 		tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
-		return lipgloss.JoinVertical(lipgloss.Center, info, tabs)
+		return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
 
 		// TODO: EV / IV editor
 
@@ -204,6 +214,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	cmd = nil
 
+	// Update add pokemon list in addpoke mode
 	if m.mode == MODE_ADDPOKE {
 		m.list, cmd = m.list.Update(msg)
 		choice, _ := m.list.Items()[m.list.Index()].(item)
@@ -211,10 +222,12 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Choice = choice.BasePokemon
 	}
 
+	// Listen to key presses
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
+			// Select pokemon and enter editing view
 			if m.mode == MODE_ADDPOKE {
 				if m.Choice != nil && len(m.Team) < 6 {
 					newPokemon := game.NewPokeBuilder(m.Choice).Build()
@@ -225,6 +238,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = MODE_EDITPOKE
 			}
 		case tea.KeyEscape:
+			// Leave editing mode and go back to add mode
 			if m.mode == MODE_EDITPOKE {
 				m.mode = MODE_ADDPOKE
 			}
@@ -234,23 +248,36 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		// Listen to key presses for edit mode
 		if m.mode == MODE_EDITPOKE {
 			if key.Matches(msg, selectEditorLeft) {
-				m.currentEditor--
+				m.currentEditorIndex--
 
-				if m.currentEditor < 0 {
-					m.currentEditor = len(editors) - 1
+				if m.currentEditorIndex < 0 {
+					m.currentEditorIndex = len(editors) - 1
 				}
 			}
 
 			if key.Matches(msg, selectEditorRight) {
-				m.currentEditor++
+				m.currentEditorIndex++
 
-				if m.currentEditor >= len(editors) {
-					m.currentEditor = 0
+				if m.currentEditorIndex >= len(editors) {
+					m.currentEditorIndex = 0
 				}
 			}
 		}
+	}
+
+	// Update Current Editor
+	if m.mode == MODE_EDITPOKE {
+		currentModel := m.editorModels[m.currentEditorIndex]
+
+		if currentModel != nil {
+			newModel, cmdFromEditor := currentModel.Update(&m, msg)
+			m.editorModels[m.currentEditorIndex] = newModel
+			cmd = cmdFromEditor
+		}
+
 	}
 
 	return m, cmd
