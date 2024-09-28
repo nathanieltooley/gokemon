@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game"
-	pokeselection "github.com/nathanieltooley/gokemon/client/views/pokeSelection"
+	"github.com/nathanieltooley/gokemon/client/views/pokeSelection"
 )
 
 type model struct {
