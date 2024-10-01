@@ -99,6 +99,16 @@ type Pokemon struct {
 	Nature   Nature
 }
 
+func (p *Pokemon) ReCalcStats() {
+	hpNumerator := ((2*p.Base.Hp + int16(p.Hp.Iv) + int16(p.Hp.Ev/4)) * int16(p.Level))
+	p.Hp.Value = (hpNumerator / 100) + int16(p.Level) + 10
+	p.Attack.Value = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
+	p.Def.Value = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
+	p.SpAttack.Value = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
+	p.SpDef.Value = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
+	p.Speed.Value = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
+}
+
 type PokemonBuilder struct {
 	poke *Pokemon
 }
@@ -114,6 +124,7 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 		SpAttack: Stat{0, 0, 0},
 		SpDef:    Stat{0, 0, 0},
 		Speed:    Stat{0, 0, 0},
+		Nature:   NATURE_HARDY,
 	}
 
 	return &PokemonBuilder{&poke}
@@ -199,14 +210,7 @@ func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) Build() *Pokemon {
-	hpNumerator := ((2*pb.poke.Base.Hp + int16(pb.poke.Hp.Iv) + int16(pb.poke.Hp.Ev/4)) * int16(pb.poke.Level))
-	pb.poke.Hp.Value = (hpNumerator / 100) + int16(pb.poke.Level) + 10
-	pb.poke.Attack.Value = calcStat(pb.poke.Base.Attack, pb.poke.Level, pb.poke.Attack.Iv, pb.poke.Attack.Ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.Def.Value = calcStat(pb.poke.Base.Def, pb.poke.Level, pb.poke.Def.Iv, pb.poke.Def.Ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.SpAttack.Value = calcStat(pb.poke.Base.SpAttack, pb.poke.Level, pb.poke.SpAttack.Iv, pb.poke.SpAttack.Ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.SpDef.Value = calcStat(pb.poke.Base.SpDef, pb.poke.Level, pb.poke.SpDef.Iv, pb.poke.SpDef.Ev, pb.poke.Nature.statModifiers[0])
-	pb.poke.Speed.Value = calcStat(pb.poke.Base.Speed, pb.poke.Level, pb.poke.Speed.Iv, pb.poke.Speed.Ev, pb.poke.Nature.statModifiers[0])
-
+	pb.poke.ReCalcStats()
 	return pb.poke
 }
 
@@ -369,7 +373,6 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-// FIX: NEED TO TEST THIS!!!
 func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var a, d int16                  // TODO: Add exception for Beat Up
