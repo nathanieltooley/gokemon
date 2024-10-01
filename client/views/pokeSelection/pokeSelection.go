@@ -200,8 +200,6 @@ func (m SelectionModel) View() string {
 
 		// TODO: Item editor
 
-		// TODO: Level, Name, (maybe tera?) editor
-
 		// TODO: Pokemon Replacement panel?
 	}
 
