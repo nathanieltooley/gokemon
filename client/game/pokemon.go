@@ -209,6 +209,11 @@ func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
 	return pb
 }
 
+func (pb *PokemonBuilder) SetNature(nature Nature) *PokemonBuilder {
+	pb.poke.Nature = nature
+	return pb
+}
+
 func (pb *PokemonBuilder) Build() *Pokemon {
 	pb.poke.ReCalcStats()
 	return pb.poke
