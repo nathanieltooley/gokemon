@@ -15,9 +15,55 @@ type editor interface {
 	Update(*SelectionModel, tea.Msg) (editor, tea.Cmd)
 }
 
-type detailsEditor struct {
+// Component that regulates focus of text inputs
+type inputSelector struct {
 	focused int
 	inputs  []textinput.Model
+}
+
+func newInputSelector(inputs []textinput.Model) inputSelector {
+	return inputSelector{
+		0,
+		inputs,
+	}
+}
+
+func (is inputSelector) Update(msg tea.Msg) (inputSelector, tea.Cmd) {
+	cmds := make([]tea.Cmd, len(is.inputs))
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyTab {
+			is.focused++
+
+			if is.focused > DE_LEN-1 {
+				is.focused = 0
+			}
+		}
+
+		if msg.Type == tea.KeyShiftTab {
+			is.focused--
+			if is.focused < 0 {
+				is.focused = DE_LEN - 1
+			}
+		}
+	}
+
+	for i, input := range is.inputs {
+		if i == is.focused {
+			input.Focus()
+		} else {
+			input.Blur()
+		}
+
+		is.inputs[i], cmds[i] = input.Update(msg)
+	}
+
+	return is, tea.Batch(cmds...)
+}
+
+type detailsEditor struct {
+	is inputSelector
 }
 
 const (
@@ -41,59 +87,42 @@ func newDetailsEditor(pokeInfo *game.Pokemon) detailsEditor {
 	levelInput.SetValue(string(pokeInfo.Level))
 
 	return detailsEditor{
-		0,
-		[]textinput.Model{nameInput, levelInput},
+		newInputSelector([]textinput.Model{nameInput, levelInput}),
 	}
 }
 
 func (e detailsEditor) View() string {
 	views := make([]string, 0)
-	for _, input := range e.inputs {
+	for _, input := range e.is.inputs {
 		views = append(views, input.View())
 	}
 	return lipgloss.JoinVertical(lipgloss.Center, views...)
 }
 
 func (e detailsEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
-	cmds := make([]tea.Cmd, DE_LEN)
+	var cmd tea.Cmd
 	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if msg.Type == tea.KeyTab {
-			e.focused++
+	e.is, cmd = e.is.Update(msg)
 
-			if e.focused > DE_LEN-1 {
-				e.focused = 0
-			}
-		}
-
-		if msg.Type == tea.KeyShiftTab {
-			e.focused--
-			if e.focused < 0 {
-				e.focused = DE_LEN - 1
-			}
-		}
-	}
-
-	for i := range e.inputs {
+	for i := range e.is.inputs {
 		switch i {
 		case DE_NAME:
-			nameValue := e.inputs[i].Value()
+			nameValue := e.is.inputs[i].Value()
 
 			if nameValue != "" {
 				currentPokemon.Nickname = nameValue
 			}
 
 		case DE_LEVEL:
-			levelValue := e.inputs[i].Value()
+			levelValue := e.is.inputs[i].Value()
 
 			if levelValue != "" {
 				parsedLevel, err := strconv.ParseInt(levelValue, 0, 64)
 
 				if err != nil {
-					invalidValue := e.inputs[i].Value()
-					e.inputs[i].SetValue(invalidValue[:len(invalidValue)-1])
+					invalidValue := e.is.inputs[i].Value()
+					e.is.inputs[i].SetValue(invalidValue[:len(invalidValue)-1])
 				} else {
 					parsedLevel = int64(math.Min(100, float64(parsedLevel)))
 
@@ -105,15 +134,5 @@ func (e detailsEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, t
 		}
 	}
 
-	for i, input := range e.inputs {
-		if i == e.focused {
-			input.Focus()
-		} else {
-			input.Blur()
-		}
-
-		e.inputs[i], cmds[i] = input.Update(msg)
-	}
-
-	return e, tea.Batch(cmds...)
+	return e, cmd
 }
