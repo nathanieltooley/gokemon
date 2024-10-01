@@ -98,6 +98,7 @@ func (e detailsEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, t
 					parsedLevel = int64(math.Min(100, float64(parsedLevel)))
 
 					currentPokemon.Level = uint8(parsedLevel)
+					currentPokemon.ReCalcStats()
 				}
 			}
 
