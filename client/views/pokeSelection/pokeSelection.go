@@ -23,11 +23,11 @@ var (
 
 var (
 	selectEditorLeft = key.NewBinding(
-		key.WithKeys("editorLeft", "h"),
+		key.WithKeys("editorLeft", "left"),
 	)
 
 	selectEditorRight = key.NewBinding(
-		key.WithKeys("editorRight", "l"),
+		key.WithKeys("editorRight", "right"),
 	)
 )
 
@@ -62,7 +62,6 @@ func NewModel(pokemon game.PokemonRegistry) SelectionModel {
 	list.SetShowFilter(true)
 
 	var editorModels [len(editors)]editor
-	editorModels[0] = newDetailsEditor()
 
 	return SelectionModel{list: list, editorModels: editorModels}
 }
@@ -135,7 +134,7 @@ func (m SelectionModel) View() string {
             Move 3: %s
             Move 4: %s
             `,
-			currentPokemon.Base.Name,
+			currentPokemon.Nickname,
 			currentPokemon.Level,
 
 			currentPokemon.Hp.Value,
@@ -236,6 +235,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.currentPokemonIndex = len(m.Team) - 1
 				m.mode = MODE_EDITPOKE
+				m.editorModels[0] = newDetailsEditor(m.Team[0])
 			}
 		case tea.KeyEscape:
 			// Leave editing mode and go back to add mode
