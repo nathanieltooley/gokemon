@@ -133,6 +133,8 @@ func (m SelectionModel) View() string {
             Move 2: %s
             Move 3: %s
             Move 4: %s
+
+            MAX EVS: %d
             `,
 			currentPokemon.Nickname,
 			currentPokemon.Level,
@@ -170,6 +172,7 @@ func (m SelectionModel) View() string {
 			"",
 			"",
 			"",
+			game.MAX_TOTAL_EV-currentPokemon.GetCurrentEvTotal(),
 		)
 
 		var newEditors [len(editors)]string
