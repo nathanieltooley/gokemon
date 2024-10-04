@@ -109,6 +109,10 @@ func (p *Pokemon) ReCalcStats() {
 	p.Speed.Value = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
 }
 
+func (p *Pokemon) GetCurrentEvTotal() int {
+	return int(p.Hp.Ev) + int(p.Attack.Ev) + int(p.Def.Ev) + int(p.SpAttack.Ev) + int(p.SpDef.Ev) + int(p.Speed.Ev)
+}
+
 type PokemonBuilder struct {
 	poke *Pokemon
 }
