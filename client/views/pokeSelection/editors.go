@@ -245,14 +245,16 @@ func (e evivEditor) View() string {
 	return lipgloss.JoinVertical(lipgloss.Center, views...)
 }
 
-func getValidatedEv(inputString string) (int, error) {
+func getValidatedEv(inputString string, allowedTotalEvs int) (int, error) {
 	parsedValue, error := strconv.ParseInt(inputString, 0, 64)
 
 	if error != nil {
 		return 0, error
 	}
 
-	return int(math.Min(game.MAX_EV, float64(parsedValue))), nil
+	allowedEvs := math.Min(game.MAX_EV, float64(allowedTotalEvs))
+
+	return int(math.Min(allowedEvs, float64(parsedValue))), nil
 }
 
 func getValidatedIv(inputString string) (int, error) {
@@ -269,11 +271,24 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 	var cmd tea.Cmd
 	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
 
+	// Zero EVs out so that the EVs from last loop
+	// dont mess with the values from this loop
+	currentPokemon.Hp.Ev = 0
+	currentPokemon.Attack.Ev = 0
+	currentPokemon.Def.Ev = 0
+	currentPokemon.SpAttack.Ev = 0
+	currentPokemon.SpDef.Ev = 0
+	currentPokemon.Speed.Ev = 0
+
 	e.is, cmd = e.is.Update(msg)
 
-	// TODO: Validate Max EV count
 	for i, input := range e.is.inputs {
+		allowedEvs := game.MAX_TOTAL_EV - currentPokemon.GetCurrentEvTotal()
 		currentInputValue := input.Value()
+
+		if allowedEvs <= 0 {
+			break
+		}
 
 		switch i {
 		case EI_HPIV:
@@ -283,7 +298,7 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.Hp.Iv = uint8(parsedIv)
 			}
 		case EI_HPEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.Hp.Ev = uint8(parsedEv)
@@ -296,7 +311,7 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.Attack.Iv = uint8(parsedIv)
 			}
 		case EI_ATTACKEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.Attack.Ev = uint8(parsedEv)
@@ -309,7 +324,7 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.Def.Iv = uint8(parsedIv)
 			}
 		case EI_DEFEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.Def.Ev = uint8(parsedEv)
@@ -322,7 +337,7 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.SpAttack.Iv = uint8(parsedIv)
 			}
 		case EI_SPAEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.SpAttack.Ev = uint8(parsedEv)
@@ -335,7 +350,7 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.SpDef.Iv = uint8(parsedIv)
 			}
 		case EI_SPDEFEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.SpDef.Ev = uint8(parsedEv)
@@ -348,13 +363,12 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 				currentPokemon.Speed.Iv = uint8(parsedIv)
 			}
 		case EI_SPEEDEV:
-			parsedEv, err := getValidatedEv(currentInputValue)
+			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
 				currentPokemon.Speed.Ev = uint8(parsedEv)
 			}
 		}
-
 	}
 
 	currentPokemon.ReCalcStats()
