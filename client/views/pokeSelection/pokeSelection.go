@@ -233,7 +233,9 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.currentPokemonIndex = len(m.Team) - 1
 				m.mode = MODE_EDITPOKE
+
 				m.editorModels[0] = newDetailsEditor(m.Team[0])
+				m.editorModels[4] = newEVIVEditor(m.Team[0])
 			}
 		case tea.KeyEscape:
 			// Leave editing mode and go back to add mode
