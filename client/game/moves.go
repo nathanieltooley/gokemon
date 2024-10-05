@@ -73,11 +73,14 @@ type MoveFull struct {
 	Type             string
 }
 
-// TODO: Maybe make this a map and not a slice?
-type MoveRegistry []MoveFull
+type MoveRegistry struct {
+	// TODO: Maybe make this a map
+	MoveList []MoveFull
+	MoveMap  map[string][]string
+}
 
-func (m MoveRegistry) GetMove(name string) *MoveFull {
-	for _, move := range m {
+func (m *MoveRegistry) GetMove(name string) *MoveFull {
+	for _, move := range m.MoveList {
 		if move.Name == name {
 			return &move
 		}
@@ -86,18 +89,32 @@ func (m MoveRegistry) GetMove(name string) *MoveFull {
 	return nil
 }
 
-func LoadMoves(movesPath string) (MoveRegistry, error) {
-	dataBytes, err := os.ReadFile(movesPath)
+func LoadMoves(movesPath string, movesMapPath string) (MoveRegistry, error) {
+	var moveRegistry MoveRegistry
+	moveDataBytes, err := os.ReadFile(movesPath)
 
 	if err != nil {
-		return nil, err
+		return moveRegistry, err
+	}
+
+	moveMapBytes, err := os.ReadFile(movesMapPath)
+
+	if err != nil {
+		return moveRegistry, err
 	}
 
 	parsedMoves := make([]MoveFull, 0, 1000)
+	moveMap := make(map[string][]string)
 
-	if err := json.Unmarshal(dataBytes, &parsedMoves); err != nil {
-		return parsedMoves, err
+	if err := json.Unmarshal(moveDataBytes, &parsedMoves); err != nil {
+		return moveRegistry, err
+	}
+	if err := json.Unmarshal(moveMapBytes, &moveMap); err != nil {
+		return moveRegistry, err
 	}
 
-	return parsedMoves, nil
+	moveRegistry.MoveList = parsedMoves
+	moveRegistry.MoveMap = moveMap
+
+	return moveRegistry, nil
 }

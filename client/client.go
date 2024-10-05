@@ -48,20 +48,14 @@ func main() {
 	}
 
 	log.Println("Loading Move Data")
-	moves, err := game.LoadMoves("./data/moves.json")
+	moves, err := game.LoadMoves("./data/moves.json", "./data/movesMap.json")
 
 	if err != nil {
 		log.Fatalf("Failed to load move data: %s\n", err)
 	}
 
-	log.Printf("Loaded %d moves\n", len(moves))
-
-	// bulba := basePokemon.GetPokemonByName("bulbasaur")
-	//
-	// b1 := game.NewPokeBuilder(bulba).SetPerfectIvs().SetLevel(100).Build()
-	// b2 := game.NewPokeBuilder(bulba).SetPerfectIvs().SetLevel(100).Build()
-	//
-	// log.Fatalln(game.Damage(b1, b2, moves.GetMove("pound")))
+	log.Printf("Loaded %d moves\n", len(moves.MoveList))
+	log.Printf("Loaded move info for %d pokemon\n", len(moves.MoveMap))
 
 	m := model{
 		currentView: pokeselection.NewModel(basePokemon),
