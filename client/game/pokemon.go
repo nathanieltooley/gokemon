@@ -121,7 +121,7 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 	poke := Pokemon{
 		Base:     base,
 		Nickname: base.Name,
-		Level:    0,
+		Level:    1,
 		Hp:       Stat{0, 0, 0},
 		Attack:   Stat{0, 0, 0},
 		Def:      Stat{0, 0, 0},
