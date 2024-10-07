@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -422,13 +423,15 @@ func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEdito
 	}
 
 	for i := 0; i < 4; i++ {
-		list := list.New(items, moveItemDelegate{}, 20, 30)
+		list := list.New(items, moveItemDelegate{}, 20, 15)
 		list.SetFilteringEnabled(true)
 		list.SetShowStatusBar(false)
 		list.SetShowFilter(true)
 
 		// BUG: This gets reenabled if a filter is clear after being applied
 		list.KeyMap.Quit.SetEnabled(false)
+		list.KeyMap.NextPage = key.NewBinding(key.WithKeys("l"))
+		list.KeyMap.PrevPage = key.NewBinding(key.WithKeys("h"))
 
 		list.Title = fmt.Sprintf("Select Move %d", i)
 		lists[i] = list
