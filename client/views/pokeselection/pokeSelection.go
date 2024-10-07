@@ -46,10 +46,11 @@ type SelectionModel struct {
 	mode                int
 	currentPokemonIndex int
 	currentEditorIndex  int
+	moveRegistry        *game.MoveRegistry
 	editorModels        [len(editors)]editor
 }
 
-func NewModel(pokemon game.PokemonRegistry) SelectionModel {
+func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionModel {
 	items := make([]list.Item, len(pokemon))
 	for i, pkm := range pokemon {
 		items[i] = item{&pkm}
@@ -63,7 +64,7 @@ func NewModel(pokemon game.PokemonRegistry) SelectionModel {
 
 	var editorModels [len(editors)]editor
 
-	return SelectionModel{list: list, editorModels: editorModels}
+	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves}
 }
 
 func (m SelectionModel) Init() tea.Cmd {
@@ -238,6 +239,8 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = MODE_EDITPOKE
 
 				m.editorModels[0] = newDetailsEditor(m.Team[0])
+				m.editorModels[1] = newMoveEditor(m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
+				m.editorModels[3] = newAbilityEditor()
 				m.editorModels[4] = newEVIVEditor(m.Team[0])
 			}
 		case tea.KeyEscape:

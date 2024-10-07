@@ -375,3 +375,48 @@ func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 
 	return e, cmd
 }
+
+type moveEditor struct {
+	validMoves []*game.MoveFull
+
+	moveIndex     int
+	selectedMoves [4]*game.MoveFull
+}
+
+func newMoveEditor(validMoves []*game.MoveFull) moveEditor {
+	var startingMoves [4]*game.MoveFull
+	return moveEditor{
+		validMoves,
+
+		0,
+		startingMoves,
+	}
+}
+
+func (e moveEditor) View() string {
+	moves := []string{"Move 1", "Move 2", "Move 3", "Move 4"}
+
+	return lipgloss.JoinVertical(lipgloss.Left, moves...)
+}
+
+func (e moveEditor) Update(rootModel *SelectionModel, _ tea.Msg) (editor, tea.Cmd) {
+	var cmd tea.Cmd
+
+	return e, cmd
+}
+
+type abilityEditor struct {
+}
+
+func newAbilityEditor() abilityEditor {
+	return abilityEditor{}
+}
+
+func (e abilityEditor) View() string {
+	return lipgloss.Place(60, 10, lipgloss.Center, lipgloss.Center, "Hello World!", lipgloss.WithWhitespaceBackground(lipgloss.Color("255")))
+}
+
+func (e abilityEditor) Update(rootModel *SelectionModel, _ tea.Msg) (editor, tea.Cmd) {
+	var cmd tea.Cmd
+	return e, cmd
+}

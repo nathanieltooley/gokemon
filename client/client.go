@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/views/pokeSelection"
+	"github.com/nathanieltooley/gokemon/client/views/pokeselection"
 )
 
 type model struct {
@@ -58,7 +58,7 @@ func main() {
 	log.Printf("Loaded move info for %d pokemon\n", len(moves.MoveMap))
 
 	m := model{
-		currentView: pokeselection.NewModel(basePokemon),
+		currentView: pokeselection.NewModel(basePokemon, &moves),
 	}
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
