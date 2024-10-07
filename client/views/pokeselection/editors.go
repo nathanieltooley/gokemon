@@ -1,9 +1,12 @@
 package pokeselection
 
 import (
+	"fmt"
+	"io"
 	"math"
 	"strconv"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -381,26 +384,108 @@ type moveEditor struct {
 
 	moveIndex     int
 	selectedMoves [4]*game.MoveFull
+	lists         [4]list.Model
+}
+
+type moveItem struct {
+	*game.MoveFull
+}
+
+func (i moveItem) FilterValue() string {
+	return i.Name
+}
+
+type moveItemDelegate struct{}
+
+func (i moveItemDelegate) Height() int                             { return 1 }
+func (i moveItemDelegate) Spacing() int                            { return 0 }
+func (i moveItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (i moveItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	item := listItem.(moveItem)
+
+	var renderStr string
+	renderStr = fmt.Sprintf("%d. %s", index, item.Name)
+	if m.Index() == index {
+		renderStr = fmt.Sprintf("> %d. %s", index, item.Name)
+	}
+
+	fmt.Fprint(w, renderStr)
 }
 
 func newMoveEditor(validMoves []*game.MoveFull) moveEditor {
 	var startingMoves [4]*game.MoveFull
+	var lists [4]list.Model
+
+	items := make([]list.Item, len(validMoves))
+	for i, move := range validMoves {
+		items[i] = moveItem{move}
+	}
+
+	for i := 0; i < 4; i++ {
+		list := list.New(items, moveItemDelegate{}, 20, 30)
+		list.SetFilteringEnabled(true)
+		list.SetShowStatusBar(false)
+		list.SetShowFilter(true)
+
+		list.KeyMap.Quit.SetEnabled(false)
+
+		list.Title = fmt.Sprintf("Select Move %d", i)
+		lists[i] = list
+	}
+
 	return moveEditor{
 		validMoves,
 
 		0,
 		startingMoves,
+		lists,
 	}
 }
 
 func (e moveEditor) View() string {
 	moves := []string{"Move 1", "Move 2", "Move 3", "Move 4"}
 
-	return lipgloss.JoinVertical(lipgloss.Left, moves...)
+	for i := range moves {
+		if i == e.moveIndex {
+			moves[i] = fmt.Sprintf("> %s", moves[i])
+		}
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, e.lists[e.moveIndex].View(), lipgloss.JoinVertical(lipgloss.Left, moves...))
 }
 
-func (e moveEditor) Update(rootModel *SelectionModel, _ tea.Msg) (editor, tea.Cmd) {
+func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyTab:
+			e.moveIndex++
+
+			if e.moveIndex > 3 {
+				e.moveIndex = 0
+			}
+		case tea.KeyShiftTab:
+			e.moveIndex--
+
+			if e.moveIndex < 0 {
+				e.moveIndex = 3
+			}
+		}
+	}
+
+	newList, cmd := e.lists[e.moveIndex].Update(msg)
+	e.lists[e.moveIndex] = newList
+
+	switch e.lists[e.moveIndex].FilterState() {
+	case list.Filtering:
+		fallthrough
+	case list.FilterApplied:
+		rootModel.listeningForEscape = false
+	default:
+		rootModel.listeningForEscape = true
+	}
 
 	return e, cmd
 }

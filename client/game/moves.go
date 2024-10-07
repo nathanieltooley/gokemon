@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 type EffectEntry struct {
@@ -90,7 +91,8 @@ func (m *MoveRegistry) GetMove(name string) *MoveFull {
 }
 
 func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*MoveFull {
-	moves := m.MoveMap[pokemonName]
+	pokemonLowerName := strings.ToLower(pokemonName)
+	moves := m.MoveMap[pokemonLowerName]
 	movesFull := make([]*MoveFull, 0, len(moves))
 
 	for _, moveName := range moves {

@@ -48,6 +48,7 @@ type SelectionModel struct {
 	currentEditorIndex  int
 	moveRegistry        *game.MoveRegistry
 	editorModels        [len(editors)]editor
+	listeningForEscape  bool
 }
 
 func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionModel {
@@ -64,7 +65,7 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionM
 
 	var editorModels [len(editors)]editor
 
-	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves}
+	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves, listeningForEscape: true}
 }
 
 func (m SelectionModel) Init() tea.Cmd {
@@ -245,7 +246,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyEscape:
 			// Leave editing mode and go back to add mode
-			if m.mode == MODE_EDITPOKE {
+			if m.mode == MODE_EDITPOKE && m.listeningForEscape {
 				m.mode = MODE_ADDPOKE
 			}
 
