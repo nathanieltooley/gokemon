@@ -447,13 +447,18 @@ func (e moveEditor) View() string {
 	moves := []string{"Move 1", "Move 2", "Move 3", "Move 4"}
 
 	for i := range moves {
-		if i == e.moveIndex {
-			move := "Nothing"
-			if e.selectedMoves[i] != nil {
-				move = e.selectedMoves[i].Name
-			}
-			moves[i] = fmt.Sprintf("> %s: %s", moves[i], move)
+		move := "Nothing"
+
+		if e.selectedMoves[i] != nil {
+			move = e.selectedMoves[i].Name
 		}
+
+		if i == e.moveIndex {
+			moves[i] = fmt.Sprintf("> %s: %s", moves[i], move)
+		} else {
+			moves[i] = fmt.Sprintf("%s: %s", moves[i], move)
+		}
+
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, e.lists[e.moveIndex].View(), lipgloss.JoinVertical(lipgloss.Left, moves...))
