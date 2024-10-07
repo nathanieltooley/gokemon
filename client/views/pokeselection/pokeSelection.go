@@ -209,7 +209,6 @@ func (m SelectionModel) View() string {
 	}
 
 	return ""
-
 }
 
 func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -240,7 +239,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = MODE_EDITPOKE
 
 				m.editorModels[0] = newDetailsEditor(m.Team[0])
-				m.editorModels[1] = newMoveEditor(m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
+				m.editorModels[1] = newMoveEditor(m.GetCurrentPokemon(), m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
 				m.editorModels[3] = newAbilityEditor()
 				m.editorModels[4] = newEVIVEditor(m.Team[0])
 			}
@@ -288,6 +287,10 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, cmd
+}
+
+func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
+	return s.Team[s.currentPokemonIndex]
 }
 
 type item struct {

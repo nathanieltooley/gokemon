@@ -412,8 +412,9 @@ func (i moveItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	fmt.Fprint(w, renderStr)
 }
 
-func newMoveEditor(validMoves []*game.MoveFull) moveEditor {
+func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEditor {
 	var startingMoves [4]*game.MoveFull
+	copy(pokemon.Moves[:], startingMoves[:])
 	var lists [4]list.Model
 
 	items := make([]list.Item, len(validMoves))
@@ -480,7 +481,10 @@ func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 		case tea.KeyEnter:
 			currentList := e.lists[e.moveIndex]
 			choice := currentList.Items()[currentList.Index()].(moveItem)
+
 			e.selectedMoves[e.moveIndex] = choice.MoveFull
+			// Update the actual pokemon as well
+			rootModel.GetCurrentPokemon().Moves[e.moveIndex] = choice.MoveFull
 
 			e.moveIndex++
 
