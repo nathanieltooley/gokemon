@@ -413,8 +413,7 @@ func (i moveItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 }
 
 func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEditor {
-	var startingMoves [4]*game.MoveFull
-	copy(pokemon.Moves[:], startingMoves[:])
+	startingMoves := pokemon.Moves
 	var lists [4]list.Model
 
 	items := make([]list.Item, len(validMoves))

@@ -18,16 +18,25 @@ var (
 	unselectedEditorStyle = lipgloss.NewStyle().Margin(2)
 	selectedEditorStyle   = lipgloss.NewStyle().Margin(2).Bold(true).Border(lipgloss.BlockBorder(), true)
 
-	pokemonTeamStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Width(20)
+	pokemonTeamStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Width(20)
+	highlightedPokemonTeamStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder(), true).Align(lipgloss.Center).Width(20)
 )
 
 var (
 	selectEditorLeft = key.NewBinding(
-		key.WithKeys("editorLeft", "left"),
+		key.WithKeys("left"),
 	)
 
 	selectEditorRight = key.NewBinding(
-		key.WithKeys("editorRight", "right"),
+		key.WithKeys("right"),
+	)
+
+	moveTeamDown = key.NewBinding(
+		key.WithKeys("j", "down"),
+	)
+
+	moveTeamUp = key.NewBinding(
+		key.WithKeys("k", "up"),
 	)
 )
 
@@ -49,6 +58,7 @@ type SelectionModel struct {
 	moveRegistry        *game.MoveRegistry
 	editorModels        [len(editors)]editor
 	listeningForEscape  bool
+	addingNewPokemon    bool
 }
 
 func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionModel {
@@ -65,7 +75,7 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionM
 
 	var editorModels [len(editors)]editor
 
-	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves, listeningForEscape: true}
+	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves, listeningForEscape: true, addingNewPokemon: true}
 }
 
 func (m SelectionModel) Init() tea.Cmd {
@@ -95,12 +105,18 @@ func (m SelectionModel) View() string {
 
 		teamPanels := make([]string, 0)
 
-		for _, pokemon := range m.Team {
-			panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Base.Name, pokemon.Level)
-			teamPanels = append(teamPanels, panel)
+		for i, pokemon := range m.Team {
+			panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
+
+			if i == m.currentPokemonIndex && !m.addingNewPokemon {
+				teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))
+			} else {
+
+				teamPanels = append(teamPanels, pokemonTeamStyle.Render(panel))
+			}
 		}
 
-		teamView := pokemonTeamStyle.Render(lipgloss.JoinVertical(lipgloss.Center, teamPanels...))
+		teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
 
 		return lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView)
 	} else if m.mode == MODE_EDITPOKE {
@@ -216,7 +232,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmd = nil
 
 	// Update add pokemon list in addpoke mode
-	if m.mode == MODE_ADDPOKE {
+	if m.mode == MODE_ADDPOKE && m.addingNewPokemon {
 		m.list, cmd = m.list.Update(msg)
 		choice, _ := m.list.Items()[m.list.Index()].(item)
 
@@ -230,23 +246,36 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// Select pokemon and enter editing view
 			if m.mode == MODE_ADDPOKE {
-				if m.Choice != nil && len(m.Team) < 6 {
-					newPokemon := game.NewPokeBuilder(m.Choice).Build()
-					m.Team = append(m.Team, newPokemon)
+				if m.addingNewPokemon {
+					if m.Choice != nil && len(m.Team) < 6 {
+						newPokemon := game.NewPokeBuilder(m.Choice).Build()
+						m.Team = append(m.Team, newPokemon)
+					}
+
+					m.currentPokemonIndex = len(m.Team) - 1
 				}
 
-				m.currentPokemonIndex = len(m.Team) - 1
-				m.mode = MODE_EDITPOKE
+				currentPokemon := m.GetCurrentPokemon()
 
-				m.editorModels[0] = newDetailsEditor(m.Team[0])
-				m.editorModels[1] = newMoveEditor(m.GetCurrentPokemon(), m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
-				m.editorModels[3] = newAbilityEditor()
-				m.editorModels[4] = newEVIVEditor(m.Team[0])
+				if currentPokemon != nil {
+					m.mode = MODE_EDITPOKE
+
+					m.editorModels[0] = newDetailsEditor(currentPokemon)
+					m.editorModels[1] = newMoveEditor(currentPokemon, m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
+					m.editorModels[3] = newAbilityEditor()
+					m.editorModels[4] = newEVIVEditor(currentPokemon)
+				}
+
 			}
 		case tea.KeyEscape:
 			// Leave editing mode and go back to add mode
 			if m.mode == MODE_EDITPOKE && m.listeningForEscape {
 				m.mode = MODE_ADDPOKE
+			}
+
+		case tea.KeyTab:
+			if m.mode == MODE_ADDPOKE {
+				m.addingNewPokemon = !m.addingNewPokemon
 			}
 
 		case tea.KeyCtrlC:
@@ -272,6 +301,24 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+
+		if m.mode == MODE_ADDPOKE && !m.addingNewPokemon {
+			if key.Matches(msg, moveTeamDown) {
+				m.currentPokemonIndex++
+
+				if m.currentPokemonIndex > len(m.Team)-1 {
+					m.currentPokemonIndex = 0
+				}
+			}
+
+			if key.Matches(msg, moveTeamUp) {
+				m.currentPokemonIndex--
+
+				if m.currentPokemonIndex < 0 {
+					m.currentPokemonIndex = len(m.Team) - 1
+				}
+			}
+		}
 	}
 
 	// Update Current Editor
@@ -290,7 +337,11 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
-	return s.Team[s.currentPokemonIndex]
+	if len(s.Team) > 0 {
+		return s.Team[s.currentPokemonIndex]
+	}
+
+	return nil
 }
 
 type item struct {
