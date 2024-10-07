@@ -427,6 +427,7 @@ func newMoveEditor(validMoves []*game.MoveFull) moveEditor {
 		list.SetShowStatusBar(false)
 		list.SetShowFilter(true)
 
+		// BUG: This gets reenabled if a filter is clear after being applied
 		list.KeyMap.Quit.SetEnabled(false)
 
 		list.Title = fmt.Sprintf("Select Move %d", i)
@@ -447,7 +448,11 @@ func (e moveEditor) View() string {
 
 	for i := range moves {
 		if i == e.moveIndex {
-			moves[i] = fmt.Sprintf("> %s", moves[i])
+			move := "Nothing"
+			if e.selectedMoves[i] != nil {
+				move = e.selectedMoves[i].Name
+			}
+			moves[i] = fmt.Sprintf("> %s: %s", moves[i], move)
 		}
 	}
 
@@ -471,6 +476,16 @@ func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 
 			if e.moveIndex < 0 {
 				e.moveIndex = 3
+			}
+		case tea.KeyEnter:
+			currentList := e.lists[e.moveIndex]
+			choice := currentList.Items()[currentList.Index()].(moveItem)
+			e.selectedMoves[e.moveIndex] = choice.MoveFull
+
+			e.moveIndex++
+
+			if e.moveIndex > 3 {
+				e.moveIndex = 0
 			}
 		}
 	}
