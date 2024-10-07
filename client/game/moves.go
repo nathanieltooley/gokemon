@@ -89,6 +89,17 @@ func (m *MoveRegistry) GetMove(name string) *MoveFull {
 	return nil
 }
 
+func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*MoveFull {
+	moves := m.MoveMap[pokemonName]
+	movesFull := make([]*MoveFull, 0, len(moves))
+
+	for _, moveName := range moves {
+		movesFull = append(movesFull, m.GetMove(moveName))
+	}
+
+	return movesFull
+}
+
 func LoadMoves(movesPath string, movesMapPath string) (MoveRegistry, error) {
 	var moveRegistry MoveRegistry
 	moveDataBytes, err := os.ReadFile(movesPath)
