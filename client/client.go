@@ -49,7 +49,6 @@ func main() {
 
 	log.Println("Loading Move Data")
 	moves, err := game.LoadMoves("./data/moves.json", "./data/movesMap.json")
-
 	if err != nil {
 		log.Fatalf("Failed to load move data: %s\n", err)
 	}
