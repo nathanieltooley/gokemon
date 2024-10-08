@@ -4,20 +4,20 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/views/pokeselection"
+	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/client/views/mainmenu"
 )
 
-type model struct {
+type RootModel struct {
 	currentView tea.Model
 	quitting    bool
 }
 
-func (m model) Init() tea.Cmd {
+func (m RootModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newView, cmd := m.currentView.Update(msg)
 
 	m.currentView = newView
@@ -25,47 +25,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Disables the closing of the program when pressing ESC
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyEscape {
+		switch msg.Type {
+		case tea.KeyEscape:
 			return m, nil
+
+		case tea.KeyCtrlC:
+			cmd = tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		global.TERM_HEIGHT = msg.Height
+		global.TERM_WIDTH = msg.Width
 	}
 
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m RootModel) View() string {
 	return m.currentView.View()
 }
 
 func main() {
-	log.Println("Loading Pokemon Data")
-	basePokemon, err := game.LoadBasePokemon("./data/gen1-data.csv")
-
-	log.Printf("Loaded %d pokemon\n", len(basePokemon))
-
-	if err != nil {
-		log.Fatalf("Failed to load pokemon data: %s\n", err)
+	m := RootModel{
+		// currentView: pokeselection.NewModel(basePokemon, &moves, abilities),
+		currentView: nil,
 	}
 
-	log.Println("Loading Move Data")
-	moves, err := game.LoadMoves("./data/moves.json", "./data/movesMap.json")
-	if err != nil {
-		log.Fatalf("Failed to load move data: %s\n", err)
-	}
+	m.currentView = mainmenu.NewModel()
 
-	log.Printf("Loaded %d moves\n", len(moves.MoveList))
-	log.Printf("Loaded move info for %d pokemon\n", len(moves.MoveMap))
-
-	abilities, err := game.LoadAbilities("./data/abilities.json")
-	if err != nil {
-		log.Fatalf("Failed to load ability info: %s\n", err)
-	}
-
-	log.Printf("Loaded abilities for %d pokemon\n", len(abilities))
-
-	m := model{
-		currentView: pokeselection.NewModel(basePokemon, &moves, abilities),
-	}
+	log.Printf("Term Size: %d X %d\n", global.TERM_WIDTH, global.TERM_HEIGHT)
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		log.Fatalln("Error running program: ", err)

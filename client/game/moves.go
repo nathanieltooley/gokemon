@@ -1,8 +1,6 @@
 package game
 
 import (
-	"encoding/json"
-	"os"
 	"strings"
 )
 
@@ -100,34 +98,4 @@ func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*MoveFull {
 	}
 
 	return movesFull
-}
-
-func LoadMoves(movesPath string, movesMapPath string) (MoveRegistry, error) {
-	var moveRegistry MoveRegistry
-	moveDataBytes, err := os.ReadFile(movesPath)
-
-	if err != nil {
-		return moveRegistry, err
-	}
-
-	moveMapBytes, err := os.ReadFile(movesMapPath)
-
-	if err != nil {
-		return moveRegistry, err
-	}
-
-	parsedMoves := make([]MoveFull, 0, 1000)
-	moveMap := make(map[string][]string)
-
-	if err := json.Unmarshal(moveDataBytes, &parsedMoves); err != nil {
-		return moveRegistry, err
-	}
-	if err := json.Unmarshal(moveMapBytes, &moveMap); err != nil {
-		return moveRegistry, err
-	}
-
-	moveRegistry.MoveList = parsedMoves
-	moveRegistry.MoveMap = moveMap
-
-	return moveRegistry, nil
 }

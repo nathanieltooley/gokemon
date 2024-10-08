@@ -1,17 +1,12 @@
 package game
 
 import (
-	"encoding/csv"
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"os"
-	"strconv"
 	"strings"
 
 	err "errors"
-
-	"github.com/nathanieltooley/gokemon/client/errors"
 )
 
 const (
@@ -248,64 +243,6 @@ func (p PokemonRegistry) GetPokemonByName(pkmName string) *BasePokemon {
 	}
 
 	return nil
-}
-
-func LoadBasePokemon(dataFile string) (PokemonRegistry, error) {
-	fileReader, err := os.Open(dataFile)
-	defer fileReader.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	csvReader := csv.NewReader(fileReader)
-	csvReader.Read()
-	rows, err := csvReader.ReadAll()
-	if err != nil {
-		return nil, err
-	}
-
-	pokemonList := make([]BasePokemon, 0, len(rows))
-
-	// Load CSV data
-	for _, row := range rows {
-		// These are "unwraped" because the data inserted should always follow this format
-		pokedexNumber := int16(errors.Must(strconv.ParseInt(row[0], 10, 16)))
-		hp := int16(errors.Must(strconv.ParseInt(row[4], 10, 16)))
-		attack := int16(errors.Must(strconv.ParseInt(row[5], 10, 16)))
-		def := int16(errors.Must(strconv.ParseInt(row[6], 10, 16)))
-		spAttack := int16(errors.Must(strconv.ParseInt(row[7], 10, 16)))
-		spDef := int16(errors.Must(strconv.ParseInt(row[8], 10, 16)))
-		speed := int16(errors.Must(strconv.ParseInt(row[9], 10, 16)))
-
-		name := row[1]
-		type1Name := row[2]
-		type2Name := row[3]
-
-		var type1 *PokemonType = TYPE_MAP[type1Name]
-		var type2 *PokemonType = nil
-
-		if type2Name != "" {
-			type2 = TYPE_MAP[type2Name]
-		}
-
-		newPokemon := BasePokemon{
-			pokedexNumber,
-			name,
-			type1,
-			type2,
-			hp,
-			attack,
-			def,
-			spAttack,
-			spDef,
-			speed,
-		}
-
-		pokemonList = append(pokemonList, newPokemon)
-	}
-
-	return pokemonList, nil
 }
 
 func calcStat(baseValue int16, level uint8, iv uint8, ev uint8, natureMod float32) int16 {

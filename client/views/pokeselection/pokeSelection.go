@@ -84,6 +84,8 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities 
 		listeningForEscape: true,
 		addingNewPokemon:   true,
 		abilities:          abilities,
+
+		Choice: list.Items()[0].(item).BasePokemon,
 	}
 }
 
@@ -281,10 +283,6 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == MODE_ADDPOKE {
 				m.addingNewPokemon = !m.addingNewPokemon
 			}
-
-		case tea.KeyCtrlC:
-			cmd = tea.Quit
-
 		}
 
 		// Listen to key presses for edit mode
