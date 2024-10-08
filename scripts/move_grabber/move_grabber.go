@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/scripts"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -36,20 +37,18 @@ type MoveMetaPre struct {
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
 func (m *MoveMetaPre) ToFullMeta() (*game.MoveMeta, error) {
-	ailmentJson, err := followNamedResource[struct {
+	ailmentJson, err := scripts.FollowNamedResource[struct {
 		Id   int
 		Name string
 	}](m.Ailment)
-
 	if err != nil {
 		return nil, err
 	}
 
-	categoryJson, err := followNamedResource[struct {
+	categoryJson, err := scripts.FollowNamedResource[struct {
 		Id   int
 		Name string
 	}](m.Category)
-
 	if err != nil {
 		return nil, err
 	}
@@ -97,15 +96,14 @@ type MoveFullPre struct {
 }
 
 func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
-	damageClassJson, err := followNamedResource[struct {
+	damageClassJson, err := scripts.FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
-
 	if err != nil {
 		return nil, err
 	}
 
-	targetJson, err := followNamedResource[struct {
+	targetJson, err := scripts.FollowNamedResource[struct {
 		Id           int
 		Name         string
 		Descriptions []struct {
@@ -113,7 +111,6 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 			Language    game.NamedApiResource
 		}
 	}](m.Target)
-
 	if err != nil {
 		return nil, err
 	}
@@ -276,30 +273,4 @@ func main() {
 	defer f2.Close()
 
 	f2.Write(movesMapJson)
-}
-
-func followNamedResource[T any](n game.NamedApiResource) (T, error) {
-	response, err := http.Get(n.Url)
-
-	if err != nil {
-		// FIX: Feels very hacky
-		var t T
-		return t, err
-	}
-
-	bytes, err := io.ReadAll(response.Body)
-
-	if err != nil {
-		var t T
-		return t, err
-	}
-
-	var followedJson T
-
-	if err := json.Unmarshal(bytes, &followedJson); err != nil {
-		var t T
-		return t, err
-	}
-
-	return followedJson, nil
 }
