@@ -505,6 +505,8 @@ func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 	e.lists[e.moveIndex] = newList
 
 	switch e.lists[e.moveIndex].FilterState() {
+	// Escape is the default keybind for clearing a filter
+	// so we stop listening for it in the root selection model
 	case list.Filtering:
 		fallthrough
 	case list.FilterApplied:
@@ -517,17 +519,56 @@ func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.
 }
 
 type abilityEditor struct {
+	abilityListModel list.Model
 }
 
-func newAbilityEditor() abilityEditor {
-	return abilityEditor{}
+type abilityItem string
+
+func (a abilityItem) FilterValue() string {
+	return string(a)
+}
+
+type abilityItemDelegate struct{}
+
+func (i abilityItemDelegate) Height() int                             { return 1 }
+func (i abilityItemDelegate) Spacing() int                            { return 0 }
+func (i abilityItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (i abilityItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	var renderStr string
+	renderStr = fmt.Sprintf("%s", listItem)
+	if m.Index() == index {
+		renderStr = fmt.Sprintf("> %s", listItem)
+	}
+
+	fmt.Fprint(w, renderStr)
+}
+
+func newAbilityEditor(validAbilities []string) abilityEditor {
+	items := make([]list.Item, len(validAbilities))
+	for i, ability := range validAbilities {
+		items[i] = abilityItem(ability)
+	}
+
+	aList := list.New(items, abilityItemDelegate{}, 10, 10)
+	return abilityEditor{aList}
 }
 
 func (e abilityEditor) View() string {
-	return lipgloss.Place(60, 10, lipgloss.Center, lipgloss.Center, "Hello World!", lipgloss.WithWhitespaceBackground(lipgloss.Color("255")))
+	return e.abilityListModel.View()
 }
 
-func (e abilityEditor) Update(rootModel *SelectionModel, _ tea.Msg) (editor, tea.Cmd) {
+func (e abilityEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyEnter {
+			ability := e.abilityListModel.Items()[e.abilityListModel.Index()].(abilityItem)
+			rootModel.GetCurrentPokemon().Ability = string(ability)
+		}
+	}
+
+	e.abilityListModel, cmd = e.abilityListModel.Update(msg)
+
 	return e, cmd
 }

@@ -3,6 +3,7 @@ package pokeselection
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -59,9 +60,10 @@ type SelectionModel struct {
 	editorModels        [len(editors)]editor
 	listeningForEscape  bool
 	addingNewPokemon    bool
+	abilities           map[string][]string
 }
 
-func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionModel {
+func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities map[string][]string) SelectionModel {
 	items := make([]list.Item, len(pokemon))
 	for i, pkm := range pokemon {
 		items[i] = item{&pkm}
@@ -75,7 +77,14 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry) SelectionM
 
 	var editorModels [len(editors)]editor
 
-	return SelectionModel{list: list, editorModels: editorModels, moveRegistry: moves, listeningForEscape: true, addingNewPokemon: true}
+	return SelectionModel{
+		list:               list,
+		editorModels:       editorModels,
+		moveRegistry:       moves,
+		listeningForEscape: true,
+		addingNewPokemon:   true,
+		abilities:          abilities,
+	}
 }
 
 func (m SelectionModel) Init() tea.Cmd {
@@ -111,7 +120,6 @@ func (m SelectionModel) View() string {
 			if i == m.currentPokemonIndex && !m.addingNewPokemon {
 				teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))
 			} else {
-
 				teamPanels = append(teamPanels, pokemonTeamStyle.Render(panel))
 			}
 		}
@@ -183,7 +191,7 @@ func (m SelectionModel) View() string {
 
 			type1,
 			type2,
-			"",
+			currentPokemon.Ability,
 			"",
 
 			"",
@@ -212,10 +220,6 @@ func (m SelectionModel) View() string {
 
 		tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
 		return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
-
-		// TODO: EV / IV editor
-
-		// TODO: Move editor
 
 		// TODO: Ability editor
 
@@ -262,7 +266,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					m.editorModels[0] = newDetailsEditor(currentPokemon)
 					m.editorModels[1] = newMoveEditor(currentPokemon, m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
-					m.editorModels[3] = newAbilityEditor()
+					m.editorModels[3] = newAbilityEditor(m.abilities[strings.ToLower(currentPokemon.Base.Name)])
 					m.editorModels[4] = newEVIVEditor(currentPokemon)
 				}
 

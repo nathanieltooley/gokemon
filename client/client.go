@@ -56,8 +56,15 @@ func main() {
 	log.Printf("Loaded %d moves\n", len(moves.MoveList))
 	log.Printf("Loaded move info for %d pokemon\n", len(moves.MoveMap))
 
+	abilities, err := game.LoadAbilities("./data/abilities.json")
+	if err != nil {
+		log.Fatalf("Failed to load ability info: %s\n", err)
+	}
+
+	log.Printf("Loaded abilities for %d pokemon\n", len(abilities))
+
 	m := model{
-		currentView: pokeselection.NewModel(basePokemon, &moves),
+		currentView: pokeselection.NewModel(basePokemon, &moves, abilities),
 	}
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {

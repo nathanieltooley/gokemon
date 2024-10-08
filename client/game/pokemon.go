@@ -97,6 +97,7 @@ type Pokemon struct {
 	Speed    Stat
 	Moves    [4]*MoveFull
 	Nature   Nature
+	Ability  string
 }
 
 func (p *Pokemon) ReCalcStats() {
@@ -260,7 +261,6 @@ func LoadBasePokemon(dataFile string) (PokemonRegistry, error) {
 	csvReader := csv.NewReader(fileReader)
 	csvReader.Read()
 	rows, err := csvReader.ReadAll()
-
 	if err != nil {
 		return nil, err
 	}
