@@ -3,13 +3,16 @@ package pokeselection
 import (
 	"fmt"
 	"io"
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/views"
 )
 
 var (
@@ -39,6 +42,10 @@ var (
 	moveTeamUp = key.NewBinding(
 		key.WithKeys("k", "up"),
 	)
+
+	openSaveTeam = key.NewBinding(
+		key.WithKeys("s"),
+	)
 )
 
 var editors = [...]string{"Details", "Moves", "Item", "Ability", "EV/IV"}
@@ -46,6 +53,7 @@ var editors = [...]string{"Details", "Moves", "Item", "Ability", "EV/IV"}
 const (
 	MODE_ADDPOKE = iota
 	MODE_EDITPOKE
+	MODE_SAVETEAM
 )
 
 type SelectionModel struct {
@@ -61,6 +69,7 @@ type SelectionModel struct {
 	listeningForEscape  bool
 	addingNewPokemon    bool
 	abilities           map[string][]string
+	saveNameInput       textinput.Model
 }
 
 func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities map[string][]string) SelectionModel {
@@ -94,7 +103,8 @@ func (m SelectionModel) Init() tea.Cmd {
 }
 
 func (m SelectionModel) View() string {
-	if m.mode == MODE_ADDPOKE {
+	switch m.mode {
+	case MODE_ADDPOKE:
 		var body string
 		var header string
 
@@ -128,8 +138,8 @@ func (m SelectionModel) View() string {
 
 		teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
 
-		return lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView)
-	} else if m.mode == MODE_EDITPOKE {
+		return views.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+	case MODE_EDITPOKE:
 		// header := "Editing Pokemon"
 		// var body string
 
@@ -143,7 +153,6 @@ func (m SelectionModel) View() string {
 			type2 = currentPokemon.Base.Type2.Name
 		}
 
-		// TODO: Constant panel showing Pokemon Info
 		info := fmt.Sprintf(`
             Name: %s
             Level: %d
@@ -223,26 +232,51 @@ func (m SelectionModel) View() string {
 		tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
 		return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
 
-		// TODO: Ability editor
+	case MODE_SAVETEAM:
+		// teams, err := LoadTeamMap()
+		// if err != nil {
+		// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
+		// }
 
-		// TODO: Item editor
+		promptStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Padding(2, 15)
+		prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
 
-		// TODO: Pokemon Replacement panel?
+		// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
+		return views.Center(prompt)
 	}
 
 	return ""
 }
 
 func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	cmd = nil
+	cmds := make([]tea.Cmd, 0)
 
 	// Update add pokemon list in addpoke mode
 	if m.mode == MODE_ADDPOKE && m.addingNewPokemon {
+		var cmd tea.Cmd
 		m.list, cmd = m.list.Update(msg)
+		cmds = append(cmds, cmd)
 		choice, _ := m.list.Items()[m.list.Index()].(item)
 
 		m.Choice = choice.BasePokemon
+	}
+
+	if m.mode == MODE_SAVETEAM {
+		var cmd tea.Cmd
+		m.saveNameInput, cmd = m.saveNameInput.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	// Update Current Editor
+	if m.mode == MODE_EDITPOKE {
+		currentModel := m.editorModels[m.currentEditorIndex]
+
+		if currentModel != nil {
+			newModel, cmdFromEditor := currentModel.Update(&m, msg)
+			m.editorModels[m.currentEditorIndex] = newModel
+			cmds = append(cmds, cmdFromEditor)
+		}
+
 	}
 
 	// Listen to key presses
@@ -273,9 +307,20 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			}
+
+			if m.mode == MODE_SAVETEAM {
+				if m.saveNameInput.Value() != "" {
+					if err := SaveTeam(m.saveNameInput.Value(), m.Team); err != nil {
+						log.Fatalln("Failed to save team: ", err)
+					}
+
+					m.mode = MODE_ADDPOKE
+				}
+			}
+
 		case tea.KeyEscape:
 			// Leave editing mode and go back to add mode
-			if m.mode == MODE_EDITPOKE && m.listeningForEscape {
+			if (m.mode == MODE_EDITPOKE || m.mode == MODE_SAVETEAM) && m.listeningForEscape {
 				m.mode = MODE_ADDPOKE
 			}
 
@@ -321,21 +366,22 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-	}
 
-	// Update Current Editor
-	if m.mode == MODE_EDITPOKE {
-		currentModel := m.editorModels[m.currentEditorIndex]
+		if m.mode == MODE_ADDPOKE {
+			if key.Matches(msg, openSaveTeam) {
+				m.mode = MODE_SAVETEAM
 
-		if currentModel != nil {
-			newModel, cmdFromEditor := currentModel.Update(&m, msg)
-			m.editorModels[m.currentEditorIndex] = newModel
-			cmd = cmdFromEditor
+				newInput := textinput.New()
+				newInput.CharLimit = 20
+				newInput.Width = 20
+				newInput.Placeholder = "Team Name"
+				cmds = append(cmds, newInput.Focus())
+				m.saveNameInput = newInput
+			}
 		}
-
 	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
