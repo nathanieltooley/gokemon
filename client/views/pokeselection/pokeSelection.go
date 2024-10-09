@@ -85,7 +85,7 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities 
 		addingNewPokemon:   true,
 		abilities:          abilities,
 
-		Choice: list.Items()[0].(item).BasePokemon,
+		Choice: list.Items()[0].(item).BasePokemon, // grab first pokemon as default
 	}
 }
 
