@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/client/views"
 	"github.com/nathanieltooley/gokemon/client/views/pokeselection"
 )
 
@@ -35,7 +36,9 @@ func (m MainMenuModel) View() string {
 		}
 	}
 
-	return lipgloss.PlaceHorizontal(global.TERM_WIDTH, lipgloss.Center, lipgloss.PlaceVertical(global.TERM_HEIGHT, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, buttons...)))
+	items := []string{"Gokemon!"}
+	items = append(items, buttons...)
+	return views.Center(lipgloss.JoinVertical(lipgloss.Center, items...))
 }
 
 func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
