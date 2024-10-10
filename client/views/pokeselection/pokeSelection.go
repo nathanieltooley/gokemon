@@ -105,144 +105,11 @@ func (m SelectionModel) Init() tea.Cmd {
 func (m SelectionModel) View() string {
 	switch m.mode {
 	case MODE_ADDPOKE:
-		var body string
-		var header string
-
-		if m.Choice != nil {
-			body = fmt.Sprintf("Hp: %d\nAttack: %d\nDef: %d\nSpAttack: %d\nSpDef: %d\nSpeed: %d\n",
-				m.Choice.Hp,
-				m.Choice.Attack,
-				m.Choice.Def,
-				m.Choice.SpAttack,
-				m.Choice.SpDef,
-				m.Choice.Speed)
-			header = fmt.Sprintf("Pokemon: %s", m.Choice.Name)
-		} else {
-			body = ""
-		}
-
-		dialog := lipgloss.JoinVertical(lipgloss.Left, infoHeaderStyle.Render(header), body)
-		selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.list.View())
-
-		teamPanels := make([]string, 0)
-
-		for i, pokemon := range m.Team {
-			panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
-
-			if i == m.currentPokemonIndex && !m.addingNewPokemon {
-				teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))
-			} else {
-				teamPanels = append(teamPanels, pokemonTeamStyle.Render(panel))
-			}
-		}
-
-		teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
-
-		return views.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+		return RenderAddMode(m)
 	case MODE_EDITPOKE:
-		// header := "Editing Pokemon"
-		// var body string
-
-		currentPokemon := m.Team[m.currentPokemonIndex]
-		currentEditor := m.editorModels[m.currentEditorIndex]
-
-		type1 := currentPokemon.Base.Type1.Name
-		type2 := ""
-
-		if currentPokemon.Base.Type2 != nil {
-			type2 = currentPokemon.Base.Type2.Name
-		}
-
-		info := fmt.Sprintf(`
-            Name: %s
-            Level: %d
-            HP: %d:%d:%d
-            Attack: %d:%d:%d
-            Defense: %d:%d:%d
-            Special Attack: %d:%d:%d
-            Special Defense: %d:%d:%d
-            Speed: %d:%d:%d
-            Type: %s | %s
-            Ability: %s
-            Item: %s
-
-            Move 1: %s
-            Move 2: %s
-            Move 3: %s
-            Move 4: %s
-
-            MAX EVS: %d
-            `,
-			currentPokemon.Nickname,
-			currentPokemon.Level,
-
-			currentPokemon.Hp.Value,
-			currentPokemon.Hp.Iv,
-			currentPokemon.Hp.Ev,
-
-			currentPokemon.Attack.Value,
-			currentPokemon.Attack.Iv,
-			currentPokemon.Attack.Ev,
-
-			currentPokemon.Def.Value,
-			currentPokemon.Def.Iv,
-			currentPokemon.Def.Ev,
-
-			currentPokemon.SpAttack.Value,
-			currentPokemon.SpAttack.Iv,
-			currentPokemon.SpAttack.Ev,
-
-			currentPokemon.SpDef.Value,
-			currentPokemon.SpDef.Iv,
-			currentPokemon.SpDef.Ev,
-
-			currentPokemon.Speed.Value,
-			currentPokemon.Speed.Iv,
-			currentPokemon.Speed.Ev,
-
-			type1,
-			type2,
-			currentPokemon.Ability,
-			"",
-
-			"",
-			"",
-			"",
-			"",
-			game.MAX_TOTAL_EV-currentPokemon.GetCurrentEvTotal(),
-		)
-
-		var newEditors [len(editors)]string
-		// editorTabs := strings.Builder{}
-
-		for i, editor := range editors {
-			if i == m.currentEditorIndex {
-				newEditors[i] = selectedEditorStyle.Render(editor + "\t")
-			} else {
-				newEditors[i] = unselectedEditorStyle.Render(editor + "\t")
-			}
-		}
-
-		var editorView string
-
-		if currentEditor != nil {
-			editorView = currentEditor.View()
-		}
-
-		tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
-		return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
-
+		return RenderEditMode(m)
 	case MODE_SAVETEAM:
-		// teams, err := LoadTeamMap()
-		// if err != nil {
-		// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
-		// }
-
-		promptStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Padding(2, 15)
-		prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
-
-		// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
-		return views.Center(prompt)
+		return RenderTeamMode(m)
 	}
 
 	return ""
@@ -390,6 +257,150 @@ func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
 	}
 
 	return nil
+}
+
+func RenderAddMode(m SelectionModel) string {
+	var body string
+	var header string
+
+	if m.Choice != nil {
+		body = fmt.Sprintf("Hp: %d\nAttack: %d\nDef: %d\nSpAttack: %d\nSpDef: %d\nSpeed: %d\n",
+			m.Choice.Hp,
+			m.Choice.Attack,
+			m.Choice.Def,
+			m.Choice.SpAttack,
+			m.Choice.SpDef,
+			m.Choice.Speed)
+		header = fmt.Sprintf("Pokemon: %s", m.Choice.Name)
+	} else {
+		body = ""
+	}
+
+	dialog := lipgloss.JoinVertical(lipgloss.Left, infoHeaderStyle.Render(header), body)
+	selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.list.View())
+
+	teamPanels := make([]string, 0)
+
+	for i, pokemon := range m.Team {
+		panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
+
+		if i == m.currentPokemonIndex && !m.addingNewPokemon {
+			teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))
+		} else {
+			teamPanels = append(teamPanels, pokemonTeamStyle.Render(panel))
+		}
+	}
+
+	teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
+
+	return views.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+}
+
+func RenderEditMode(m SelectionModel) string {
+	// header := "Editing Pokemon"
+	// var body string
+
+	currentPokemon := m.Team[m.currentPokemonIndex]
+	currentEditor := m.editorModels[m.currentEditorIndex]
+
+	type1 := currentPokemon.Base.Type1.Name
+	type2 := ""
+
+	if currentPokemon.Base.Type2 != nil {
+		type2 = currentPokemon.Base.Type2.Name
+	}
+
+	info := fmt.Sprintf(`
+            Name: %s
+            Level: %d
+            HP: %d:%d:%d
+            Attack: %d:%d:%d
+            Defense: %d:%d:%d
+            Special Attack: %d:%d:%d
+            Special Defense: %d:%d:%d
+            Speed: %d:%d:%d
+            Type: %s | %s
+            Ability: %s
+            Item: %s
+
+            Move 1: %s
+            Move 2: %s
+            Move 3: %s
+            Move 4: %s
+
+            MAX EVS: %d
+            `,
+		currentPokemon.Nickname,
+		currentPokemon.Level,
+
+		currentPokemon.Hp.Value,
+		currentPokemon.Hp.Iv,
+		currentPokemon.Hp.Ev,
+
+		currentPokemon.Attack.Value,
+		currentPokemon.Attack.Iv,
+		currentPokemon.Attack.Ev,
+
+		currentPokemon.Def.Value,
+		currentPokemon.Def.Iv,
+		currentPokemon.Def.Ev,
+
+		currentPokemon.SpAttack.Value,
+		currentPokemon.SpAttack.Iv,
+		currentPokemon.SpAttack.Ev,
+
+		currentPokemon.SpDef.Value,
+		currentPokemon.SpDef.Iv,
+		currentPokemon.SpDef.Ev,
+
+		currentPokemon.Speed.Value,
+		currentPokemon.Speed.Iv,
+		currentPokemon.Speed.Ev,
+
+		type1,
+		type2,
+		currentPokemon.Ability,
+		"",
+
+		"",
+		"",
+		"",
+		"",
+		game.MAX_TOTAL_EV-currentPokemon.GetCurrentEvTotal(),
+	)
+
+	var newEditors [len(editors)]string
+	// editorTabs := strings.Builder{}
+
+	for i, editor := range editors {
+		if i == m.currentEditorIndex {
+			newEditors[i] = selectedEditorStyle.Render(editor + "\t")
+		} else {
+			newEditors[i] = unselectedEditorStyle.Render(editor + "\t")
+		}
+	}
+
+	var editorView string
+
+	if currentEditor != nil {
+		editorView = currentEditor.View()
+	}
+
+	tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
+	return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
+}
+
+func RenderTeamMode(m SelectionModel) string {
+	// teams, err := LoadTeamMap()
+	// if err != nil {
+	// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
+	// }
+
+	promptStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Padding(2, 15)
+	prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
+
+	// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
+	return views.Center(prompt)
 }
 
 type item struct {
