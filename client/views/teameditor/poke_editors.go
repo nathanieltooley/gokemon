@@ -2,7 +2,6 @@ package teameditor
 
 import (
 	"fmt"
-	"io"
 	"math"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/views"
 )
 
 type editor interface {
@@ -392,26 +392,8 @@ type moveItem struct {
 	*game.MoveFull
 }
 
-func (i moveItem) FilterValue() string {
-	return i.Name
-}
-
-type moveItemDelegate struct{}
-
-func (i moveItemDelegate) Height() int                             { return 1 }
-func (i moveItemDelegate) Spacing() int                            { return 0 }
-func (i moveItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (i moveItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	item := listItem.(moveItem)
-
-	var renderStr string
-	renderStr = fmt.Sprintf("%d. %s", index, item.Name)
-	if m.Index() == index {
-		renderStr = fmt.Sprintf("> %d. %s", index, item.Name)
-	}
-
-	fmt.Fprint(w, renderStr)
-}
+func (i moveItem) FilterValue() string { return i.Name }
+func (i moveItem) Value() string       { return i.Name }
 
 func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEditor {
 	startingMoves := pokemon.Moves
@@ -423,10 +405,11 @@ func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEdito
 	}
 
 	for i := 0; i < 4; i++ {
-		list := list.New(items, moveItemDelegate{}, 20, 15)
+		list := list.New(items, views.NewSimpleListDelegate(), 20, 15)
 		list.SetFilteringEnabled(true)
 		list.SetShowStatusBar(false)
 		list.SetShowFilter(true)
+		list.SetShowHelp(false)
 
 		// BUG: This gets reenabled if a filter is clear after being applied
 		list.KeyMap.Quit.SetEnabled(false)
@@ -524,24 +507,8 @@ type abilityEditor struct {
 
 type abilityItem string
 
-func (a abilityItem) FilterValue() string {
-	return string(a)
-}
-
-type abilityItemDelegate struct{}
-
-func (i abilityItemDelegate) Height() int                             { return 1 }
-func (i abilityItemDelegate) Spacing() int                            { return 0 }
-func (i abilityItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (i abilityItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	var renderStr string
-	renderStr = fmt.Sprintf("%s", listItem)
-	if m.Index() == index {
-		renderStr = fmt.Sprintf("> %s", listItem)
-	}
-
-	fmt.Fprint(w, renderStr)
-}
+func (a abilityItem) FilterValue() string { return string(a) }
+func (a abilityItem) Value() string       { return string(a) }
 
 func newAbilityEditor(validAbilities []string) abilityEditor {
 	items := make([]list.Item, len(validAbilities))
@@ -549,7 +516,8 @@ func newAbilityEditor(validAbilities []string) abilityEditor {
 		items[i] = abilityItem(ability)
 	}
 
-	aList := list.New(items, abilityItemDelegate{}, 10, 10)
+	aList := list.New(items, views.NewSimpleListDelegate(), 10, 10)
+	aList.SetShowStatusBar(false)
 	return abilityEditor{aList}
 }
 
