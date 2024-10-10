@@ -15,8 +15,8 @@ import (
 var (
 	HighlightedColor = lipgloss.Color("45")
 
-	ButtonStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Padding(1, 3)
-	HighlightedButtonStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder(), true).Padding(1, 3).Foreground(HighlightedColor)
+	ButtonStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Padding(1, 3).Align(lipgloss.Center)
+	HighlightedButtonStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder(), true).Padding(1, 3).Align(lipgloss.Center).Foreground(HighlightedColor)
 
 	HighlightedItemStyle = lipgloss.NewStyle().PaddingLeft(4).Foreground(HighlightedColor)
 	ItemStyle            = lipgloss.NewStyle().PaddingLeft(4)
