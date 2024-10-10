@@ -21,7 +21,7 @@ func (m MainMenuModel) Init() tea.Cmd {
 }
 
 func (m MainMenuModel) View() string {
-	buttons := []string{"Play Game", "Edit Teams"}
+	buttons := []string{"Play", "Edit Teams"}
 
 	for i, button := range buttons {
 		if i == m.focusIndex {
