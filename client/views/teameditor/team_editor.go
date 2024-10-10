@@ -1,4 +1,4 @@
-package pokeselection
+package teameditor
 
 import (
 	"fmt"
