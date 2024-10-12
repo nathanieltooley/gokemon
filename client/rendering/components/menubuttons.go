@@ -1,9 +1,10 @@
-package rendering
+package components
 
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
 var (
@@ -62,9 +63,9 @@ func (m MenuButtons) View() string {
 	views := make([]string, len(m.buttons))
 	for i, button := range m.buttons {
 		if i == m.index {
-			views[i] = HighlightedButtonStyle.Render(button.Name)
+			views[i] = rendering.HighlightedButtonStyle.Render(button.Name)
 		} else {
-			views[i] = ButtonStyle.Render(button.Name)
+			views[i] = rendering.ButtonStyle.Render(button.Name)
 		}
 	}
 

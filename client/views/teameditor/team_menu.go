@@ -5,10 +5,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/client/rendering/components"
 )
 
 type model struct {
-	buttons rendering.MenuButtons
+	buttons components.MenuButtons
 }
 
 type menuItem struct {
@@ -19,7 +20,7 @@ func (m menuItem) FilterValue() string { return m.string }
 func (m menuItem) Value() string       { return m.string }
 
 func NewTeamMenu() model {
-	buttons := []rendering.ViewButton{
+	buttons := []components.ViewButton{
 		{
 			Name: "Create New Team",
 			OnClick: func() tea.Model {
@@ -35,7 +36,7 @@ func NewTeamMenu() model {
 	}
 
 	return model{
-		rendering.NewMenuButton(buttons),
+		components.NewMenuButton(buttons),
 	}
 }
 

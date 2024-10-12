@@ -4,15 +4,16 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/views/teameditor"
 )
 
 type MainMenuModel struct {
-	buttons rendering.MenuButtons
+	buttons components.MenuButtons
 }
 
 func NewModel() MainMenuModel {
-	buttons := []rendering.ViewButton{
+	buttons := []components.ViewButton{
 		{
 			Name: "Play Game",
 			OnClick: func() tea.Model {
@@ -28,7 +29,7 @@ func NewModel() MainMenuModel {
 	}
 
 	return MainMenuModel{
-		buttons: rendering.NewMenuButton(buttons),
+		buttons: components.NewMenuButton(buttons),
 	}
 }
 
