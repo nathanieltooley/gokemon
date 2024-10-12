@@ -11,7 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/views"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
 type editor interface {
@@ -405,7 +405,7 @@ func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEdito
 	}
 
 	for i := 0; i < 4; i++ {
-		list := list.New(items, views.NewSimpleListDelegate(), 20, 15)
+		list := list.New(items, rendering.NewSimpleListDelegate(), 20, 15)
 		list.SetFilteringEnabled(true)
 		list.SetShowStatusBar(false)
 		list.SetShowFilter(true)
@@ -516,7 +516,7 @@ func newAbilityEditor(validAbilities []string) abilityEditor {
 		items[i] = abilityItem(ability)
 	}
 
-	aList := list.New(items, views.NewSimpleListDelegate(), 10, 10)
+	aList := list.New(items, rendering.NewSimpleListDelegate(), 10, 10)
 	aList.SetShowStatusBar(false)
 	return abilityEditor{aList}
 }

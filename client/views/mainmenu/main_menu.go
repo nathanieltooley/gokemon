@@ -3,17 +3,33 @@ package mainmenu
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/views"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/views/teameditor"
 )
 
 type MainMenuModel struct {
-	focusIndex int
+	buttons rendering.MenuButtons
 }
 
 func NewModel() MainMenuModel {
-	return MainMenuModel{}
+	buttons := []rendering.ViewButton{
+		{
+			Name: "Play Game",
+			OnClick: func() tea.Model {
+				return nil
+			},
+		},
+		{
+			Name: "Edit Teams",
+			OnClick: func() tea.Model {
+				return teameditor.NewTeamMenu()
+			},
+		},
+	}
+
+	return MainMenuModel{
+		buttons: rendering.NewMenuButton(buttons),
+	}
 }
 
 func (m MainMenuModel) Init() tea.Cmd {
@@ -21,44 +37,14 @@ func (m MainMenuModel) Init() tea.Cmd {
 }
 
 func (m MainMenuModel) View() string {
-	buttons := []string{"Play", "Edit Teams"}
-
-	for i, button := range buttons {
-		if i == m.focusIndex {
-			buttons[i] = views.HighlightedButtonStyle.Render(button)
-		} else {
-			buttons[i] = views.ButtonStyle.Render(button)
-		}
-	}
-
-	items := []string{"Gokemon!"}
-	items = append(items, buttons...)
-	return views.Center(lipgloss.JoinVertical(lipgloss.Center, items...))
+	header := "Gokemon!"
+	return rendering.Center(lipgloss.JoinVertical(lipgloss.Center, header, m.buttons.View()))
 }
 
 func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyTab:
-			m.focusIndex++
-
-			if m.focusIndex > 1 {
-				m.focusIndex = 0
-			}
-		case tea.KeyShiftTab:
-			m.focusIndex--
-
-			if m.focusIndex < 0 {
-				m.focusIndex = 1
-			}
-
-		case tea.KeyEnter:
-			switch m.focusIndex {
-			case 1:
-				return teameditor.NewModel(global.POKEMON, global.MOVES, global.ABILITIES), nil
-			}
-		}
+	newModel := m.buttons.Update(msg)
+	if newModel != nil {
+		return newModel, nil
 	}
 
 	return m, nil

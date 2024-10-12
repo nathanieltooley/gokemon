@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/views"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
 var (
@@ -293,7 +293,7 @@ func RenderAddMode(m SelectionModel) string {
 
 	teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
 
-	return views.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+	return rendering.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
 }
 
 func RenderEditMode(m SelectionModel) string {
@@ -400,7 +400,7 @@ func RenderTeamMode(m SelectionModel) string {
 	prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
 
 	// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
-	return views.Center(prompt)
+	return rendering.Center(prompt)
 }
 
 type item struct {
