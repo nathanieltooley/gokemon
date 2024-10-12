@@ -16,7 +16,7 @@ import (
 
 type editor interface {
 	View() string
-	Update(*SelectionModel, tea.Msg) (editor, tea.Cmd)
+	Update(*TeamEditorModel, tea.Msg) (editor, tea.Cmd)
 }
 
 // Component that regulates focus of text inputs
@@ -104,7 +104,7 @@ func (e detailsEditor) View() string {
 	return lipgloss.JoinVertical(lipgloss.Center, views...)
 }
 
-func (e detailsEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e detailsEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
 
@@ -271,7 +271,7 @@ func getValidatedIv(inputString string) (int, error) {
 	return int(math.Min(game.MAX_IV, float64(parsedValue))), nil
 }
 
-func (e evivEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e evivEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
 
@@ -450,7 +450,7 @@ func (e moveEditor) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, e.lists[e.moveIndex].View(), lipgloss.JoinVertical(lipgloss.Left, moves...))
 }
 
-func (e moveEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e moveEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -525,7 +525,7 @@ func (e abilityEditor) View() string {
 	return e.abilityListModel.View()
 }
 
-func (e abilityEditor) Update(rootModel *SelectionModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e abilityEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {

@@ -56,7 +56,7 @@ const (
 	MODE_SAVETEAM
 )
 
-type SelectionModel struct {
+type TeamEditorModel struct {
 	Team   []*game.Pokemon
 	Choice *game.BasePokemon
 
@@ -72,7 +72,7 @@ type SelectionModel struct {
 	saveNameInput       textinput.Model
 }
 
-func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities map[string][]string) SelectionModel {
+func NewTeamEditorModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities map[string][]string) TeamEditorModel {
 	items := make([]list.Item, len(pokemon))
 	for i, pkm := range pokemon {
 		items[i] = item{&pkm}
@@ -86,7 +86,7 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities 
 
 	var editorModels [len(editors)]editor
 
-	return SelectionModel{
+	return TeamEditorModel{
 		list:               list,
 		editorModels:       editorModels,
 		moveRegistry:       moves,
@@ -98,11 +98,16 @@ func NewModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities 
 	}
 }
 
-func (m SelectionModel) Init() tea.Cmd {
+func (m TeamEditorModel) AddStartingTeam(team []*game.Pokemon) TeamEditorModel {
+	m.Team = team
+	return m
+}
+
+func (m TeamEditorModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m SelectionModel) View() string {
+func (m TeamEditorModel) View() string {
 	switch m.mode {
 	case MODE_ADDPOKE:
 		return RenderAddMode(m)
@@ -115,7 +120,7 @@ func (m SelectionModel) View() string {
 	return ""
 }
 
-func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TeamEditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
 	// Update add pokemon list in addpoke mode
@@ -251,7 +256,7 @@ func (m SelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
+func (s TeamEditorModel) GetCurrentPokemon() *game.Pokemon {
 	if len(s.Team) > 0 {
 		return s.Team[s.currentPokemonIndex]
 	}
@@ -259,7 +264,7 @@ func (s SelectionModel) GetCurrentPokemon() *game.Pokemon {
 	return nil
 }
 
-func RenderAddMode(m SelectionModel) string {
+func RenderAddMode(m TeamEditorModel) string {
 	var body string
 	var header string
 
@@ -296,7 +301,7 @@ func RenderAddMode(m SelectionModel) string {
 	return rendering.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
 }
 
-func RenderEditMode(m SelectionModel) string {
+func RenderEditMode(m TeamEditorModel) string {
 	// header := "Editing Pokemon"
 	// var body string
 
@@ -390,7 +395,7 @@ func RenderEditMode(m SelectionModel) string {
 	return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
 }
 
-func RenderTeamMode(m SelectionModel) string {
+func RenderTeamMode(m TeamEditorModel) string {
 	// teams, err := LoadTeamMap()
 	// if err != nil {
 	// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
