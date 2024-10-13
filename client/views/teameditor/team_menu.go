@@ -125,8 +125,7 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				pokePointers[i] = pointer
 			}
 
-			editor.AddStartingTeam(pokePointers)
-			return editor, nil
+			return editor.AddStartingTeam(pokePointers), nil
 		}
 	}
 
