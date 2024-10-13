@@ -16,7 +16,7 @@ import (
 
 type editor interface {
 	View() string
-	Update(*TeamEditorModel, tea.Msg) (editor, tea.Cmd)
+	Update(*editPokemonModel, tea.Msg) (editor, tea.Cmd)
 }
 
 // Component that regulates focus of text inputs
@@ -104,9 +104,9 @@ func (e detailsEditor) View() string {
 	return lipgloss.JoinVertical(lipgloss.Center, views...)
 }
 
-func (e detailsEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
-	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
+	currentPokemon := rootModel.currentPokemon
 
 	e.is, cmd = e.is.Update(msg)
 
@@ -271,9 +271,9 @@ func getValidatedIv(inputString string) (int, error) {
 	return int(math.Min(game.MAX_IV, float64(parsedValue))), nil
 }
 
-func (e evivEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
-	currentPokemon := rootModel.Team[rootModel.currentPokemonIndex]
+	currentPokemon := rootModel.currentPokemon
 
 	// Zero EVs out so that the EVs from last loop
 	// dont mess with the values from this loop
@@ -450,7 +450,7 @@ func (e moveEditor) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, e.lists[e.moveIndex].View(), lipgloss.JoinVertical(lipgloss.Left, moves...))
 }
 
-func (e moveEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e moveEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -474,7 +474,7 @@ func (e moveEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea
 
 			e.selectedMoves[e.moveIndex] = choice.MoveFull
 			// Update the actual pokemon as well
-			rootModel.GetCurrentPokemon().Moves[e.moveIndex] = choice.MoveFull
+			rootModel.currentPokemon.Moves[e.moveIndex] = choice.MoveFull
 
 			e.moveIndex++
 
@@ -493,9 +493,9 @@ func (e moveEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea
 	case list.Filtering:
 		fallthrough
 	case list.FilterApplied:
-		rootModel.listeningForEscape = false
+		rootModel.ctx.listeningForEscape = false
 	default:
-		rootModel.listeningForEscape = true
+		rootModel.ctx.listeningForEscape = true
 	}
 
 	return e, cmd
@@ -525,14 +525,14 @@ func (e abilityEditor) View() string {
 	return e.abilityListModel.View()
 }
 
-func (e abilityEditor) Update(rootModel *TeamEditorModel, msg tea.Msg) (editor, tea.Cmd) {
+func (e abilityEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			ability := e.abilityListModel.Items()[e.abilityListModel.Index()].(abilityItem)
-			rootModel.GetCurrentPokemon().Ability = string(ability)
+			rootModel.currentPokemon.Ability = string(ability)
 		}
 	}
 

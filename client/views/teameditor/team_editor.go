@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
@@ -35,6 +36,10 @@ var (
 		key.WithKeys("right"),
 	)
 
+	enterPokeEditor = key.NewBinding(
+		key.WithKeys("enter"),
+	)
+
 	moveTeamDown = key.NewBinding(
 		key.WithKeys("j", "down"),
 	)
@@ -46,6 +51,14 @@ var (
 	openSaveTeam = key.NewBinding(
 		key.WithKeys("s"),
 	)
+
+	toggleAddingPokemon = key.NewBinding(
+		key.WithKeys("tab"),
+	)
+
+	goToPreviousPage = key.NewBinding(
+		key.WithKeys(tea.KeyEsc.String()),
+	)
 )
 
 var editors = [...]string{"Details", "Moves", "Item", "Ability", "EV/IV"}
@@ -56,23 +69,45 @@ const (
 	MODE_SAVETEAM
 )
 
-type TeamEditorModel struct {
-	Team   []*game.Pokemon
-	Choice *game.BasePokemon
-
-	list                list.Model
-	mode                int
-	currentPokemonIndex int
-	currentEditorIndex  int
-	moveRegistry        *game.MoveRegistry
-	editorModels        [len(editors)]editor
-	listeningForEscape  bool
-	addingNewPokemon    bool
-	abilities           map[string][]string
-	saveNameInput       textinput.Model
+type teamEditorCtx struct {
+	// The current team we're editing
+	team               []*game.Pokemon
+	listeningForEscape bool
 }
 
-func NewTeamEditorModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, abilities map[string][]string) TeamEditorModel {
+type TeamEditorModel struct {
+	ctx      *teamEditorCtx
+	subModel tea.Model
+}
+
+type (
+	editTeamModel struct {
+		ctx *teamEditorCtx
+
+		addPokemonList      list.Model
+		addingNewPokemon    bool
+		currentPokemonIndex int
+		choice              *game.BasePokemon
+	}
+	editPokemonModel struct {
+		ctx *teamEditorCtx
+
+		editorModels       [len(editors)]editor
+		moveRegistry       *game.MoveRegistry
+		abilities          map[string][]string
+		currentPokemon     *game.Pokemon
+		currentEditorIndex int
+	}
+	saveTeamModel struct {
+		ctx *teamEditorCtx
+
+		saveNameInput textinput.Model
+	}
+)
+
+func newEditTeamModel(ctx *teamEditorCtx) editTeamModel {
+	pokemon := global.POKEMON
+
 	items := make([]list.Item, len(pokemon))
 	for i, pkm := range pokemon {
 		items[i] = item{&pkm}
@@ -84,209 +119,41 @@ func NewTeamEditorModel(pokemon game.PokemonRegistry, moves *game.MoveRegistry, 
 	list.SetFilteringEnabled(true)
 	list.SetShowFilter(true)
 
-	var editorModels [len(editors)]editor
+	choice := list.Items()[0].(item).BasePokemon // grab first pokemon as default
 
-	return TeamEditorModel{
-		list:               list,
-		editorModels:       editorModels,
-		moveRegistry:       moves,
-		listeningForEscape: true,
-		addingNewPokemon:   true,
-		abilities:          abilities,
+	return editTeamModel{
+		ctx: ctx,
 
-		Choice: list.Items()[0].(item).BasePokemon, // grab first pokemon as default
+		addPokemonList:   list,
+		addingNewPokemon: true,
+		choice:           choice,
 	}
 }
 
-func (m TeamEditorModel) AddStartingTeam(team []*game.Pokemon) TeamEditorModel {
-	m.Team = team
-	return m
-}
-
-func (m TeamEditorModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m TeamEditorModel) View() string {
-	switch m.mode {
-	case MODE_ADDPOKE:
-		return RenderAddMode(m)
-	case MODE_EDITPOKE:
-		return RenderEditMode(m)
-	case MODE_SAVETEAM:
-		return RenderTeamMode(m)
-	}
-
-	return ""
-}
-
-func (m TeamEditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 0)
-
-	// Update add pokemon list in addpoke mode
-	if m.mode == MODE_ADDPOKE && m.addingNewPokemon {
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		cmds = append(cmds, cmd)
-		choice, _ := m.list.Items()[m.list.Index()].(item)
-
-		m.Choice = choice.BasePokemon
-	}
-
-	if m.mode == MODE_SAVETEAM {
-		var cmd tea.Cmd
-		m.saveNameInput, cmd = m.saveNameInput.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	// Update Current Editor
-	if m.mode == MODE_EDITPOKE {
-		currentModel := m.editorModels[m.currentEditorIndex]
-
-		if currentModel != nil {
-			newModel, cmdFromEditor := currentModel.Update(&m, msg)
-			m.editorModels[m.currentEditorIndex] = newModel
-			cmds = append(cmds, cmdFromEditor)
-		}
-
-	}
-
-	// Listen to key presses
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter:
-			// Select pokemon and enter editing view
-			if m.mode == MODE_ADDPOKE {
-				if m.addingNewPokemon {
-					if m.Choice != nil && len(m.Team) < 6 {
-						newPokemon := game.NewPokeBuilder(m.Choice).Build()
-						m.Team = append(m.Team, newPokemon)
-					}
-
-					m.currentPokemonIndex = len(m.Team) - 1
-				}
-
-				currentPokemon := m.GetCurrentPokemon()
-
-				if currentPokemon != nil {
-					m.mode = MODE_EDITPOKE
-
-					m.editorModels[0] = newDetailsEditor(currentPokemon)
-					m.editorModels[1] = newMoveEditor(currentPokemon, m.moveRegistry.GetFullMovesForPokemon(m.Choice.Name))
-					m.editorModels[3] = newAbilityEditor(m.abilities[strings.ToLower(currentPokemon.Base.Name)])
-					m.editorModels[4] = newEVIVEditor(currentPokemon)
-				}
-
-			}
-
-			if m.mode == MODE_SAVETEAM {
-				if m.saveNameInput.Value() != "" {
-					if err := SaveTeam(m.saveNameInput.Value(), m.Team); err != nil {
-						log.Fatalln("Failed to save team: ", err)
-					}
-
-					m.mode = MODE_ADDPOKE
-				}
-			}
-
-		case tea.KeyEscape:
-			// Leave editing mode and go back to add mode
-			if (m.mode == MODE_EDITPOKE || m.mode == MODE_SAVETEAM) && m.listeningForEscape {
-				m.mode = MODE_ADDPOKE
-			}
-
-		case tea.KeyTab:
-			if m.mode == MODE_ADDPOKE {
-				m.addingNewPokemon = !m.addingNewPokemon
-			}
-		}
-
-		// Listen to key presses for edit mode
-		if m.mode == MODE_EDITPOKE {
-			if key.Matches(msg, selectEditorLeft) {
-				m.currentEditorIndex--
-
-				if m.currentEditorIndex < 0 {
-					m.currentEditorIndex = len(editors) - 1
-				}
-			}
-
-			if key.Matches(msg, selectEditorRight) {
-				m.currentEditorIndex++
-
-				if m.currentEditorIndex >= len(editors) {
-					m.currentEditorIndex = 0
-				}
-			}
-		}
-
-		if m.mode == MODE_ADDPOKE && !m.addingNewPokemon {
-			if key.Matches(msg, moveTeamDown) {
-				m.currentPokemonIndex++
-
-				if m.currentPokemonIndex > len(m.Team)-1 {
-					m.currentPokemonIndex = 0
-				}
-			}
-
-			if key.Matches(msg, moveTeamUp) {
-				m.currentPokemonIndex--
-
-				if m.currentPokemonIndex < 0 {
-					m.currentPokemonIndex = len(m.Team) - 1
-				}
-			}
-		}
-
-		if m.mode == MODE_ADDPOKE {
-			if key.Matches(msg, openSaveTeam) {
-				m.mode = MODE_SAVETEAM
-
-				newInput := textinput.New()
-				newInput.CharLimit = 20
-				newInput.Width = 20
-				newInput.Placeholder = "Team Name"
-				cmds = append(cmds, newInput.Focus())
-				m.saveNameInput = newInput
-			}
-		}
-	}
-
-	return m, tea.Batch(cmds...)
-}
-
-func (s TeamEditorModel) GetCurrentPokemon() *game.Pokemon {
-	if len(s.Team) > 0 {
-		return s.Team[s.currentPokemonIndex]
-	}
-
-	return nil
-}
-
-func RenderAddMode(m TeamEditorModel) string {
+func (m editTeamModel) Init() tea.Cmd { return nil }
+func (m editTeamModel) View() string {
 	var body string
 	var header string
 
-	if m.Choice != nil {
+	if m.choice != nil {
 		body = fmt.Sprintf("Hp: %d\nAttack: %d\nDef: %d\nSpAttack: %d\nSpDef: %d\nSpeed: %d\n",
-			m.Choice.Hp,
-			m.Choice.Attack,
-			m.Choice.Def,
-			m.Choice.SpAttack,
-			m.Choice.SpDef,
-			m.Choice.Speed)
-		header = fmt.Sprintf("Pokemon: %s", m.Choice.Name)
+			m.choice.Hp,
+			m.choice.Attack,
+			m.choice.Def,
+			m.choice.SpAttack,
+			m.choice.SpDef,
+			m.choice.Speed)
+		header = fmt.Sprintf("Pokemon: %s", m.choice.Name)
 	} else {
 		body = ""
 	}
 
 	dialog := lipgloss.JoinVertical(lipgloss.Left, infoHeaderStyle.Render(header), body)
-	selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.list.View())
+	selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.addPokemonList.View())
 
 	teamPanels := make([]string, 0)
 
-	for i, pokemon := range m.Team {
+	for i, pokemon := range m.ctx.team {
 		panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
 
 		if i == m.currentPokemonIndex && !m.addingNewPokemon {
@@ -301,18 +168,109 @@ func RenderAddMode(m TeamEditorModel) string {
 	return rendering.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
 }
 
-func RenderEditMode(m TeamEditorModel) string {
+func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	if m.addingNewPokemon {
+		m.addPokemonList, cmd = m.addPokemonList.Update(msg)
+		choice, _ := m.addPokemonList.Items()[m.addPokemonList.Index()].(item)
+
+		m.choice = choice.BasePokemon
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, enterPokeEditor) {
+			if m.addingNewPokemon {
+				if m.choice != nil && len(m.ctx.team) < 6 {
+					newPokemon := game.NewPokeBuilder(m.choice).Build()
+					m.ctx.team = append(m.ctx.team, newPokemon)
+				}
+
+				m.currentPokemonIndex = len(m.ctx.team) - 1
+			}
+
+			currentPokemon := m.GetCurrentPokemon()
+
+			if currentPokemon != nil {
+				return newEditPokemonModel(m.ctx, currentPokemon), nil
+			}
+		}
+
+		if !m.addingNewPokemon {
+			if key.Matches(msg, moveTeamDown) {
+				m.currentPokemonIndex++
+
+				if m.currentPokemonIndex > len(m.ctx.team)-1 {
+					m.currentPokemonIndex = 0
+				}
+			}
+
+			if key.Matches(msg, moveTeamUp) {
+				m.currentPokemonIndex--
+
+				if m.currentPokemonIndex < 0 {
+					m.currentPokemonIndex = len(m.ctx.team) - 1
+				}
+			}
+
+		}
+
+		if key.Matches(msg, toggleAddingPokemon) {
+			// Toggle adding pokemon
+			if len(m.ctx.team) > 0 {
+				m.addingNewPokemon = !m.addingNewPokemon
+			}
+		}
+
+		if key.Matches(msg, openSaveTeam) {
+			return newSaveTeamModel(m.ctx), nil
+		}
+	}
+
+	return m, cmd
+}
+
+func (m editTeamModel) GetCurrentPokemon() *game.Pokemon {
+	if len(m.ctx.team) > 0 {
+		return m.ctx.team[m.currentPokemonIndex]
+	}
+
+	return nil
+}
+
+func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editPokemonModel {
+	moveRegistry := global.MOVES
+	abilities := global.ABILITIES
+
+	var editorModels [len(editors)]editor
+	editorModels[0] = newDetailsEditor(currentPokemon)
+	editorModels[1] = newMoveEditor(currentPokemon, moveRegistry.GetFullMovesForPokemon(currentPokemon.Base.Name))
+	editorModels[3] = newAbilityEditor(abilities[strings.ToLower(currentPokemon.Base.Name)])
+	editorModels[4] = newEVIVEditor(currentPokemon)
+
+	return editPokemonModel{
+		ctx: ctx,
+
+		moveRegistry:   global.MOVES,
+		abilities:      global.ABILITIES,
+		currentPokemon: currentPokemon,
+		editorModels:   editorModels,
+	}
+}
+
+func (m editPokemonModel) Init() tea.Cmd { return nil }
+func (m editPokemonModel) View() string {
 	// header := "Editing Pokemon"
 	// var body string
 
-	currentPokemon := m.Team[m.currentPokemonIndex]
 	currentEditor := m.editorModels[m.currentEditorIndex]
 
-	type1 := currentPokemon.Base.Type1.Name
+	type1 := m.currentPokemon.Base.Type1.Name
 	type2 := ""
 
-	if currentPokemon.Base.Type2 != nil {
-		type2 = currentPokemon.Base.Type2.Name
+	if m.currentPokemon.Base.Type2 != nil {
+		type2 = m.currentPokemon.Base.Type2.Name
 	}
 
 	info := fmt.Sprintf(`
@@ -335,43 +293,43 @@ func RenderEditMode(m TeamEditorModel) string {
 
             MAX EVS: %d
             `,
-		currentPokemon.Nickname,
-		currentPokemon.Level,
+		m.currentPokemon.Nickname,
+		m.currentPokemon.Level,
 
-		currentPokemon.Hp.Value,
-		currentPokemon.Hp.Iv,
-		currentPokemon.Hp.Ev,
+		m.currentPokemon.Hp.Value,
+		m.currentPokemon.Hp.Iv,
+		m.currentPokemon.Hp.Ev,
 
-		currentPokemon.Attack.Value,
-		currentPokemon.Attack.Iv,
-		currentPokemon.Attack.Ev,
+		m.currentPokemon.Attack.Value,
+		m.currentPokemon.Attack.Iv,
+		m.currentPokemon.Attack.Ev,
 
-		currentPokemon.Def.Value,
-		currentPokemon.Def.Iv,
-		currentPokemon.Def.Ev,
+		m.currentPokemon.Def.Value,
+		m.currentPokemon.Def.Iv,
+		m.currentPokemon.Def.Ev,
 
-		currentPokemon.SpAttack.Value,
-		currentPokemon.SpAttack.Iv,
-		currentPokemon.SpAttack.Ev,
+		m.currentPokemon.SpAttack.Value,
+		m.currentPokemon.SpAttack.Iv,
+		m.currentPokemon.SpAttack.Ev,
 
-		currentPokemon.SpDef.Value,
-		currentPokemon.SpDef.Iv,
-		currentPokemon.SpDef.Ev,
+		m.currentPokemon.SpDef.Value,
+		m.currentPokemon.SpDef.Iv,
+		m.currentPokemon.SpDef.Ev,
 
-		currentPokemon.Speed.Value,
-		currentPokemon.Speed.Iv,
-		currentPokemon.Speed.Ev,
+		m.currentPokemon.Speed.Value,
+		m.currentPokemon.Speed.Iv,
+		m.currentPokemon.Speed.Ev,
 
 		type1,
 		type2,
-		currentPokemon.Ability,
+		m.currentPokemon.Ability,
 		"",
 
 		"",
 		"",
 		"",
 		"",
-		game.MAX_TOTAL_EV-currentPokemon.GetCurrentEvTotal(),
+		game.MAX_TOTAL_EV-m.currentPokemon.GetCurrentEvTotal(),
 	)
 
 	var newEditors [len(editors)]string
@@ -395,7 +353,57 @@ func RenderEditMode(m TeamEditorModel) string {
 	return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
 }
 
-func RenderTeamMode(m TeamEditorModel) string {
+func (m editPokemonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	currentModel := m.editorModels[m.currentEditorIndex]
+
+	if currentModel != nil {
+		var newModel editor
+		newModel, cmd = currentModel.Update(&m, msg)
+		m.editorModels[m.currentEditorIndex] = newModel
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, selectEditorLeft) {
+			m.currentEditorIndex--
+
+			if m.currentEditorIndex < 0 {
+				m.currentEditorIndex = len(editors) - 1
+			}
+		}
+
+		if key.Matches(msg, selectEditorRight) {
+			m.currentEditorIndex++
+
+			if m.currentEditorIndex >= len(editors) {
+				m.currentEditorIndex = 0
+			}
+		}
+
+		if key.Matches(msg, goToPreviousPage) {
+			return newEditTeamModel(m.ctx), nil
+		}
+	}
+
+	return m, cmd
+}
+
+func newSaveTeamModel(ctx *teamEditorCtx) saveTeamModel {
+	newInput := textinput.New()
+	newInput.CharLimit = 20
+	newInput.Width = 20
+	newInput.Placeholder = "Team Name"
+
+	return saveTeamModel{
+		ctx: ctx,
+
+		saveNameInput: newInput,
+	}
+}
+
+func (m saveTeamModel) Init() tea.Cmd { return nil }
+func (m saveTeamModel) View() string {
 	// teams, err := LoadTeamMap()
 	// if err != nil {
 	// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
@@ -406,6 +414,72 @@ func RenderTeamMode(m TeamEditorModel) string {
 
 	// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
 	return rendering.Center(prompt)
+}
+
+func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	m.saveNameInput, cmd = m.saveNameInput.Update(msg)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, goToPreviousPage) {
+			return newEditTeamModel(m.ctx), nil
+		}
+
+		switch msg.Type {
+		case tea.KeyEnter:
+			if m.saveNameInput.Value() != "" {
+				if err := SaveTeam(m.saveNameInput.Value(), m.ctx.team); err != nil {
+					log.Fatalln("Failed to save team: ", err)
+				}
+
+				return newEditTeamModel(m.ctx), nil
+			}
+		}
+	}
+
+	return m, cmd
+}
+
+func NewTeamEditorModel() TeamEditorModel {
+	ctx := teamEditorCtx{
+		team:               make([]*game.Pokemon, 0),
+		listeningForEscape: true,
+	}
+	teamEdit := newEditTeamModel(&ctx)
+
+	return TeamEditorModel{
+		ctx: &ctx,
+
+		subModel: teamEdit,
+	}
+}
+
+func (m *TeamEditorModel) AddStartingTeam(team []*game.Pokemon) {
+	m.ctx.team = team
+}
+
+func (m TeamEditorModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m TeamEditorModel) View() string {
+	return m.subModel.View()
+}
+
+func (m TeamEditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if !m.ctx.listeningForEscape && msg.Type == tea.KeyEsc {
+			return m, cmd
+		}
+	}
+	m.subModel, cmd = m.subModel.Update(msg)
+
+	return m, cmd
 }
 
 type item struct {

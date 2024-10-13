@@ -57,7 +57,7 @@ func newTeamMainMenu() startTeamMenu {
 		{
 			Name: "Create New Team",
 			OnClick: func() tea.Model {
-				return NewTeamEditorModel(global.POKEMON, global.MOVES, global.ABILITIES)
+				return NewTeamEditorModel()
 			},
 		},
 		{
@@ -115,7 +115,7 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			editor := NewTeamEditorModel(global.POKEMON, global.MOVES, global.ABILITIES)
+			editor := NewTeamEditorModel()
 			teamItem := t.teamList.SelectedItem().(teamItem)
 			team := teamItem.Pokemon
 			pokePointers := make([]*game.Pokemon, len(team))
@@ -125,7 +125,8 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				pokePointers[i] = pointer
 			}
 
-			return editor.AddStartingTeam(pokePointers), nil
+			editor.AddStartingTeam(pokePointers)
+			return editor, nil
 		}
 	}
 
