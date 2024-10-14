@@ -93,6 +93,7 @@ type Pokemon struct {
 	Moves    [4]*MoveFull
 	Nature   Nature
 	Ability  string
+	Item     string
 }
 
 func (p *Pokemon) ReCalcStats() {

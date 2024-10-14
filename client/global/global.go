@@ -19,6 +19,7 @@ var (
 	POKEMON   = loadPokemon()
 	MOVES     = loadMoves()
 	ABILITIES = loadAbilities()
+	ITEMS     = loadItems()
 )
 
 func loadPokemon() game.PokemonRegistry {
@@ -131,27 +132,44 @@ func loadMoves() *game.MoveRegistry {
 func loadAbilities() map[string][]string {
 	abilityFile := "./data/abilities.json"
 	file, err := os.Open(abilityFile)
-	defer file.Close()
-
 	if err != nil {
-		log.Fatalln("Couldn't Open File: ", err)
+		log.Fatalln("Couldn't open abilities file: ", err)
 	}
+
+	defer file.Close()
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
-		log.Fatalln("Couldn't Read File: ", err)
+		log.Fatalln("Couldn't read abilities file: ", err)
 	}
 
 	abilityMap := make(map[string][]string)
-	err = json.Unmarshal(fileData, &abilityMap)
-	if err != nil {
-		log.Fatalln("Couldn't Unmarshal ability data: ", err)
-	}
-
-	if err != nil {
-		log.Fatalln("Failed to load ability info: ", err)
+	if err := json.Unmarshal(fileData, &abilityMap); err != nil {
+		log.Fatalln("Couldn't unmarshal ability data: ", err)
 	}
 
 	log.Printf("Loaded abilities for %d pokemon\n", len(abilityMap))
 	return abilityMap
+}
+
+func loadItems() []string {
+	itemsFile := "./data/items.json"
+	file, err := os.Open(itemsFile)
+	if err != nil {
+		log.Fatalln("Couldn't open items file: ", err)
+	}
+
+	defer file.Close()
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatalln("Couldn't read items file: ", err)
+	}
+	items := make([]string, 0)
+	if err := json.Unmarshal(fileData, &items); err != nil {
+		log.Fatalln("Couldn't parse items.json: ", err)
+	}
+
+	log.Printf("Loaded %d items\n", len(items))
+	return items
 }

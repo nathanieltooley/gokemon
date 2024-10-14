@@ -76,6 +76,7 @@ type teamEditorCtx struct {
 }
 
 type TeamEditorModel struct {
+	// TODO: Maybe make this a global package var?
 	ctx      *teamEditorCtx
 	subModel tea.Model
 }
@@ -246,6 +247,7 @@ func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editP
 	var editorModels [len(editors)]editor
 	editorModels[0] = newDetailsEditor(currentPokemon)
 	editorModels[1] = newMoveEditor(currentPokemon, moveRegistry.GetFullMovesForPokemon(currentPokemon.Base.Name))
+	editorModels[2] = newItemEditor()
 	editorModels[3] = newAbilityEditor(abilities[strings.ToLower(currentPokemon.Base.Name)])
 	editorModels[4] = newEVIVEditor(currentPokemon)
 
@@ -273,6 +275,13 @@ func (m editPokemonModel) View() string {
 		type2 = m.currentPokemon.Base.Type2.Name
 	}
 
+	typeString := ""
+	if type2 == "" {
+		typeString = type1
+	} else {
+		typeString = fmt.Sprintf("%s | %s", type1, type2)
+	}
+
 	info := fmt.Sprintf(`
             Name: %s
             Level: %d
@@ -282,7 +291,7 @@ func (m editPokemonModel) View() string {
             Special Attack: %d:%d:%d
             Special Defense: %d:%d:%d
             Speed: %d:%d:%d
-            Type: %s | %s
+            Type: %s
             Ability: %s
             Item: %s
 
@@ -320,15 +329,14 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.Speed.Iv,
 		m.currentPokemon.Speed.Ev,
 
-		type1,
-		type2,
+		typeString,
 		m.currentPokemon.Ability,
-		"",
+		m.currentPokemon.Item,
 
-		"",
-		"",
-		"",
-		"",
+		getMoveName(m.currentPokemon.Moves[0]),
+		getMoveName(m.currentPokemon.Moves[1]),
+		getMoveName(m.currentPokemon.Moves[2]),
+		getMoveName(m.currentPokemon.Moves[3]),
 		game.MAX_TOTAL_EV-m.currentPokemon.GetCurrentEvTotal(),
 	)
 
@@ -505,4 +513,12 @@ func (i itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	fmt.Fprint(w, renderStr)
+}
+
+func getMoveName(move *game.MoveFull) string {
+	if move != nil {
+		return move.Name
+	} else {
+		return ""
+	}
 }

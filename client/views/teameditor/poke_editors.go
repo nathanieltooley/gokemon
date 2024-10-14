@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
@@ -537,6 +538,46 @@ func (e abilityEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 	}
 
 	e.abilityListModel, cmd = e.abilityListModel.Update(msg)
+
+	return e, cmd
+}
+
+type itemEditor struct {
+	itemListModel list.Model
+}
+type itemItem string
+
+func (i itemItem) FilterValue() string { return string(i) }
+func (i itemItem) Value() string       { return string(i) }
+
+func newItemEditor() itemEditor {
+	validItems := global.ITEMS
+	items := make([]list.Item, len(validItems))
+	for i, item := range validItems {
+		items[i] = itemItem(item)
+	}
+
+	iList := list.New(items, rendering.NewSimpleListDelegate(), 10, 10)
+	iList.SetShowStatusBar(false)
+	return itemEditor{iList}
+}
+
+func (e itemEditor) View() string {
+	return e.itemListModel.View()
+}
+
+func (e itemEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyEnter {
+			item := e.itemListModel.Items()[e.itemListModel.Index()].(itemItem)
+			rootModel.currentPokemon.Item = string(item)
+		}
+	}
+
+	e.itemListModel, cmd = e.itemListModel.Update(msg)
 
 	return e, cmd
 }
