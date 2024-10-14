@@ -425,9 +425,14 @@ func (m saveTeamModel) View() string {
 }
 
 func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
 	var cmd tea.Cmd
 
+	cmd = m.saveNameInput.Focus()
+	cmds = append(cmds, cmd)
+
 	m.saveNameInput, cmd = m.saveNameInput.Update(msg)
+	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
