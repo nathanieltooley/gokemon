@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
+	"github.com/nathanieltooley/gokemon/client/views/gameview"
 	"github.com/nathanieltooley/gokemon/client/views/teameditor"
 )
 
@@ -17,7 +18,7 @@ func NewModel() MainMenuModel {
 		{
 			Name: "Play Game",
 			OnClick: func() tea.Model {
-				return nil
+				return gameview.NewTeamSelectModel()
 			},
 		},
 		{
