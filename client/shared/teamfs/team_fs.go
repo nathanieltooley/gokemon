@@ -1,4 +1,4 @@
-package teameditor
+package teamfs
 
 import (
 	"encoding/json"

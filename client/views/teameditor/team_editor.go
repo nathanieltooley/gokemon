@@ -14,6 +14,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 )
 
 var (
@@ -442,8 +443,9 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.Type {
 		case tea.KeyEnter:
+			// TODO: Add confirmation check if a team with this name already exists
 			if m.saveNameInput.Value() != "" {
-				if err := SaveTeam(m.saveNameInput.Value(), m.ctx.team); err != nil {
+				if err := teamfs.SaveTeam(m.saveNameInput.Value(), m.ctx.team); err != nil {
 					log.Fatalln("Failed to save team: ", err)
 				}
 

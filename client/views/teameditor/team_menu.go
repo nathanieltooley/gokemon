@@ -10,6 +10,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
+	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 )
 
 // Root Model that holds the Main Team Menu (create new, edit existing team)
@@ -25,7 +26,7 @@ type startTeamMenu struct {
 // Allows the user to select an already existing team for editing
 type teamSelectionMenu struct {
 	teamList list.Model
-	teams    SavedTeams
+	teams    teamfs.SavedTeams
 }
 
 type menuItem struct {
@@ -63,7 +64,7 @@ func newTeamMainMenu() startTeamMenu {
 		{
 			Name: "Edit Teams",
 			OnClick: func() tea.Model {
-				teams, err := LoadTeamMap()
+				teams, err := teamfs.LoadTeamMap()
 				if err != nil {
 					// TODO: Show error message
 					return nil
