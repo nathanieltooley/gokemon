@@ -71,3 +71,13 @@ func (m MenuButtons) View() string {
 
 	return lipgloss.JoinVertical(lipgloss.Center, views...)
 }
+
+func (m *MenuButtons) Unfocus() {
+	m.index = -1
+}
+
+func (m *MenuButtons) Focus() {
+	if m.index == -1 {
+		m.index = 0
+	}
+}
