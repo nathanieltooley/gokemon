@@ -52,6 +52,10 @@ func (g *GameState) GetPlayer(index int) *Player {
 	}
 }
 
+func (g *GameState) GetCurrentPlayer() *Player {
+	return g.GetPlayer(g.turn)
+}
+
 func (g *GameState) Update(action Action) {
 	action.UpdateState(g)
 }
@@ -60,6 +64,10 @@ type Player struct {
 	Name            string
 	Team            [6]*game.Pokemon
 	ActivePokeIndex uint8
+}
+
+func (p Player) GetActivePokemon() *game.Pokemon {
+	return p.Team[p.ActivePokeIndex]
 }
 
 type Action interface {
