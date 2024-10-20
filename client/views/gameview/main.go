@@ -31,7 +31,7 @@ func NewMainGameModel(state state.GameState) MainGameModel {
 
 func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
-	return rendering.Center(
+	return rendering.GlobalCenter(
 		lipgloss.JoinVertical(
 			lipgloss.Center,
 			lipgloss.JoinHorizontal(
@@ -60,18 +60,16 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func playerPanel(name string, player *state.Player) string {
 	currentPokemon := player.Team[player.ActivePokeIndex]
-	pokeInfo := fmt.Sprintf(`
-		%s
-		%d / %d
-		Level: %d
-	`,
+	pokeInfo := fmt.Sprintf("%s\n%d / %d\nLevel: %d",
 		currentPokemon.Nickname,
 		currentPokemon.Hp.Value,
 		currentPokemon.MaxHp,
 		currentPokemon.Level,
 	)
 
-	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, name, pokeInfo))
+	pokeStyle := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Width(20).Height(5)
+
+	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, name, pokeStyle.Render(pokeInfo)))
 }
 
 func actionPanel() string {
