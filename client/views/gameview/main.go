@@ -32,10 +32,14 @@ func NewMainGameModel(state state.GameState) MainGameModel {
 func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
 	return rendering.Center(
-		lipgloss.JoinHorizontal(
+		lipgloss.JoinVertical(
 			lipgloss.Center,
-			playerPanel("HOST", m.state.GetPlayer(state.HOST)),
-			playerPanel("PEER", m.state.GetPlayer(state.PEER)),
+			lipgloss.JoinHorizontal(
+				lipgloss.Center,
+				playerPanel("HOST", m.state.GetPlayer(state.HOST)),
+				playerPanel("PEER", m.state.GetPlayer(state.PEER)),
+			),
+			actionPanel(),
 		),
 	)
 }
@@ -68,4 +72,11 @@ func playerPanel(name string, player *state.Player) string {
 	)
 
 	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, name, pokeInfo))
+}
+
+func actionPanel() string {
+	fight := panelStyle.Render("Fight")
+	pokemon := panelStyle.Render("Pokemon")
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, fight, pokemon)
 }
