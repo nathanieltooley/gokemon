@@ -1,8 +1,6 @@
 package gameview
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game/state"
@@ -23,12 +21,17 @@ var (
 )
 
 type MainGameModel struct {
-	state state.GameState
+	state *state.GameState
+
+	panel tea.Model
 }
 
 func NewMainGameModel(state state.GameState) MainGameModel {
 	return MainGameModel{
-		state: state,
+		state: &state,
+		panel: actionPanel{
+			state: &state,
+		},
 	}
 }
 
@@ -39,10 +42,11 @@ func (m MainGameModel) View() string {
 			lipgloss.Center,
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				playerPanel("HOST", m.state.GetPlayer(state.HOST)),
-				playerPanel("PEER", m.state.GetPlayer(state.PEER)),
+				newPlayerPanel(m.state, "HOST", m.state.GetPlayer(state.HOST)).View(),
+				newPlayerPanel(m.state, "PEER", m.state.GetPlayer(state.PEER)).View(),
 			),
-			actionPanel(),
+
+			m.panel.View(),
 		),
 	)
 }
@@ -58,26 +62,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	m.panel, _ = m.panel.Update(msg)
+
 	return m, nil
-}
-
-func playerPanel(name string, player *state.Player) string {
-	currentPokemon := player.Team[player.ActivePokeIndex]
-	pokeInfo := fmt.Sprintf("%s\n%d / %d\nLevel: %d",
-		currentPokemon.Nickname,
-		currentPokemon.Hp.Value,
-		currentPokemon.MaxHp,
-		currentPokemon.Level,
-	)
-
-	pokeStyle := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Width(20).Height(5)
-
-	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, name, pokeStyle.Render(pokeInfo)))
-}
-
-func actionPanel() string {
-	fight := highlightedPanelStyle.Width(15).Render("Fight")
-	pokemon := panelStyle.Width(15).Render("Pokemon")
-
-	return lipgloss.JoinHorizontal(lipgloss.Center, fight, pokemon)
 }
