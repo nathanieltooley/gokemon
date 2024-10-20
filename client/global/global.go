@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/nathanieltooley/gokemon/client/errors"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog"
@@ -22,6 +23,22 @@ var (
 	MOVES     *game.MoveRegistry
 	ABILITIES map[string][]string
 	ITEMS     []string
+
+	SelectKey = key.NewBinding(
+		key.WithKeys("enter"),
+	)
+	MoveLeftKey = key.NewBinding(
+		key.WithKeys("left", "h"),
+	)
+	MoveRightKey = key.NewBinding(
+		key.WithKeys("right", "l"),
+	)
+	MoveDownKey = key.NewBinding(
+		key.WithKeys("down", "j"),
+	)
+	MoveUpKey = key.NewBinding(
+		key.WithKeys("up", "k"),
+	)
 
 	initLogger zerolog.Logger
 )
