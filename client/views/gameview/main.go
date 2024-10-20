@@ -17,7 +17,10 @@ import (
 // I may not deal with it ever and just make two panels with pokemon info in the center
 // and a panel with pokemon actions at the bottom ¯\_(ツ)_/¯
 
-var panelStyle = lipgloss.NewStyle().Border(lipgloss.BlockBorder(), true).Padding(2)
+var (
+	panelStyle            = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center)
+	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
+)
 
 type MainGameModel struct {
 	state state.GameState
@@ -73,8 +76,8 @@ func playerPanel(name string, player *state.Player) string {
 }
 
 func actionPanel() string {
-	fight := panelStyle.Render("Fight")
-	pokemon := panelStyle.Render("Pokemon")
+	fight := highlightedPanelStyle.Width(15).Render("Fight")
+	pokemon := panelStyle.Width(15).Render("Pokemon")
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, fight, pokemon)
 }
