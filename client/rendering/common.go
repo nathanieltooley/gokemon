@@ -15,6 +15,15 @@ var (
 	ItemStyle            = lipgloss.NewStyle().PaddingLeft(4)
 )
 
-func Center(text string) string {
-	return lipgloss.PlaceVertical(global.TERM_HEIGHT, lipgloss.Center, lipgloss.PlaceHorizontal(global.TERM_WIDTH, lipgloss.Center, text))
+func Center(width int, height int, text string) string {
+	return lipgloss.PlaceVertical(height, lipgloss.Center, lipgloss.PlaceHorizontal(width, lipgloss.Center, text))
+}
+
+func GlobalCenter(text string) string {
+	return Center(global.TERM_WIDTH, global.TERM_HEIGHT, text)
+}
+
+func CenterBlock(block string, text string) string {
+	w, h := lipgloss.Size(block)
+	return Center(w, h, text)
 }

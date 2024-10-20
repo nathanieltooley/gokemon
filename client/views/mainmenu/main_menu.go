@@ -40,7 +40,7 @@ func (m MainMenuModel) Init() tea.Cmd {
 
 func (m MainMenuModel) View() string {
 	header := "Gokemon!"
-	return rendering.Center(lipgloss.JoinVertical(lipgloss.Center, header, m.buttons.View()))
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.buttons.View()))
 }
 
 func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

@@ -167,7 +167,7 @@ func (m editTeamModel) View() string {
 
 	teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
 
-	return rendering.Center(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+	return rendering.GlobalCenter(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
 }
 
 func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -422,7 +422,7 @@ func (m saveTeamModel) View() string {
 	prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
 
 	// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
-	return rendering.Center(prompt)
+	return rendering.GlobalCenter(prompt)
 }
 
 func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

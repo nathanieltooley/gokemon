@@ -74,7 +74,7 @@ func NewTeamSelectModel() TeamSelectModel {
 
 func (m TeamSelectModel) Init() tea.Cmd { return nil }
 func (m TeamSelectModel) View() string {
-	return rendering.Center(lipgloss.JoinVertical(lipgloss.Center, m.teamList.View(), m.buttons.View()))
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.teamList.View(), m.buttons.View()))
 }
 
 func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

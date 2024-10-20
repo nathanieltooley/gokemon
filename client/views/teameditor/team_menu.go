@@ -91,7 +91,7 @@ func newTeamMainMenu() startTeamMenu {
 }
 func (m startTeamMenu) Init() tea.Cmd { return nil }
 func (m startTeamMenu) View() string {
-	return rendering.Center(lipgloss.JoinVertical(lipgloss.Center, m.buttons.View()))
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.buttons.View()))
 }
 
 func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
