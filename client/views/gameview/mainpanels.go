@@ -9,6 +9,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
 type playerPanel struct {
@@ -105,27 +106,38 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type movePanel struct {
-	state *state.GameState
-
-	moveGridFocusRow int
-	moveGridFocusCol int
+	state         *state.GameState
+	moveGridFocus int
 
 	moves [4]*game.MoveFull
 }
 
 func (m movePanel) Init() tea.Cmd { return nil }
 func (m movePanel) View() string {
-	panels := make([]string, 0)
+	grid := make([]string, 0)
 
-	for i := 0; i < 4; i++ {
-		if m.moves[i] == nil {
-			panels = append(panels, "Empty")
-		} else {
-			panels = append(panels, panelStyle.Render(m.moves[i].Name))
+	// TODO: Maybe refactor this into a separate component?
+	for i := 0; i < 2; i++ {
+		row := make([]string, 0)
+		for j := 0; j < 2; j++ {
+			arrayIndex := (i * 2) + j
+			style := panelStyle
+
+			if arrayIndex == m.moveGridFocus {
+				style = style.Background(rendering.HighlightedColor)
+			}
+
+			if m.moves[arrayIndex] == nil {
+				row = append(row, style.Render("Empty"))
+			} else {
+				row = append(row, style.Render(m.moves[i].Name))
+			}
 		}
+
+		grid = append(grid, lipgloss.JoinHorizontal(lipgloss.Center, row...))
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, lipgloss.JoinHorizontal(lipgloss.Center, panels[0], panels[1]), lipgloss.JoinHorizontal(lipgloss.Center, panels[2], panels[3]))
+	return lipgloss.JoinVertical(lipgloss.Center, grid...)
 }
 
 func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
