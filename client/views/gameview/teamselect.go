@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
@@ -27,8 +28,13 @@ type teamItem struct {
 	Pokemon []game.Pokemon
 }
 
-var switchFocusKey = key.NewBinding(
-	key.WithKeys(tea.KeyTab.String(), tea.KeyShiftTab.String()),
+var (
+	switchFocusKey = key.NewBinding(
+		key.WithKeys(tea.KeyTab.String(), tea.KeyShiftTab.String()),
+	)
+	selectKey = key.NewBinding(
+		key.WithKeys(tea.KeyEnter.String()),
+	)
 )
 
 func (t teamItem) FilterValue() string { return t.Name }
@@ -79,6 +85,10 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.focus > 1 {
 				m.focus = 0
 			}
+		}
+
+		if m.focus == 0 && key.Matches(msg, selectKey) {
+			return NewMainGameModel(state.NewState()), nil
 		}
 	}
 
