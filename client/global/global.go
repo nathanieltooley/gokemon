@@ -3,24 +3,44 @@ package global
 import (
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 
 	"github.com/nathanieltooley/gokemon/client/errors"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
 )
 
 var (
 	TERM_WIDTH, TERM_HEIGHT, _ = term.GetSize(int(os.Stdout.Fd()))
 
-	POKEMON   = loadPokemon()
-	MOVES     = loadMoves()
-	ABILITIES = loadAbilities()
-	ITEMS     = loadItems()
+	POKEMON   game.PokemonRegistry
+	MOVES     *game.MoveRegistry
+	ABILITIES map[string][]string
+	ITEMS     []string
 )
+
+func init() {
+	consoleLogger := zerolog.ConsoleWriter{Out: os.Stdout}
+
+	logFile, err := os.OpenFile("client.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Could not open file 'client.log' for logging. logging will be console only")
+		log.Logger = zerolog.New(consoleLogger).With().Timestamp().Logger()
+	} else {
+		multiWriter := zerolog.MultiLevelWriter(consoleLogger, zerolog.ConsoleWriter{Out: logFile})
+		log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
+	}
+
+	POKEMON = loadPokemon()
+	MOVES = loadMoves()
+	ABILITIES = loadAbilities()
+	ITEMS = loadItems()
+}
 
 func loadPokemon() game.PokemonRegistry {
 	dataFile := "./data/gen1-data.csv"
@@ -28,19 +48,19 @@ func loadPokemon() game.PokemonRegistry {
 	defer fileReader.Close()
 
 	if err != nil {
-		log.Fatalln("Couldn't open Pokemon data file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
 	}
 
 	csvReader := csv.NewReader(fileReader)
 	csvReader.Read()
 	rows, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatalln("Couldn't read Pokemon data file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't read Pokemon data file")
 	}
 
 	pokemonList := make([]game.BasePokemon, 0, len(rows))
 
-	log.Println("Loading Pokemon Data")
+	log.Info().Msg("Loading Pokemon Data")
 
 	// Load CSV data
 	for _, row := range rows {
@@ -80,17 +100,17 @@ func loadPokemon() game.PokemonRegistry {
 		pokemonList = append(pokemonList, newPokemon)
 	}
 
-	log.Printf("Loaded %d pokemon\n", len(pokemonList))
+	log.Info().Msgf("Loaded %d pokemon", len(pokemonList))
 
 	if err != nil {
-		log.Fatalf("Failed to load pokemon data: %s\n", err)
+		log.Fatal().Err(err).Msg("Failed to load pokemon data")
 	}
 
 	return game.PokemonRegistry(pokemonList)
 }
 
 func loadMoves() *game.MoveRegistry {
-	log.Println("Loading Move Data")
+	log.Info().Msg("Loading Move Data")
 
 	moveRegistry := new(game.MoveRegistry)
 	movesPath := "./data/moves.json"
@@ -98,33 +118,33 @@ func loadMoves() *game.MoveRegistry {
 
 	moveDataBytes, err := os.ReadFile(movesPath)
 	if err != nil {
-		log.Fatalln("Couldn't read move data file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't read move data file")
 	}
 
 	moveMapBytes, err := os.ReadFile(movesMapPath)
 	if err != nil {
-		log.Fatalln("Couldn't read move map file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't read move map file")
 	}
 
 	parsedMoves := make([]game.MoveFull, 0, 1000)
 	moveMap := make(map[string][]string)
 
 	if err := json.Unmarshal(moveDataBytes, &parsedMoves); err != nil {
-		log.Fatalln("Couldn't unmarshal move data: ", err)
+		log.Fatal().Err(err).Msg("Couldn't unmarshal move data")
 	}
 	if err := json.Unmarshal(moveMapBytes, &moveMap); err != nil {
-		log.Fatalln("Couldn't unmarshal move map: ", err)
+		log.Fatal().Err(err).Msg("Couldn't unmarshal move map")
 	}
 
 	moveRegistry.MoveList = parsedMoves
 	moveRegistry.MoveMap = moveMap
 
 	if err != nil {
-		log.Fatalf("Failed to load move data: %s\n", err)
+		log.Fatal().Err(err).Msg("Failed to load move data")
 	}
 
-	log.Printf("Loaded %d moves\n", len(moveRegistry.MoveList))
-	log.Printf("Loaded move info for %d pokemon\n", len(moveRegistry.MoveMap))
+	log.Info().Msgf("Loaded %d moves", len(moveRegistry.MoveList))
+	log.Info().Msgf("Loaded move info for %d pokemon", len(moveRegistry.MoveMap))
 
 	return moveRegistry
 }
@@ -133,22 +153,22 @@ func loadAbilities() map[string][]string {
 	abilityFile := "./data/abilities.json"
 	file, err := os.Open(abilityFile)
 	if err != nil {
-		log.Fatalln("Couldn't open abilities file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't open abilities file")
 	}
 
 	defer file.Close()
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
-		log.Fatalln("Couldn't read abilities file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't read abilities file")
 	}
 
 	abilityMap := make(map[string][]string)
 	if err := json.Unmarshal(fileData, &abilityMap); err != nil {
-		log.Fatalln("Couldn't unmarshal ability data: ", err)
+		log.Fatal().Err(err).Msg("Couldn't unmarshal ability data")
 	}
 
-	log.Printf("Loaded abilities for %d pokemon\n", len(abilityMap))
+	log.Info().Msgf("Loaded abilities for %d pokemon", len(abilityMap))
 	return abilityMap
 }
 
@@ -156,20 +176,20 @@ func loadItems() []string {
 	itemsFile := "./data/items.json"
 	file, err := os.Open(itemsFile)
 	if err != nil {
-		log.Fatalln("Couldn't open items file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't open items file")
 	}
 
 	defer file.Close()
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
-		log.Fatalln("Couldn't read items file: ", err)
+		log.Fatal().Err(err).Msg("Couldn't read items file")
 	}
 	items := make([]string, 0)
 	if err := json.Unmarshal(fileData, &items); err != nil {
-		log.Fatalln("Couldn't parse items.json: ", err)
+		log.Fatal().Err(err).Msg("Couldn't parse items.json")
 	}
 
-	log.Printf("Loaded %d items\n", len(items))
+	log.Info().Msgf("Loaded %d items", len(items))
 	return items
 }

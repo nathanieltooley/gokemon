@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/views/mainmenu"
+	"github.com/rs/zerolog/log"
 )
 
 type RootModel struct {
@@ -55,6 +54,6 @@ func main() {
 	log.Printf("Term Size: %d X %d\n", global.TERM_WIDTH, global.TERM_HEIGHT)
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
-		log.Fatalln("Error running program: ", err)
+		log.Fatal().Err(err).Msg("Failed to start program")
 	}
 }
