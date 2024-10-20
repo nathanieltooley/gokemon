@@ -51,7 +51,7 @@ func main() {
 
 	m.currentView = mainmenu.NewModel()
 
-	log.Printf("Term Size: %d X %d\n", global.TERM_WIDTH, global.TERM_HEIGHT)
+	log.Info().Msgf("Term Size: %d X %d\n", global.TERM_WIDTH, global.TERM_HEIGHT)
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start program")
