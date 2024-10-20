@@ -85,6 +85,7 @@ type Pokemon struct {
 	Nickname string
 	Level    uint8
 	Hp       Stat
+	MaxHp    int16
 	Attack   Stat
 	Def      Stat
 	SpAttack Stat
@@ -99,6 +100,7 @@ type Pokemon struct {
 func (p *Pokemon) ReCalcStats() {
 	hpNumerator := ((2*p.Base.Hp + int16(p.Hp.Iv) + int16(p.Hp.Ev/4)) * int16(p.Level))
 	p.Hp.Value = (hpNumerator / 100) + int16(p.Level) + 10
+	p.MaxHp = (hpNumerator / 100) + int16(p.Level) + 10
 	p.Attack.Value = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
 	p.Def.Value = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
 	p.SpAttack.Value = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
