@@ -76,3 +76,28 @@ func (a SwitchAction) UpdateState(state *GameState) {
 	player := state.GetPlayer(a.PlayerIndex)
 	player.ActivePokeIndex = uint8(a.SwitchIndex)
 }
+
+type AttackAction struct {
+	Attacker     int
+	AttackerMove int
+}
+
+func (a AttackAction) UpdateState(state *GameState) {
+	attacker := state.GetPlayer(a.Attacker)
+	defender := state.GetPlayer(invertPlayerIndex(a.Attacker))
+
+	attackPokemon := attacker.Team[attacker.ActivePokeIndex]
+	defPokemon := defender.Team[defender.ActivePokeIndex]
+
+	// TODO: Make sure a.AttackerMove is between 0 -> 3
+	damage := game.Damage(attackPokemon, defPokemon, attackPokemon.Moves[a.AttackerMove])
+	defPokemon.Hp.Value = defPokemon.Hp.Value - int16(damage)
+}
+
+func invertPlayerIndex(initial int) int {
+	if initial == HOST {
+		return PEER
+	} else {
+		return HOST
+	}
+}
