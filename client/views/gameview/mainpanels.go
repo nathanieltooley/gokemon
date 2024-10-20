@@ -2,6 +2,7 @@ package gameview
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -141,5 +142,24 @@ func (m movePanel) View() string {
 }
 
 func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, global.MoveLeftKey) {
+			m.moveGridFocus = int(math.Max(0, float64(m.moveGridFocus-1)))
+		}
+
+		if key.Matches(msg, global.MoveRightKey) {
+			m.moveGridFocus = int(math.Min(3, float64(m.moveGridFocus+1)))
+		}
+
+		if key.Matches(msg, global.MoveDownKey) {
+			m.moveGridFocus = int(math.Min(3, float64(m.moveGridFocus+2)))
+		}
+
+		if key.Matches(msg, global.MoveUpKey) {
+			m.moveGridFocus = int(math.Max(0, float64(m.moveGridFocus-2)))
+		}
+	}
+
 	return m, nil
 }
