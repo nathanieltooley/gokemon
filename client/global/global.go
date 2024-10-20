@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/nathanieltooley/gokemon/client/errors"
@@ -58,10 +59,28 @@ func init() {
 		log.Logger = zerolog.New(fileWriter).With().Timestamp().Logger()
 	}
 
-	POKEMON = loadPokemon()
-	MOVES = loadMoves()
-	ABILITIES = loadAbilities()
-	ITEMS = loadItems()
+	var wg sync.WaitGroup
+
+	wg.Add(4)
+
+	go func() {
+		POKEMON = loadPokemon()
+		wg.Done()
+	}()
+	go func() {
+		MOVES = loadMoves()
+		wg.Done()
+	}()
+	go func() {
+		ABILITIES = loadAbilities()
+		wg.Done()
+	}()
+	go func() {
+		ITEMS = loadItems()
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func loadPokemon() game.PokemonRegistry {
