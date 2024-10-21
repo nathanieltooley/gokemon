@@ -117,6 +117,7 @@ func (m movePanel) Init() tea.Cmd { return nil }
 func (m movePanel) View() string {
 	grid := make([]string, 0)
 
+	// Move grid
 	// TODO: Maybe refactor this into a separate component?
 	for i := 0; i < 2; i++ {
 		row := make([]string, 0)
@@ -158,6 +159,15 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if key.Matches(msg, global.MoveUpKey) {
 			m.moveGridFocus = int(math.Max(0, float64(m.moveGridFocus-2)))
+		}
+
+		if key.Matches(msg, global.SelectKey) {
+			move := m.state.GetCurrentPlayer().GetActivePokemon().Moves[m.moveGridFocus]
+
+			if move != nil {
+				attack := state.NewAttackAction(m.state, m.moveGridFocus)
+				m.state.Update(attack)
+			}
 		}
 	}
 
