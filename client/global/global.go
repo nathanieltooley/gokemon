@@ -52,6 +52,7 @@ func init() {
 		fmt.Println("Could not open file 'client.log' for logging. logging will be console only")
 		initLogger = zerolog.New(consoleWriter).With().Timestamp().Logger()
 	} else {
+		// TODO: Custom formatter, ends up printing out console format codes (obviously)
 		fileWriter := zerolog.ConsoleWriter{Out: logFile}
 		multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
 
