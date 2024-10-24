@@ -85,12 +85,13 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.state.Turn() == m.playerSide {
 		m.panel, _ = m.panel.Update(msg)
+		// Make sure that the UI update after this so that the AI can make an update
 		cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
 			return tickMsg{t}
 		})
 		// Assuming singleplayer
 	} else {
-		m.state.RunAction(ai.BestMove(m.state))
+		m.state.RunAction(ai.BestAction(m.state))
 	}
 
 	return m, cmd
