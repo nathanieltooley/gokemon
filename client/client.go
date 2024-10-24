@@ -18,7 +18,6 @@ func (m RootModel) Init() tea.Cmd {
 
 func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newView, cmd := m.currentView.Update(msg)
-
 	m.currentView = newView
 
 	// Disables the closing of the program when pressing ESC
@@ -34,6 +33,10 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		global.TERM_HEIGHT = msg.Height
 		global.TERM_WIDTH = msg.Width
+	}
+
+	if cmd != nil {
+		log.Debug().Msgf("New CMD: %#v", cmd)
 	}
 
 	return m, cmd

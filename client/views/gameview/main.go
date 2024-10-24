@@ -1,10 +1,14 @@
 package gameview
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nathanieltooley/gokemon/client/game/ai"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/rs/zerolog/log"
 )
 
 // BIG PROBLEM IM GONNA HAVE TO FIGURE OUT
@@ -42,6 +46,8 @@ func (m MainGameModel) View() string {
 	panelView := ""
 	if m.state.Turn() == m.playerSide {
 		panelView = m.panel.View()
+	} else {
+		log.Debug().Msg("not your turn")
 	}
 
 	return rendering.GlobalCenter(
@@ -58,7 +64,12 @@ func (m MainGameModel) View() string {
 	)
 }
 
+type tickMsg struct {
+	t time.Time
+}
+
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	// Debug switch action
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -68,11 +79,19 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				SwitchIndex: 1,
 			})
 		}
+	case tickMsg:
+		log.Debug().Msgf("Tick: %#v", msg.t.String())
 	}
 
 	if m.state.Turn() == m.playerSide {
 		m.panel, _ = m.panel.Update(msg)
+		cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			return tickMsg{t}
+		})
+		// Assuming singleplayer
+	} else {
+		m.state.RunAction(ai.BestMove(m.state))
 	}
 
-	return m, nil
+	return m, cmd
 }

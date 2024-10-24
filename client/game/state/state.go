@@ -132,3 +132,7 @@ func invertPlayerIndex(initial int) int {
 		return HOST
 	}
 }
+
+type SkipAction struct{}
+
+func (a SkipAction) UpdateState(state *GameState) { return }
