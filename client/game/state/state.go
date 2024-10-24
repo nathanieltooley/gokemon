@@ -68,6 +68,14 @@ func (g *GameState) Update(action Action) {
 	action.UpdateState(g)
 }
 
+func (g *GameState) RunAction(action Action) {
+	action.UpdateState(g)
+
+	g.turn = invertPlayerIndex(g.turn)
+}
+
+func (g *GameState) Turn() int { return g.turn }
+
 type Player struct {
 	Name            string
 	Team            [6]*game.Pokemon

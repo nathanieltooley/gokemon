@@ -166,7 +166,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if move != nil {
 				attack := state.NewAttackAction(m.state, m.moveGridFocus)
-				m.state.Update(attack)
+				m.state.RunAction(attack)
 			}
 		}
 	}

@@ -21,14 +21,16 @@ var (
 )
 
 type MainGameModel struct {
-	state *state.GameState
+	state      *state.GameState
+	playerSide int
 
 	panel tea.Model
 }
 
-func NewMainGameModel(state state.GameState) MainGameModel {
+func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 	return MainGameModel{
-		state: &state,
+		state:      &state,
+		playerSide: playerSide,
 		panel: actionPanel{
 			state: &state,
 		},
@@ -37,6 +39,11 @@ func NewMainGameModel(state state.GameState) MainGameModel {
 
 func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
+	panelView := ""
+	if m.state.Turn() == m.playerSide {
+		panelView = m.panel.View()
+	}
+
 	return rendering.GlobalCenter(
 		lipgloss.JoinVertical(
 			lipgloss.Center,
@@ -46,12 +53,13 @@ func (m MainGameModel) View() string {
 				newPlayerPanel(m.state, "PEER", m.state.GetPlayer(state.PEER)).View(),
 			),
 
-			m.panel.View(),
+			panelView,
 		),
 	)
 }
 
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Debug switch action
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyCtrlA {
@@ -62,7 +70,9 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	m.panel, _ = m.panel.Update(msg)
+	if m.state.Turn() == m.playerSide {
+		m.panel, _ = m.panel.Update(msg)
+	}
 
 	return m, nil
 }
