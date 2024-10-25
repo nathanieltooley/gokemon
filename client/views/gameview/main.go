@@ -68,6 +68,7 @@ type tickMsg struct {
 	t time.Time
 }
 
+// TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	// Debug switch action
@@ -89,9 +90,16 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
 			return tickMsg{t}
 		})
-		// Assuming singleplayer
+		// NOTE: Assuming singleplayer
 	} else {
 		m.state.RunAction(ai.BestAction(m.state))
+	}
+
+	// Game Over Check
+	// NOTE: Assuming singleplayer
+	gameOverValue := m.state.GameOver()
+	if gameOverValue != -1 {
+		return newEndScreen(), nil
 	}
 
 	return m, cmd

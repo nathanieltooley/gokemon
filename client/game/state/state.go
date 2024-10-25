@@ -76,6 +76,44 @@ func (g *GameState) RunAction(action Action) {
 
 func (g *GameState) Turn() int { return g.turn }
 
+// Returns whether the game should be over (all of a player's pokemon are dead)
+// Value will be -1 for no loser yet, or the winner HOST or PEER
+func (g *GameState) GameOver() int {
+	hostLoss := true
+	for _, pokemon := range g.localPlayer.Team {
+		if pokemon == nil {
+			continue
+		}
+
+		if pokemon.Hp.Value > 0 {
+			hostLoss = false
+			break
+		}
+	}
+
+	peerLoss := true
+	for _, pokemon := range g.opposingPlayer.Team {
+		if pokemon == nil {
+			continue
+		}
+
+		if pokemon.Hp.Value > 0 {
+			peerLoss = false
+			break
+		}
+	}
+
+	if hostLoss {
+		return PEER
+	}
+
+	if peerLoss {
+		return HOST
+	}
+
+	return -1
+}
+
 type Player struct {
 	Name            string
 	Team            [6]*game.Pokemon
