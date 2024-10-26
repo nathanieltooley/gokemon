@@ -2,18 +2,21 @@ package gameview
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
-type endModel struct{}
+type endModel struct {
+	message string
+}
 
-func newEndScreen() endModel {
-	return endModel{}
+func newEndScreen(message string) endModel {
+	return endModel{message}
 }
 
 func (m endModel) Init() tea.Cmd { return nil }
 func (m endModel) View() string {
-	return rendering.GlobalCenter("Game Over")
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, "Game Over", m.message))
 }
 
 func (m endModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

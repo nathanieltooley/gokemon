@@ -87,7 +87,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.state.Turn() == m.playerSide {
 		m.panel, _ = m.panel.Update(msg)
 		// Make sure that the UI update after this so that the AI can make an update
-		cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		cmd = tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
 			return tickMsg{t}
 		})
 		// NOTE: Assuming singleplayer
@@ -99,7 +99,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// NOTE: Assuming singleplayer
 	gameOverValue := m.state.GameOver()
 	if gameOverValue != -1 {
-		return newEndScreen(), nil
+		if gameOverValue == m.playerSide {
+			return newEndScreen("You Won!"), nil
+		} else {
+			return newEndScreen("You Lost :("), nil
+		}
 	}
 
 	return m, cmd
