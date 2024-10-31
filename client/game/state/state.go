@@ -21,20 +21,20 @@ type GameState struct {
 	stateType int
 }
 
-func NewState() GameState {
-	// For testing purposes only
-
-	var localTeam [6]*game.Pokemon
-	var opposingTeam [6]*game.Pokemon
+func DefaultTeam() [6]*game.Pokemon {
+	var defaultTeam [6]*game.Pokemon
 
 	defaultMove := global.MOVES.GetMove("tackle")
-	localTeam[0] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
-	localTeam[1] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build()
+	defaultTeam[0] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
+	defaultTeam[1] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build()
 
-	localTeam[0].Moves[0] = defaultMove
+	defaultTeam[0].Moves[0] = defaultMove
 
-	opposingTeam[0] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
+	return defaultTeam
+}
 
+func NewState(localTeam [6]*game.Pokemon, opposingTeam [6]*game.Pokemon) GameState {
+	// For testing purposes only
 	localPlayer := Player{
 		Name: "Local",
 		Team: localTeam,
