@@ -101,3 +101,13 @@ func LoadTeamMap() (SavedTeams, error) {
 
 	return teams, nil
 }
+
+func TeamSliceToArray(slice []game.Pokemon) [6]*game.Pokemon {
+	var team [6]*game.Pokemon
+
+	for i, pokemon := range slice {
+		team[i] = &pokemon
+	}
+
+	return team
+}
