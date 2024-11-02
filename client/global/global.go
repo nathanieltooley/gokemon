@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/nathanieltooley/gokemon/client/errors"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/reg"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
@@ -20,8 +21,8 @@ import (
 var (
 	TERM_WIDTH, TERM_HEIGHT, _ = term.GetSize(int(os.Stdout.Fd()))
 
-	POKEMON   game.PokemonRegistry
-	MOVES     *game.MoveRegistry
+	POKEMON   reg.PokemonRegistry
+	MOVES     *reg.MoveRegistry
 	ABILITIES map[string][]string
 	ITEMS     []string
 
@@ -84,7 +85,7 @@ func init() {
 	wg.Wait()
 }
 
-func loadPokemon() game.PokemonRegistry {
+func loadPokemon() reg.PokemonRegistry {
 	dataFile := "./data/gen1-data.csv"
 	fileReader, err := os.Open(dataFile)
 	defer fileReader.Close()
@@ -148,13 +149,13 @@ func loadPokemon() game.PokemonRegistry {
 		initLogger.Fatal().Err(err).Msg("Failed to load pokemon data")
 	}
 
-	return game.PokemonRegistry(pokemonList)
+	return reg.PokemonRegistry(pokemonList)
 }
 
-func loadMoves() *game.MoveRegistry {
+func loadMoves() *reg.MoveRegistry {
 	initLogger.Info().Msg("Loading Move Data")
 
-	moveRegistry := new(game.MoveRegistry)
+	moveRegistry := new(reg.MoveRegistry)
 	movesPath := "./data/moves.json"
 	movesMapPath := "./data/movesMap.json"
 

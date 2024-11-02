@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"strings"
 
 	err "errors"
 )
@@ -212,10 +211,45 @@ func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
 	return pb
 }
 
+func (pb *PokemonBuilder) SetRandomLevel(low int, high int) *PokemonBuilder {
+	n := high - low
+	rndLevel := rand.IntN(n) + low
+	pb.poke.Level = uint8(rndLevel)
+
+	return pb
+}
+
 func (pb *PokemonBuilder) SetNature(nature Nature) *PokemonBuilder {
 	pb.poke.Nature = nature
 	return pb
 }
+
+func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
+	rndNature := NATURES[rand.IntN(len(NATURES))]
+	pb.poke.Nature = rndNature
+
+	return pb
+}
+
+func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*MoveFull) *PokemonBuilder {
+	var moves [4]*MoveFull
+
+	for i := 0; i < 4; i++ {
+		move := possibleMoves[rand.IntN(len(possibleMoves))]
+		moves[i] = move
+	}
+
+	pb.poke.Moves = moves
+
+	return pb
+}
+
+func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []string) *PokemonBuilder {
+	pb.poke.Ability = possibleAbilities[rand.IntN(len(possibleAbilities))]
+	return pb
+}
+
+// TODO: SetRandomItem
 
 func (pb *PokemonBuilder) Build() *Pokemon {
 	pb.poke.ReCalcStats()
@@ -225,28 +259,6 @@ func (pb *PokemonBuilder) Build() *Pokemon {
 // type PokemonRegistry struct {
 // 	pkm []BasePokemon
 // }
-
-type PokemonRegistry []BasePokemon
-
-func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *BasePokemon {
-	for _, pkm := range p {
-		if pkm.PokedexNumber == int16(pkdNumber) {
-			return &pkm
-		}
-	}
-
-	return nil
-}
-
-func (p PokemonRegistry) GetPokemonByName(pkmName string) *BasePokemon {
-	for _, pkm := range p {
-		if strings.ToLower(pkm.Name) == strings.ToLower(pkmName) {
-			return &pkm
-		}
-	}
-
-	return nil
-}
 
 func calcStat(baseValue int16, level uint8, iv uint8, ev uint8, natureMod float32) int16 {
 	statNumerator := (2*baseValue + int16(iv) + int16(ev/4)) * int16(level)

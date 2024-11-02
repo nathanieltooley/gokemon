@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/reg"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
@@ -95,7 +96,7 @@ type (
 		ctx *teamEditorCtx
 
 		editorModels       [len(editors)]editor
-		moveRegistry       *game.MoveRegistry
+		moveRegistry       *reg.MoveRegistry
 		abilities          map[string][]string
 		currentPokemon     *game.Pokemon
 		currentEditorIndex int
@@ -185,7 +186,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, enterPokeEditor) {
 			if m.addingNewPokemon {
 				if m.choice != nil && len(m.ctx.team) < 6 {
-					newPokemon := game.NewPokeBuilder(m.choice).Build()
+					newPokemon := game.NewPokeBuilder(m.choice).SetLevel(100).Build()
 					m.ctx.team = append(m.ctx.team, newPokemon)
 				}
 

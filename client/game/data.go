@@ -6,18 +6,22 @@ var NATURE_HARDY = Nature{
 	"Hardy",
 	[5]float32{1, 1, 1, 1, 1},
 }
+
 var NATURE_DOCILE = Nature{
 	"Docile",
 	[5]float32{1, 1, 1, 1, 1},
 }
+
 var NATURE_BASHFUL = Nature{
 	"Bashful",
 	[5]float32{1, 1, 1, 1, 1},
 }
+
 var NATURE_QUIRKY = Nature{
 	"Quirky",
 	[5]float32{1, 1, 1, 1, 1},
 }
+
 var NATURE_SERIOUS = Nature{
 	"Serious",
 	[5]float32{1, 1, 1, 1, 1},
@@ -29,14 +33,17 @@ var NATURE_BOLD = Nature{
 	"Bold",
 	[5]float32{.9, 1.1, 1, 1, 1},
 }
+
 var NATURE_MODEST = Nature{
 	"Modest",
 	[5]float32{.9, 1, 1.1, 1, 1},
 }
+
 var NATURE_CALM = Nature{
 	"Calm",
 	[5]float32{.9, 1, 1, 1.1, 1},
 }
+
 var NATURE_TIMID = Nature{
 	"Timid",
 	[5]float32{.9, 1, 1, 1, 1.1},
@@ -48,14 +55,17 @@ var NATURE_LONELY = Nature{
 	"Lonely",
 	[5]float32{1.1, .9, 1, 1, 1},
 }
+
 var NATURE_MILD = Nature{
 	"Mild",
 	[5]float32{1, .9, 1.1, 1, 1},
 }
+
 var NATURE_GENTLE = Nature{
 	"Gentle",
 	[5]float32{1, .9, 1, 1.1, 1},
 }
+
 var NATURE_HASTY = Nature{
 	"Hasty",
 	[5]float32{1, .9, 1, 1, 1.1},
@@ -67,14 +77,17 @@ var NATURE_ADAMENT = Nature{
 	"Adament",
 	[5]float32{1.1, 1, .9, 1, 1},
 }
+
 var NATURE_IMPISH = Nature{
 	"Impish",
 	[5]float32{1, 1.1, .9, 1, 1},
 }
+
 var NATURE_CAREFUL = Nature{
 	"Careful",
 	[5]float32{1, 1, .9, 1.1, 1},
 }
+
 var NATURE_JOLLY = Nature{
 	"Jolly",
 	[5]float32{1, 1, .9, 1, 1.1},
@@ -86,14 +99,17 @@ var NATURE_NAUGHTY = Nature{
 	"Naughty",
 	[5]float32{1.1, 1, 1, .9, 1},
 }
+
 var NATURE_LAX = Nature{
 	"LAX",
 	[5]float32{1, 1.1, 1, .9, 1},
 }
+
 var NATURE_RASH = Nature{
 	"Rash",
 	[5]float32{1, 1, 1.1, .9, 1},
 }
+
 var NATURE_NAIVE = Nature{
 	"Naive",
 	[5]float32{1, 1, 1, .9, 1.1},
@@ -105,17 +121,48 @@ var NATURE_BRAVE = Nature{
 	"Brave",
 	[5]float32{1.1, 1, 1, 1, .9},
 }
+
 var NATURE_RELAXED = Nature{
 	"Relaxed",
 	[5]float32{1, 1.1, 1, 1, .9},
 }
+
 var NATURE_QUIET = Nature{
 	"Quiet",
 	[5]float32{1, 1, 1.1, 1, .9},
 }
+
 var NATURE_SASSY = Nature{
 	"Sassy",
 	[5]float32{1, 1, 1, 1.1, .9},
+}
+
+var NATURES = [...]Nature{
+	NATURE_HARDY,
+	NATURE_DOCILE,
+	NATURE_BASHFUL,
+	NATURE_QUIRKY,
+	NATURE_SERIOUS,
+	NATURE_BOLD,
+	NATURE_MODEST,
+	NATURE_CALM,
+	NATURE_TIMID,
+	NATURE_LONELY,
+	NATURE_MILD,
+	NATURE_GENTLE,
+	NATURE_HASTY,
+	NATURE_ADAMENT,
+	NATURE_IMPISH,
+	NATURE_CAREFUL,
+	NATURE_JOLLY,
+	NATURE_NAUGHTY,
+	NATURE_LAX,
+	NATURE_RASH,
+	NATURE_NAIVE,
+	NATURE_BRAVE,
+	NATURE_RELAXED,
+	NATURE_QUIET,
+	NATURE_SASSY,
 }
 
 var TYPE_MAP = map[string]*PokemonType{

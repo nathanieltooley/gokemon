@@ -1,6 +1,8 @@
 package state
 
 import (
+	"strings"
+
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/global"
 )
@@ -31,6 +33,25 @@ func DefaultTeam() [6]*game.Pokemon {
 	defaultTeam[0].Moves[0] = defaultMove
 
 	return defaultTeam
+}
+
+func RandomTeam() [6]*game.Pokemon {
+	var team [6]*game.Pokemon
+
+	for i := 0; i < 6; i++ {
+		rndBasePkm := global.POKEMON.GetRandomPokemon()
+		rndPkm := game.NewPokeBuilder(rndBasePkm).
+			SetRandomEvs().
+			SetRandomIvs().
+			SetRandomLevel(80, 100).
+			SetRandomNature().
+			SetRandomMoves(global.MOVES.GetFullMovesForPokemon(rndBasePkm.Name)).
+			SetRandomAbility(global.ABILITIES[strings.ToLower(rndBasePkm.Name)]).
+			Build()
+		team[i] = rndPkm
+	}
+
+	return team
 }
 
 func NewState(localTeam [6]*game.Pokemon, opposingTeam [6]*game.Pokemon) GameState {
