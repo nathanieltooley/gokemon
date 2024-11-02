@@ -83,6 +83,10 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					state: m.state,
 					moves: m.state.GetCurrentPlayer().GetActivePokemon().Moves,
 				}, nil
+			case 1:
+				return pokemonPanel{
+					state: m.state,
+				}, nil
 			}
 		}
 
@@ -171,5 +175,25 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	return m, nil
+}
+
+type pokemonPanel struct {
+	state *state.GameState
+}
+
+func (m pokemonPanel) Init() tea.Cmd { return nil }
+func (m pokemonPanel) View() string {
+	pokeStyle := lipgloss.NewStyle().Width(10).Border(lipgloss.NormalBorder(), true)
+
+	var panel [6]string
+	for i := 0; i < 6; i++ {
+		panel[i] = pokeStyle.Render(fmt.Sprintf("Pokemon %d", i+1))
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, panel[:]...)
+}
+
+func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
