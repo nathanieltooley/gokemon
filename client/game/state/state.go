@@ -14,9 +14,9 @@ const (
 )
 
 type GameState struct {
-	localPlayer    Player
-	opposingPlayer Player
-	turn           int
+	LocalPlayer    Player
+	OpposingPlayer Player
+	Turn           int
 
 	LocalSubmittedAction    Action
 	OpposingSubmittedAction Action
@@ -70,23 +70,20 @@ func NewState(localTeam [6]*game.Pokemon, opposingTeam [6]*game.Pokemon) GameSta
 	}
 
 	return GameState{
-		localPlayer:    localPlayer,
-		opposingPlayer: opposingPlayer,
-		turn:           HOST,
-		stateType:      HOST,
+		LocalPlayer:    localPlayer,
+		OpposingPlayer: opposingPlayer,
+		Turn:           0,
+
+		stateType: HOST,
 	}
 }
 
 func (g *GameState) GetPlayer(index int) *Player {
 	if index == HOST {
-		return &g.localPlayer
+		return &g.LocalPlayer
 	} else {
-		return &g.opposingPlayer
+		return &g.OpposingPlayer
 	}
-}
-
-func (g *GameState) GetCurrentPlayer() *Player {
-	return g.GetPlayer(g.turn)
 }
 
 func (g *GameState) ComputeTurn(hostAction Action, peerAction Action) {
@@ -94,16 +91,14 @@ func (g *GameState) ComputeTurn(hostAction Action, peerAction Action) {
 	hostAction.UpdateState(g)
 	peerAction.UpdateState(g)
 
-	g.turn++
+	g.Turn++
 }
-
-func (g *GameState) Turn() int { return g.turn }
 
 // Returns whether the game should be over (all of a player's pokemon are dead)
 // Value will be -1 for no loser yet, or the winner HOST or PEER
 func (g *GameState) GameOver() int {
 	hostLoss := true
-	for _, pokemon := range g.localPlayer.Team {
+	for _, pokemon := range g.LocalPlayer.Team {
 		if pokemon == nil {
 			continue
 		}
@@ -116,7 +111,7 @@ func (g *GameState) GameOver() int {
 	}
 
 	peerLoss := true
-	for _, pokemon := range g.opposingPlayer.Team {
+	for _, pokemon := range g.OpposingPlayer.Team {
 		if pokemon == nil {
 			continue
 		}

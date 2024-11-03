@@ -81,11 +81,12 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0:
 				return movePanel{
 					state: m.state,
-					moves: m.state.GetCurrentPlayer().GetActivePokemon().Moves,
+					moves: m.state.LocalPlayer.GetActivePokemon().Moves,
 				}, nil
 			case 1:
 				return pokemonPanel{
-					state: m.state,
+					state:   m.state,
+					pokemon: m.state.LocalPlayer.Team,
 				}, nil
 			}
 		}
@@ -166,7 +167,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			move := m.state.GetCurrentPlayer().GetActivePokemon().Moves[m.moveGridFocus]
+			move := m.state.LocalPlayer.GetActivePokemon().Moves[m.moveGridFocus]
 
 			if move != nil {
 				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
@@ -179,7 +180,10 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type pokemonPanel struct {
-	state *state.GameState
+	state   *state.GameState
+	pokemon [6]*game.Pokemon
+
+	selectedPokemon int
 }
 
 func (m pokemonPanel) Init() tea.Cmd { return nil }
@@ -188,12 +192,54 @@ func (m pokemonPanel) View() string {
 
 	var panel [6]string
 	for i := 0; i < 6; i++ {
-		panel[i] = pokeStyle.Render(fmt.Sprintf("Pokemon %d", i+1))
+		pokemon := m.pokemon[i]
+
+		if pokemon != nil {
+			if i == m.selectedPokemon {
+				panel[i] = highlightedPanelStyle.Width(10).Render(pokemon.Nickname)
+			} else {
+				panel[i] = pokeStyle.Render(pokemon.Nickname)
+			}
+		} else {
+			panel[i] = pokeStyle.Render()
+		}
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, panel[:]...)
 }
 
 func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, global.MoveLeftKey) {
+			m.selectedPokemon--
+			if m.selectedPokemon < 0 {
+				m.selectedPokemon = 5
+			}
+		}
+
+		if key.Matches(msg, global.MoveRightKey) {
+			m.selectedPokemon++
+
+			if m.selectedPokemon > 5 {
+				m.selectedPokemon = 0
+			}
+		}
+
+		if key.Matches(msg, global.SelectKey) {
+			currentPokemon := m.pokemon[m.selectedPokemon]
+
+			if currentPokemon != nil && currentPokemon.Hp.Value > 0 {
+				action := state.SwitchAction{
+					PlayerIndex: state.HOST,
+					SwitchIndex: m.selectedPokemon,
+				}
+
+				m.state.LocalSubmittedAction = action
+			}
+
+		}
+	}
+
 	return m, nil
 }
