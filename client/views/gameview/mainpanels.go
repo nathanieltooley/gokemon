@@ -84,10 +84,7 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					moves: m.state.LocalPlayer.GetActivePokemon().Moves,
 				}, nil
 			case 1:
-				return pokemonPanel{
-					state:   m.state,
-					pokemon: m.state.LocalPlayer.Team,
-				}, nil
+				return newPokemonPanel(m.state, m.state.LocalPlayer.Team), nil
 			}
 		}
 
@@ -180,32 +177,37 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type pokemonPanel struct {
-	state   *state.GameState
-	pokemon [6]*game.Pokemon
+	state        *state.GameState
+	pokemon      [6]*game.Pokemon
+	validPokemon []*game.Pokemon
 
 	selectedPokemon int
+}
+
+func newPokemonPanel(state *state.GameState, pokemon [6]*game.Pokemon) pokemonPanel {
+	panel := pokemonPanel{
+		state:   state,
+		pokemon: pokemon,
+	}
+
+	panel.UpdateValidPokemon()
+	return panel
 }
 
 func (m pokemonPanel) Init() tea.Cmd { return nil }
 func (m pokemonPanel) View() string {
 	pokeStyle := lipgloss.NewStyle().Width(10).Border(lipgloss.NormalBorder(), true)
 
-	var panel [6]string
-	for i := 0; i < 6; i++ {
-		pokemon := m.pokemon[i]
-
-		if pokemon != nil {
-			if i == m.selectedPokemon {
-				panel[i] = highlightedPanelStyle.Width(10).Render(pokemon.Nickname)
-			} else {
-				panel[i] = pokeStyle.Render(pokemon.Nickname)
-			}
+	panels := make([]string, 0)
+	for i, pokemon := range m.validPokemon {
+		if i == m.selectedPokemon {
+			panels = append(panels, highlightedPanelStyle.Width(10).Render(pokemon.Nickname))
 		} else {
-			panel[i] = pokeStyle.Render()
+			panels = append(panels, pokeStyle.Render(pokemon.Nickname))
 		}
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Center, panel[:]...)
+	return lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...)
 }
 
 func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -214,32 +216,57 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, global.MoveLeftKey) {
 			m.selectedPokemon--
 			if m.selectedPokemon < 0 {
-				m.selectedPokemon = 5
+				m.selectedPokemon = len(m.validPokemon)
 			}
 		}
 
 		if key.Matches(msg, global.MoveRightKey) {
 			m.selectedPokemon++
 
-			if m.selectedPokemon > 5 {
+			if m.selectedPokemon >= len(m.validPokemon) {
 				m.selectedPokemon = 0
 			}
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			currentPokemon := m.pokemon[m.selectedPokemon]
+			// All this extra stuff with valid pokemon
+			// is just to make the menus nicer to look at (no gaps)
+			currentValidPokemon := m.pokemon[m.selectedPokemon]
 
-			if currentPokemon != nil && currentPokemon.Hp.Value > 0 {
+			// m.selectedPokemon is based off of the validPokemon slice
+			// which has different indices than the actual team array
+			// so we find the actual index by comparing pointers
+			var currentPokemonIndex int
+
+			for i, pokemon := range m.pokemon {
+				if pokemon == currentValidPokemon {
+					currentPokemonIndex = i
+				}
+			}
+
+			if currentValidPokemon != nil && currentValidPokemon.Hp.Value > 0 {
 				action := state.SwitchAction{
 					PlayerIndex: state.HOST,
-					SwitchIndex: m.selectedPokemon,
+					SwitchIndex: currentPokemonIndex,
 				}
 
 				m.state.LocalSubmittedAction = action
 			}
-
 		}
 	}
 
+	m.UpdateValidPokemon()
+
 	return m, nil
+}
+
+func (m *pokemonPanel) UpdateValidPokemon() {
+	newValidPokemon := make([]*game.Pokemon, 0)
+	for _, pokemon := range m.pokemon {
+		if pokemon != nil && pokemon.Hp.Value > 0 {
+			newValidPokemon = append(newValidPokemon, pokemon)
+		}
+	}
+
+	m.validPokemon = newValidPokemon
 }
