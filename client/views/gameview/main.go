@@ -91,6 +91,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		receivedOnceRefresh = true
 	}
 
+	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
+	if !m.state.LocalPlayer.GetActivePokemon().Alive() {
+		switch m.panel.(type) {
+		case pokemonPanel:
+		default:
+			m.panel = newPokemonPanel(m.state, m.state.LocalPlayer.Team)
+		}
+	}
+
 	if m.state.LocalSubmittedAction != nil {
 		m.state.ComputeTurn(m.state.LocalSubmittedAction, ai.BestAction(m.state))
 		m.state.LocalSubmittedAction = nil
