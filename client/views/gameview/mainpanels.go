@@ -169,8 +169,8 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			move := m.state.GetCurrentPlayer().GetActivePokemon().Moves[m.moveGridFocus]
 
 			if move != nil {
-				attack := state.NewAttackAction(m.state, m.moveGridFocus)
-				m.state.RunAction(attack)
+				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
+				m.state.LocalSubmittedAction = attack
 			}
 		}
 	}

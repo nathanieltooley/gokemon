@@ -44,7 +44,7 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
 	panelView := ""
-	if m.state.Turn() == m.playerSide {
+	if m.state.LocalSubmittedAction == nil {
 		panelView = m.panel.View()
 	} else {
 		log.Debug().Msg("not your turn")
@@ -68,31 +68,48 @@ type tickMsg struct {
 	t time.Time
 }
 
+type refreshOnceMsg struct {
+	t time.Time
+}
+
 // TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	receivedOnceRefresh := false
+
 	// Debug switch action
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyCtrlA {
-			m.state.Update(state.SwitchAction{
-				PlayerIndex: state.HOST,
-				SwitchIndex: 1,
-			})
-		}
-	case tickMsg:
-		log.Debug().Msgf("Tick: %#v", msg.t.String())
+		// if msg.Type == tea.KeyCtrlA {
+		// 	m.state.Update(state.SwitchAction{
+		// 		PlayerIndex: state.HOST,
+		// 		SwitchIndex: 1,
+		// 	})
+		// }
+	case refreshOnceMsg:
+		log.Debug().Msgf("Once Refresh Tick: %#v", msg.t.String())
+		receivedOnceRefresh = true
 	}
 
-	if m.state.Turn() == m.playerSide {
-		m.panel, _ = m.panel.Update(msg)
-		// Make sure that the UI update after this so that the AI can make an update
-		cmd = tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-			return tickMsg{t}
-		})
-		// NOTE: Assuming singleplayer
+	if m.state.LocalSubmittedAction != nil {
+		m.state.ComputeTurn(m.state.LocalSubmittedAction, ai.BestAction(m.state))
+		m.state.LocalSubmittedAction = nil
+
+		// Might turn this stuff into a constant tick rate
+		// so that the UI is constantly updated
+		if !receivedOnceRefresh {
+			cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+				return refreshOnceMsg{t}
+			})
+		}
 	} else {
-		m.state.RunAction(ai.BestAction(m.state))
+		m.panel, _ = m.panel.Update(msg)
+
+		if !receivedOnceRefresh {
+			cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+				return refreshOnceMsg{t}
+			})
+		}
 	}
 
 	// Game Over Check

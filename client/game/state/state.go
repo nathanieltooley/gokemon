@@ -5,6 +5,7 @@ import (
 
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -16,6 +17,9 @@ type GameState struct {
 	localPlayer    Player
 	opposingPlayer Player
 	turn           int
+
+	LocalSubmittedAction    Action
+	OpposingSubmittedAction Action
 
 	// HOST or PEER
 	// The HOST state is the arbiter of truth
@@ -85,14 +89,12 @@ func (g *GameState) GetCurrentPlayer() *Player {
 	return g.GetPlayer(g.turn)
 }
 
-func (g *GameState) Update(action Action) {
-	action.UpdateState(g)
-}
+func (g *GameState) ComputeTurn(hostAction Action, peerAction Action) {
+	// for now Host goes first
+	hostAction.UpdateState(g)
+	peerAction.UpdateState(g)
 
-func (g *GameState) RunAction(action Action) {
-	action.UpdateState(g)
-
-	g.turn = invertPlayerIndex(g.turn)
+	g.turn++
 }
 
 func (g *GameState) Turn() int { return g.turn }
@@ -108,6 +110,7 @@ func (g *GameState) GameOver() int {
 
 		if pokemon.Hp.Value > 0 {
 			hostLoss = false
+			log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}
@@ -120,6 +123,7 @@ func (g *GameState) GameOver() int {
 
 		if pokemon.Hp.Value > 0 {
 			peerLoss = false
+			log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}
@@ -165,9 +169,9 @@ type AttackAction struct {
 	AttackerMove int
 }
 
-func NewAttackAction(state *GameState, attackMove int) AttackAction {
+func NewAttackAction(attacker int, attackMove int) AttackAction {
 	return AttackAction{
-		Attacker:     state.turn,
+		Attacker:     attacker,
 		AttackerMove: attackMove,
 	}
 }
