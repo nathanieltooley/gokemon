@@ -13,6 +13,12 @@ const (
 	PEER
 )
 
+// Renamed HOST and PEER constants
+const (
+	PLAYER = iota
+	AI
+)
+
 type GameState struct {
 	LocalPlayer    Player
 	OpposingPlayer Player
@@ -86,12 +92,7 @@ func (g *GameState) GetPlayer(index int) *Player {
 	}
 }
 
-func (g *GameState) ComputeTurn(hostAction Action, peerAction Action) {
-	// for now Host goes first
-	hostAction.UpdateState(g)
-	peerAction.UpdateState(g)
-
-	g.Turn++
+func (g *GameState) ComputeTurn() {
 }
 
 // Returns whether the game should be over (all of a player's pokemon are dead)

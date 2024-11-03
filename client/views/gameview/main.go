@@ -101,8 +101,26 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.state.LocalSubmittedAction != nil {
-		m.state.ComputeTurn(m.state.LocalSubmittedAction, ai.BestAction(m.state))
+		m.state.OpposingSubmittedAction = ai.BestAction(m.state)
+
+		// for now Host goes first
+		m.state.LocalSubmittedAction.UpdateState(m.state)
+
+		// Force the AI to update their action if their pokemon died
+		// this will have to be expanded for the player and eventually
+		// the opposing player instead of just the AI
+		switch m.state.OpposingSubmittedAction.(type) {
+		case state.AttackAction, state.SkipAction:
+			if !m.state.OpposingPlayer.GetActivePokemon().Alive() {
+				m.state.OpposingSubmittedAction = ai.BestAction(m.state)
+			}
+		}
+
+		m.state.OpposingSubmittedAction.UpdateState(m.state)
+
+		m.state.Turn++
 		m.state.LocalSubmittedAction = nil
+		m.state.OpposingSubmittedAction = nil
 
 		// reset panel to the default after a move is made
 		m.panel = actionPanel{state: m.state}
