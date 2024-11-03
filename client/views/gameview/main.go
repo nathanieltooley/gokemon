@@ -95,6 +95,9 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state.ComputeTurn(m.state.LocalSubmittedAction, ai.BestAction(m.state))
 		m.state.LocalSubmittedAction = nil
 
+		// reset panel to the default after a move is made
+		m.panel = actionPanel{state: m.state}
+
 		// Might turn this stuff into a constant tick rate
 		// so that the UI is constantly updated
 		if !receivedOnceRefresh {
