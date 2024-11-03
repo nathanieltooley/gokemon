@@ -111,6 +111,10 @@ func (p *Pokemon) GetCurrentEvTotal() int {
 	return int(p.Hp.Ev) + int(p.Attack.Ev) + int(p.Def.Ev) + int(p.SpAttack.Ev) + int(p.SpDef.Ev) + int(p.Speed.Ev)
 }
 
+func (p *Pokemon) Alive() bool {
+	return p.Hp.Value > 0
+}
+
 type PokemonBuilder struct {
 	poke *Pokemon
 }
