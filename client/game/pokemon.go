@@ -202,7 +202,7 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 		// Get a random value to increase the EV by
 		// ranges from 0 to (remainingEvSpace or MAX_EV) + 1
 		randomEv := rand.UintN(uint(math.Max(float64(remainingEvSpace), MAX_EV)) + 1)
-		evs[randomEv] += uint8(randomEv)
+		evs[randomIndex] += uint8(randomEv)
 		evPool -= int(randomEv)
 	}
 
