@@ -30,6 +30,17 @@ type GameState struct {
 	stateType int
 }
 
+func playerIntToString(player int) string {
+	switch player {
+	case HOST:
+		return "Host/Player"
+	case PEER:
+		return "Peer/AI"
+	}
+
+	return ""
+}
+
 func DefaultTeam() [6]*game.Pokemon {
 	var defaultTeam [6]*game.Pokemon
 
@@ -89,9 +100,6 @@ func (g *GameState) GetPlayer(index int) *Player {
 	}
 }
 
-func (g *GameState) ComputeTurn() {
-}
-
 // Returns whether the game should be over (all of a player's pokemon are dead)
 // Value will be -1 for no loser yet, or the winner HOST or PEER
 func (g *GameState) GameOver() int {
@@ -122,10 +130,12 @@ func (g *GameState) GameOver() int {
 	}
 
 	if hostLoss {
+		log.Info().Msg("HOST/Player lost")
 		return PEER
 	}
 
 	if peerLoss {
+		log.Info().Msg("PEER/AI lost")
 		return HOST
 	}
 
@@ -154,6 +164,7 @@ type SwitchAction struct {
 
 func (a SwitchAction) UpdateState(state *GameState) {
 	player := state.GetPlayer(a.PlayerIndex)
+	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.PlayerIndex, playerIntToString(a.PlayerIndex), a.SwitchIndex)
 	player.ActivePokeIndex = uint8(a.SwitchIndex)
 }
 
@@ -171,13 +182,15 @@ func NewAttackAction(attacker int, attackMove int) AttackAction {
 
 func (a AttackAction) UpdateState(state *GameState) {
 	attacker := state.GetPlayer(a.Attacker)
-	defender := state.GetPlayer(invertPlayerIndex(a.Attacker))
+	defenderInt := invertPlayerIndex(a.Attacker)
+	defender := state.GetPlayer(defenderInt)
 
 	attackPokemon := attacker.Team[attacker.ActivePokeIndex]
 	defPokemon := defender.Team[defender.ActivePokeIndex]
 
 	// TODO: Make sure a.AttackerMove is between 0 -> 3
 	damage := game.Damage(attackPokemon, defPokemon, attackPokemon.Moves[a.AttackerMove])
+	log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.Attacker, playerIntToString(a.Attacker), defenderInt, playerIntToString(defenderInt), damage)
 	defPokemon.Hp.Value = defPokemon.Hp.Value - int16(damage)
 }
 
