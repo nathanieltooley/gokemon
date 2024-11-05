@@ -14,15 +14,15 @@ import (
 )
 
 type playerPanel struct {
-	state *state.GameState
+	ctx *gameContext
 
 	player *state.Player
 	name   string
 }
 
-func newPlayerPanel(state *state.GameState, name string, player *state.Player) playerPanel {
+func newPlayerPanel(ctx *gameContext, name string, player *state.Player) playerPanel {
 	return playerPanel{
-		state:  state,
+		ctx:    ctx,
 		player: player,
 		name:   name,
 	}
@@ -48,7 +48,7 @@ func (m playerPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type actionPanel struct {
-	state *state.GameState
+	ctx *gameContext
 
 	actionFocus int
 }
@@ -80,11 +80,11 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.actionFocus {
 			case 0:
 				return movePanel{
-					state: m.state,
-					moves: m.state.LocalPlayer.GetActivePokemon().Moves,
+					ctx:   m.ctx,
+					moves: m.ctx.state.LocalPlayer.GetActivePokemon().Moves,
 				}, nil
 			case 1:
-				return newPokemonPanel(m.state, m.state.LocalPlayer.Team), nil
+				return newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team), nil
 			}
 		}
 
@@ -109,7 +109,7 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type movePanel struct {
-	state         *state.GameState
+	ctx           *gameContext
 	moveGridFocus int
 
 	moves [4]*game.MoveFull
@@ -164,11 +164,11 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			move := m.state.LocalPlayer.GetActivePokemon().Moves[m.moveGridFocus]
+			move := m.ctx.state.LocalPlayer.GetActivePokemon().Moves[m.moveGridFocus]
 
 			if move != nil {
 				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
-				m.state.LocalSubmittedAction = attack
+				m.ctx.chosenAction = attack
 			}
 		}
 	}
@@ -177,16 +177,16 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type pokemonPanel struct {
-	state        *state.GameState
+	ctx          *gameContext
 	pokemon      [6]*game.Pokemon
 	validPokemon []*game.Pokemon
 
 	selectedPokemon int
 }
 
-func newPokemonPanel(state *state.GameState, pokemon [6]*game.Pokemon) pokemonPanel {
+func newPokemonPanel(ctx *gameContext, pokemon [6]*game.Pokemon) pokemonPanel {
 	panel := pokemonPanel{
-		state:   state,
+		ctx:     ctx,
 		pokemon: pokemon,
 	}
 
@@ -250,7 +250,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					SwitchIndex: currentPokemonIndex,
 				}
 
-				m.state.LocalSubmittedAction = action
+				m.ctx.chosenAction = action
 			}
 		}
 	}

@@ -24,9 +24,6 @@ type GameState struct {
 	OpposingPlayer Player
 	Turn           int
 
-	LocalSubmittedAction    Action
-	OpposingSubmittedAction Action
-
 	// HOST or PEER
 	// The HOST state is the arbiter of truth
 	// and the PEER state is the replicated state of the HOST

@@ -5,8 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/ai"
 	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/rs/zerolog/log"
 )
@@ -24,19 +24,32 @@ var (
 	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
 )
 
+type gameContext struct {
+	state        *state.GameState
+	chosenAction state.Action
+}
+
 type MainGameModel struct {
-	state      *state.GameState
-	playerSide int
+	ctx                  *gameContext
+	stateUpdater         stateupdater.StateUpdater
+	playerSide           int
+	startedTurnResolving bool
 
 	panel tea.Model
 }
 
 func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
+	ctx := &gameContext{
+		state:        &state,
+		chosenAction: nil,
+	}
+
 	return MainGameModel{
-		state:      &state,
-		playerSide: playerSide,
+		ctx:          ctx,
+		playerSide:   playerSide,
+		stateUpdater: &stateupdater.LocalUpdater{},
 		panel: actionPanel{
-			state: &state,
+			ctx: ctx,
 		},
 	}
 }
@@ -44,10 +57,8 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
 	panelView := ""
-	if m.state.LocalSubmittedAction == nil {
+	if m.ctx.chosenAction == nil {
 		panelView = m.panel.View()
-	} else {
-		log.Debug().Msg("not your turn")
 	}
 
 	return rendering.GlobalCenter(
@@ -55,8 +66,8 @@ func (m MainGameModel) View() string {
 			lipgloss.Center,
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(m.state, "HOST", m.state.GetPlayer(state.HOST)).View(),
-				newPlayerPanel(m.state, "PEER", m.state.GetPlayer(state.PEER)).View(),
+				newPlayerPanel(m.ctx, "HOST", m.ctx.state.GetPlayer(state.HOST)).View(),
+				newPlayerPanel(m.ctx, "PEER", m.ctx.state.GetPlayer(state.PEER)).View(),
 			),
 
 			panelView,
@@ -74,7 +85,7 @@ type refreshOnceMsg struct {
 
 // TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	cmds := make([]tea.Cmd, 0)
 	receivedOnceRefresh := false
 
 	// Debug switch action
@@ -89,62 +100,49 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshOnceMsg:
 		log.Debug().Msgf("Once Refresh Tick: %#v", msg.t.String())
 		receivedOnceRefresh = true
-	}
-
-	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
-	if !m.state.LocalPlayer.GetActivePokemon().Alive() {
-		switch m.panel.(type) {
-		case pokemonPanel:
-		default:
-			m.panel = newPokemonPanel(m.state, m.state.LocalPlayer.Team)
-		}
-	}
-
-	if m.state.LocalSubmittedAction != nil {
-		m.state.OpposingSubmittedAction = ai.BestAction(m.state)
-
-		// for now Host goes first
-		m.state.LocalSubmittedAction.UpdateState(m.state)
-
-		// Force the AI to update their action if their pokemon died
-		// this will have to be expanded for the player and eventually
-		// the opposing player instead of just the AI
-		switch m.state.OpposingSubmittedAction.(type) {
-		case state.AttackAction, state.SkipAction:
-			if !m.state.OpposingPlayer.GetActivePokemon().Alive() {
-				m.state.OpposingSubmittedAction = ai.BestAction(m.state)
-			}
-		}
-
-		m.state.OpposingSubmittedAction.UpdateState(m.state)
-
-		m.state.Turn++
-		m.state.LocalSubmittedAction = nil
-		m.state.OpposingSubmittedAction = nil
-
-		// reset panel to the default after a move is made
-		m.panel = actionPanel{state: m.state}
+	case stateupdater.ForceSwitchMessage:
+		// TODO: Handle Force switch on player side
+	case stateupdater.TurnResolvedMessage:
+		m.panel = actionPanel{ctx: m.ctx}
+		m.startedTurnResolving = false
+		m.ctx.chosenAction = nil
 
 		// Might turn this stuff into a constant tick rate
 		// so that the UI is constantly updated
 		if !receivedOnceRefresh {
-			cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			cmds = append(cmds, tea.Tick(time.Second, func(t time.Time) tea.Msg {
 				return refreshOnceMsg{t}
-			})
+			}))
 		}
+	}
+
+	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
+	if !m.ctx.state.LocalPlayer.GetActivePokemon().Alive() {
+		switch m.panel.(type) {
+		case pokemonPanel:
+		default:
+			m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
+		}
+	}
+
+	if m.ctx.chosenAction != nil && !m.startedTurnResolving {
+		m.stateUpdater.SendAction(m.ctx.chosenAction)
+		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
+		m.startedTurnResolving = true
+
 	} else {
 		m.panel, _ = m.panel.Update(msg)
 
 		if !receivedOnceRefresh {
-			cmd = tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			cmds = append(cmds, tea.Tick(time.Second, func(t time.Time) tea.Msg {
 				return refreshOnceMsg{t}
-			})
+			}))
 		}
 	}
 
 	// Game Over Check
 	// NOTE: Assuming singleplayer
-	gameOverValue := m.state.GameOver()
+	gameOverValue := m.ctx.state.GameOver()
 	if gameOverValue != -1 {
 		if gameOverValue == m.playerSide {
 			return newEndScreen("You Won!"), nil
@@ -153,5 +151,5 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
