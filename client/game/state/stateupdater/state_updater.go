@@ -22,6 +22,7 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	if gameState.OpposingPlayer.GetActivePokemon().Alive() {
 		return state.SkipAction{}
 	} else {
+		// Switch on death
 		for i, pokemon := range gameState.OpposingPlayer.Team {
 			if pokemon != nil && pokemon.Alive() {
 				return state.SwitchAction{

@@ -382,7 +382,7 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	// TODO: There are about 20 different moves, abilities, and items that have some sort of
 	// random effect to the damage calcs. Maybe implement the most impactful ones?
 
-	// This seems to mostly work, however there are issue when it comes to rounding
+	// This seems to mostly work, however there are issues when it comes to rounding
 	// and it seems that the lowest possible value in a damage range may not be able
 	// to show up as often because rounding is a bit different
 	// TODO: maybe make a custom rounding function that rounds DOWN at .5
