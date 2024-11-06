@@ -377,7 +377,12 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	log.Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
 
 	type1Effectiveness := defendent.Base.Type1.AttackEffectiveness(move.Type)
-	type2Effectiveness := defendent.Base.Type2.AttackEffectiveness(move.Type)
+
+	var type2Effectiveness float32 = 1
+
+	if defendent.Base.Type2 != nil {
+		type2Effectiveness = defendent.Base.Type2.AttackEffectiveness(move.Type)
+	}
 
 	if type1Effectiveness == 0 || type2Effectiveness == 0 {
 		return 0
