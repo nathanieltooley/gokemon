@@ -3,6 +3,7 @@ package stateupdater
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/rs/zerolog/log"
 )
 
 type StateUpdater interface {
@@ -20,20 +21,17 @@ type LocalUpdater struct {
 
 func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	if gameState.OpposingPlayer.GetActivePokemon().Alive() {
-		return state.SkipAction{}
+		return &state.SkipAction{}
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.OpposingPlayer.Team {
 			if pokemon != nil && pokemon.Alive() {
-				return state.SwitchAction{
-					PlayerIndex: state.AI,
-					SwitchIndex: i,
-				}
+				return state.NewSwitchAction(state.AI, i)
 			}
 		}
 	}
 
-	return state.SkipAction{}
+	return &state.SkipAction{}
 }
 
 func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
@@ -46,7 +44,7 @@ func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	// this will have to be expanded for the player and eventually
 	// the opposing player instead of just the AI
 	switch u.AIAction.(type) {
-	case state.AttackAction, state.SkipAction:
+	case *state.AttackAction, *state.SkipAction:
 		if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
 			u.AIAction = u.BestAiAction(gameState)
 		}
@@ -59,6 +57,14 @@ func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			return ForceSwitchMessage{}
 		}
 	}
+
+	gameState.MessageQueue = append(gameState.MessageQueue, u.PlayerAction.Message())
+	gameState.MessageQueue = append(gameState.MessageQueue, u.AIAction.Message())
+	log.Info().Msgf("Queued Message: %s", u.PlayerAction.Message())
+	log.Info().Msgf("Queued Message: %s", u.AIAction.Message())
+
+	gameState.MessageHistory = append(gameState.MessageHistory, u.PlayerAction.Message())
+	gameState.MessageHistory = append(gameState.MessageHistory, u.AIAction.Message())
 
 	u.AIAction = nil
 	u.PlayerAction = nil

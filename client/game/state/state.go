@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
@@ -23,6 +24,9 @@ type GameState struct {
 	LocalPlayer    Player
 	OpposingPlayer Player
 	Turn           int
+
+	MessageQueue   []string
+	MessageHistory []string
 
 	// HOST or PEER
 	// The HOST state is the arbiter of truth
@@ -152,37 +156,61 @@ func (p Player) GetActivePokemon() *game.Pokemon {
 	return p.Team[p.ActivePokeIndex]
 }
 
+type ActionCtx struct {
+	playerId int
+}
+
+func NewActionCtx(playerId int) ActionCtx {
+	return ActionCtx{playerId: playerId}
+}
+
 type Action interface {
 	// Updates the state using a pointer, based on what type of action it is
 	UpdateState(*GameState)
+	// Returns a human readable message to been shown to the player
+	Message() string
 }
 
 type SwitchAction struct {
-	PlayerIndex int
+	ctx ActionCtx
+
 	SwitchIndex int
 }
 
-func (a SwitchAction) UpdateState(state *GameState) {
-	player := state.GetPlayer(a.PlayerIndex)
-	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.PlayerIndex, playerIntToString(a.PlayerIndex), a.SwitchIndex)
+func NewSwitchAction(playerId int, switchIndex int) *SwitchAction {
+	return &SwitchAction{
+		ctx:         NewActionCtx(playerId),
+		SwitchIndex: switchIndex,
+	}
+}
+
+func (a *SwitchAction) UpdateState(state *GameState) {
+	player := state.GetPlayer(a.ctx.playerId)
+	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.ctx.playerId, playerIntToString(a.ctx.playerId), a.SwitchIndex)
 	player.ActivePokeIndex = uint8(a.SwitchIndex)
 }
 
-type AttackAction struct {
-	Attacker     int
-	AttackerMove int
+func (a SwitchAction) Message() string {
+	return fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.playerId, a.SwitchIndex)
 }
 
-func NewAttackAction(attacker int, attackMove int) AttackAction {
-	return AttackAction{
-		Attacker:     attacker,
+type AttackAction struct {
+	ctx ActionCtx
+
+	AttackerMove int
+	attackDamage uint
+}
+
+func NewAttackAction(attacker int, attackMove int) *AttackAction {
+	return &AttackAction{
+		ctx:          NewActionCtx(attacker),
 		AttackerMove: attackMove,
 	}
 }
 
-func (a AttackAction) UpdateState(state *GameState) {
-	attacker := state.GetPlayer(a.Attacker)
-	defenderInt := invertPlayerIndex(a.Attacker)
+func (a *AttackAction) UpdateState(state *GameState) {
+	attacker := state.GetPlayer(a.ctx.playerId)
+	defenderInt := invertPlayerIndex(a.ctx.playerId)
 	defender := state.GetPlayer(defenderInt)
 
 	attackPokemon := attacker.Team[attacker.ActivePokeIndex]
@@ -190,8 +218,13 @@ func (a AttackAction) UpdateState(state *GameState) {
 
 	// TODO: Make sure a.AttackerMove is between 0 -> 3
 	damage := game.Damage(attackPokemon, defPokemon, attackPokemon.Moves[a.AttackerMove])
-	log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.Attacker, playerIntToString(a.Attacker), defenderInt, playerIntToString(defenderInt), damage)
+	a.attackDamage = damage
+	log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.ctx.playerId, playerIntToString(a.ctx.playerId), defenderInt, playerIntToString(defenderInt), damage)
 	defPokemon.Hp.Value = defPokemon.Hp.Value - int16(damage)
+}
+
+func (a AttackAction) Message() string {
+	return fmt.Sprintf("Player %d attacked player %d, dealing %d damage", a.ctx.playerId, invertPlayerIndex(a.ctx.playerId), a.attackDamage)
 }
 
 func invertPlayerIndex(initial int) int {
@@ -202,6 +235,17 @@ func invertPlayerIndex(initial int) int {
 	}
 }
 
-type SkipAction struct{}
+type SkipAction struct {
+	ctx ActionCtx
+}
 
-func (a SkipAction) UpdateState(state *GameState) { return }
+func NewSkipAction(playerId int) *SkipAction {
+	return &SkipAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a *SkipAction) UpdateState(state *GameState) { return }
+func (a SkipAction) Message() string {
+	return fmt.Sprintf("Player %d skipped their turn", a.ctx.playerId)
+}
