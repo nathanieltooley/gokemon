@@ -6,39 +6,16 @@ import (
 	"math/rand/v2"
 
 	err "errors"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 )
 
-const (
-	MAX_IV       = 31
-	MAX_EV       = 252
-	MAX_TOTAL_EV = 510
-)
-
-const (
-	DAMAGETYPE_PHYSICAL = "physical"
-	DAMAGETYPE_SPECIAL  = "special"
-)
-
-const (
-	TYPENAME_NORMAL   = "Normal"
-	TYPENAME_FIRE     = "Fire"
-	TYPENAME_WATER    = "Water"
-	TYPENAME_ELECTRIC = "Electric"
-	TYPENAME_GRASS    = "Grass"
-	TYPENAME_ICE      = "Ice"
-	TYPENAME_FIGHTING = "Fighting"
-	TYPENAME_POISON   = "Poison"
-	TYPENAME_GROUND   = "Ground"
-	TYPENAME_FLYING   = "Flying"
-	TYPENAME_PSYCHIC  = "Psychic"
-	TYPENAME_BUG      = "Bug"
-	TYPENAME_ROCK     = "Rock"
-	TYPENAME_GHOST    = "Ghost"
-	TYPENAME_DRAGON   = "Dragon"
-	TYPENAME_DARK     = "Dark"
-	TYPENAME_STEEL    = "Steel"
-	TYPENAME_FAIRY    = "Fairy"
-)
+var builderLogger = func() *zerolog.Logger {
+	logger := log.With().Str("location", "pokemon-builder").Logger()
+	return &logger
+}
 
 type PokemonType struct {
 	Name          string
@@ -144,6 +121,14 @@ func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
 	pb.poke.SpDef.Ev = evs[4]
 	pb.poke.Speed.Ev = evs[5]
 
+	builderLogger().Debug().
+		Uint8("HP", evs[0]).
+		Uint8("ATTACK", evs[1]).
+		Uint8("DEF", evs[2]).
+		Uint8("SPATTACK", evs[3]).
+		Uint8("SPDEF", evs[4]).
+		Uint8("SPEED", evs[5]).Msg("Setting EVs")
+
 	return pb
 }
 
@@ -154,6 +139,14 @@ func (pb *PokemonBuilder) SetIvs(ivs [6]uint8) *PokemonBuilder {
 	pb.poke.SpAttack.Iv = ivs[3]
 	pb.poke.SpDef.Iv = ivs[4]
 	pb.poke.Speed.Iv = ivs[5]
+
+	builderLogger().Debug().
+		Uint8("HP", ivs[0]).
+		Uint8("ATTACK", ivs[1]).
+		Uint8("DEF", ivs[2]).
+		Uint8("SPATTACK", ivs[3]).
+		Uint8("SPDEF", ivs[4]).
+		Uint8("SPEED", ivs[5]).Msg("Setting IVs")
 
 	return pb
 }
@@ -166,6 +159,8 @@ func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
 	pb.poke.SpDef.Iv = MAX_IV
 	pb.poke.Speed.Iv = MAX_IV
 
+	builderLogger().Debug().Msg("Setting Perfect IVS")
+
 	return pb
 }
 
@@ -177,6 +172,7 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 		ivs[i] = uint8(iv)
 	}
 
+	builderLogger().Debug().Msg("Setting Random IVs")
 	pb.SetIvs(ivs)
 
 	return pb
@@ -206,7 +202,10 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 		evPool -= int(randomEv)
 	}
 
+	builderLogger().Debug().Msg("Setting Random EVs")
 	pb.SetEvs(evs)
+
+	builderLogger().Debug().Msgf("EV Total: %d", pb.poke.GetCurrentEvTotal())
 	return pb
 }
 
@@ -238,10 +237,21 @@ func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
 func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*MoveFull) *PokemonBuilder {
 	var moves [4]*MoveFull
 
+	if len(possibleMoves) == 0 {
+		builderLogger().Warn().Msg("This Pokemon was given no available moves to randomize with!")
+		return pb
+	}
+
 	for i := 0; i < 4; i++ {
 		move := possibleMoves[rand.IntN(len(possibleMoves))]
 		moves[i] = move
 	}
+
+	moveNames := lo.Map(moves[:], func(move *MoveFull, _ int) string {
+		return move.Name
+	})
+
+	builderLogger().Debug().Strs("Moves", moveNames)
 
 	pb.poke.Moves = moves
 
@@ -249,6 +259,11 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*MoveFull) *PokemonBuil
 }
 
 func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []string) *PokemonBuilder {
+	if len(possibleAbilities) == 0 {
+		builderLogger().Warn().Msg("This Pokemon was given no available abilities to randomize with!")
+		return pb
+	}
+
 	pb.poke.Ability = possibleAbilities[rand.IntN(len(possibleAbilities))]
 	return pb
 }
@@ -257,6 +272,7 @@ func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []string) *PokemonB
 
 func (pb *PokemonBuilder) Build() *Pokemon {
 	pb.poke.ReCalcStats()
+	builderLogger().Debug().Msg("Building pokemon")
 	return pb.poke
 }
 
@@ -356,6 +372,9 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	}
 
 	power := move.Power
+
+	log.Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
+	log.Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
 
 	type1Effectiveness := defendent.Base.Type1.AttackEffectiveness(move.Type)
 	type2Effectiveness := defendent.Base.Type2.AttackEffectiveness(move.Type)

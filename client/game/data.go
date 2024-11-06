@@ -1,5 +1,37 @@
 package game
 
+const (
+	MAX_IV       = 31
+	MAX_EV       = 252
+	MAX_TOTAL_EV = 510
+)
+
+const (
+	DAMAGETYPE_PHYSICAL = "physical"
+	DAMAGETYPE_SPECIAL  = "special"
+)
+
+const (
+	TYPENAME_NORMAL   = "Normal"
+	TYPENAME_FIRE     = "Fire"
+	TYPENAME_WATER    = "Water"
+	TYPENAME_ELECTRIC = "Electric"
+	TYPENAME_GRASS    = "Grass"
+	TYPENAME_ICE      = "Ice"
+	TYPENAME_FIGHTING = "Fighting"
+	TYPENAME_POISON   = "Poison"
+	TYPENAME_GROUND   = "Ground"
+	TYPENAME_FLYING   = "Flying"
+	TYPENAME_PSYCHIC  = "Psychic"
+	TYPENAME_BUG      = "Bug"
+	TYPENAME_ROCK     = "Rock"
+	TYPENAME_GHOST    = "Ghost"
+	TYPENAME_DRAGON   = "Dragon"
+	TYPENAME_DARK     = "Dark"
+	TYPENAME_STEEL    = "Steel"
+	TYPENAME_FAIRY    = "Fairy"
+)
+
 /// ======== No effect natures ========
 
 var NATURE_HARDY = Nature{
