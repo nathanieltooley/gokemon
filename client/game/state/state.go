@@ -166,6 +166,7 @@ func NewActionCtx(playerId int) ActionCtx {
 
 type Action interface {
 	// Updates the state using a pointer, based on what type of action it is
+	// Should be pointer receiver method so that Message can have accurate info to send
 	UpdateState(*GameState)
 	// Returns a human readable message to been shown to the player
 	Message() string
