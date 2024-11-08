@@ -52,6 +52,8 @@ func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	u.AIAction.UpdateState(gameState)
 
+	log.Debug().Msg("Updated state from both actions")
+
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
 		return func() tea.Msg {
 			return ForceSwitchMessage{}

@@ -24,6 +24,8 @@ var (
 	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
 )
 
+const _MESSAGE_TIME = time.Second * 2
+
 type gameContext struct {
 	state        *state.GameState
 	chosenAction state.Action
@@ -34,6 +36,7 @@ type MainGameModel struct {
 	stateUpdater         stateupdater.StateUpdater
 	playerSide           int
 	startedTurnResolving bool
+	currentStateMessage  string
 
 	panel tea.Model
 }
@@ -64,6 +67,9 @@ func (m MainGameModel) View() string {
 	return rendering.GlobalCenter(
 		lipgloss.JoinVertical(
 			lipgloss.Center,
+
+			rendering.ButtonStyle.Width(40).Render(m.currentStateMessage),
+
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
 				newPlayerPanel(m.ctx, "HOST", m.ctx.state.GetPlayer(state.HOST)).View(),
@@ -83,6 +89,21 @@ type refreshOnceMsg struct {
 	t time.Time
 }
 
+type nextNotifMsg struct{}
+
+// Returns true if there was a message in the queue
+func (m *MainGameModel) nextStateMsg() bool {
+	if len(m.ctx.state.MessageQueue) != 0 {
+		// Pop queue
+		m.currentStateMessage = m.ctx.state.MessageQueue[0]
+		m.ctx.state.MessageQueue = m.ctx.state.MessageQueue[1:]
+
+		return true
+	}
+
+	return false
+}
+
 // TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
@@ -100,6 +121,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case refreshOnceMsg:
 		log.Debug().Msgf("Once Refresh Tick: %#v", msg.t.String())
 		receivedOnceRefresh = true
+	case nextNotifMsg:
+		// Only try to update the msg view later if we actually changed it
+		if m.nextStateMsg() {
+			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+				return nextNotifMsg{}
+			}))
+		} else {
+			m.currentStateMessage = ""
+		}
 	case stateupdater.ForceSwitchMessage:
 		// TODO: Handle Force switch on player side
 	case stateupdater.TurnResolvedMessage:
@@ -136,6 +166,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !receivedOnceRefresh {
 			cmds = append(cmds, tea.Tick(time.Second, func(t time.Time) tea.Msg {
 				return refreshOnceMsg{t}
+			}))
+		}
+	}
+
+	if m.currentStateMessage == "" {
+		// If there was a new message, send a cmd to go to the next one
+		if m.nextStateMsg() {
+			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+				return nextNotifMsg{}
 			}))
 		}
 	}
