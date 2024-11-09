@@ -17,6 +17,11 @@ var builderLogger = func() *zerolog.Logger {
 	return &logger
 }
 
+var damageLogger = func() *zerolog.Logger {
+	logger := log.With().Str("location", "pokemon-damage").Logger()
+	return &logger
+}
+
 type PokemonType struct {
 	Name          string
 	effectiveness map[string]float32
@@ -43,6 +48,31 @@ type BasePokemon struct {
 	SpAttack      int16
 	SpDef         int16
 	Speed         int16
+}
+
+func (b BasePokemon) AttackEffectiveness(attackType string) float32 {
+	effectiveness1, ok := b.Type1.effectiveness[attackType]
+	if !ok {
+		effectiveness1 = 1
+	}
+
+	var effectiveness2 float32 = 1
+	if b.Type2 != nil {
+		effectiveness2, ok = b.Type2.effectiveness[attackType]
+		if !ok {
+			effectiveness2 = 1
+		}
+	}
+
+	return effectiveness1 * effectiveness2
+}
+
+func (b BasePokemon) SuperEffective(attackType string) bool {
+	return b.AttackEffectiveness(attackType) >= 2
+}
+
+func (b BasePokemon) NotVeryEffective(attackType string) bool {
+	return b.AttackEffectiveness(attackType) >= 0.5
 }
 
 type Stat struct {
@@ -373,8 +403,12 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 
 	power := move.Power
 
-	log.Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
-	log.Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
+	if power == 0 {
+		return 0
+	}
+
+	damageLogger().Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
+	damageLogger().Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
 
 	type1Effectiveness := defendent.Base.Type1.AttackEffectiveness(move.Type)
 
@@ -393,7 +427,7 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	randomSpread := float32(rand.UintN(15)+85) / 100
 	var stab float32 = 1
 
-	if move.Type == attacker.Base.Type1.Name || move.Type == attacker.Base.Type2.Name {
+	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {
 		stab = 1.5
 	}
 
@@ -410,5 +444,17 @@ func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
 	// and it seems that the lowest possible value in a damage range may not be able
 	// to show up as often because rounding is a bit different
 	// TODO: maybe make a custom rounding function that rounds DOWN at .5
-	return uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab)))
+	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab)))
+
+	damageLogger().Debug().
+		Int("power", power).
+		Uint8("attackerLevel", attackerLevel).
+		Float32("damageInner", damageInner).
+		Float32("randomSpread", randomSpread).
+		Float32("STAB", stab).
+		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
+		Uint("damage", damage).
+		Msg("")
+
+	return damage
 }
