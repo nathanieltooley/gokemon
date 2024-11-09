@@ -86,13 +86,13 @@ func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 	}
 
-	gameState.MessageQueue = append(gameState.MessageQueue, u.PlayerAction.Message())
-	gameState.MessageQueue = append(gameState.MessageQueue, u.AIAction.Message())
+	gameState.MessageQueue = append(gameState.MessageQueue, u.PlayerAction.Message()...)
+	gameState.MessageQueue = append(gameState.MessageQueue, u.AIAction.Message()...)
 	log.Info().Msgf("Queued Message: %s", u.PlayerAction.Message())
 	log.Info().Msgf("Queued Message: %s", u.AIAction.Message())
 
-	gameState.MessageHistory = append(gameState.MessageHistory, u.PlayerAction.Message())
-	gameState.MessageHistory = append(gameState.MessageHistory, u.AIAction.Message())
+	gameState.MessageHistory = append(gameState.MessageHistory, u.PlayerAction.Message()...)
+	gameState.MessageHistory = append(gameState.MessageHistory, u.AIAction.Message()...)
 
 	u.AIAction = nil
 	u.PlayerAction = nil

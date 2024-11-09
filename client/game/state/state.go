@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
@@ -168,8 +169,8 @@ type Action interface {
 	// Updates the state using a pointer, based on what type of action it is
 	// Should be pointer receiver method so that Message can have accurate info to send
 	UpdateState(*GameState)
-	// Returns a human readable message to been shown to the player
-	Message() string
+	// Returns a list of human readable messages to been shown to both players
+	Message() []string
 }
 
 type SwitchAction struct {
@@ -191,15 +192,19 @@ func (a *SwitchAction) UpdateState(state *GameState) {
 	player.ActivePokeIndex = uint8(a.SwitchIndex)
 }
 
-func (a SwitchAction) Message() string {
-	return fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.playerId, a.SwitchIndex)
+func (a SwitchAction) Message() []string {
+	return []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.playerId, a.SwitchIndex)}
 }
 
 type AttackAction struct {
 	ctx ActionCtx
 
 	AttackerMove int
-	attackDamage uint
+
+	attackPercent uint
+	pokemonName   string
+	moveName      string
+	effectiveness string
 }
 
 func NewAttackAction(attacker int, attackMove int) *AttackAction {
@@ -217,15 +222,26 @@ func (a *AttackAction) UpdateState(state *GameState) {
 	attackPokemon := attacker.Team[attacker.ActivePokeIndex]
 	defPokemon := defender.Team[defender.ActivePokeIndex]
 
+	a.pokemonName = attackPokemon.Nickname
+	move := attackPokemon.Moves[a.AttackerMove]
+
+	a.moveName = move.Name
+
 	// TODO: Make sure a.AttackerMove is between 0 -> 3
-	damage := game.Damage(attackPokemon, defPokemon, attackPokemon.Moves[a.AttackerMove])
-	a.attackDamage = damage
+	damage := game.Damage(attackPokemon, defPokemon, move)
 	log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.ctx.playerId, playerIntToString(a.ctx.playerId), defenderInt, playerIntToString(defenderInt), damage)
+
+	log.Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
+	a.attackPercent = uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
+
 	defPokemon.Hp.Value = defPokemon.Hp.Value - int16(damage)
 }
 
-func (a AttackAction) Message() string {
-	return fmt.Sprintf("Player %d attacked player %d, dealing %d damage", a.ctx.playerId, invertPlayerIndex(a.ctx.playerId), a.attackDamage)
+func (a AttackAction) Message() []string {
+	return []string{
+		fmt.Sprintf("Player %d's %s used %s", a.ctx.playerId, a.pokemonName, a.moveName),
+		fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
+	}
 }
 
 func invertPlayerIndex(initial int) int {
@@ -247,6 +263,6 @@ func NewSkipAction(playerId int) *SkipAction {
 }
 
 func (a *SkipAction) UpdateState(state *GameState) { return }
-func (a SkipAction) Message() string {
-	return fmt.Sprintf("Player %d skipped their turn", a.ctx.playerId)
+func (a SkipAction) Message() []string {
+	return []string{fmt.Sprintf("Player %d skipped their turn", a.ctx.playerId)}
 }
