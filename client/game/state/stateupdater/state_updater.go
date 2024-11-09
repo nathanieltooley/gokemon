@@ -2,6 +2,7 @@ package stateupdater
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/rs/zerolog/log"
 )
@@ -21,7 +22,32 @@ type LocalUpdater struct {
 
 func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	if gameState.OpposingPlayer.GetActivePokemon().Alive() {
-		return &state.SkipAction{}
+		playerPokemon := gameState.LocalPlayer.GetActivePokemon()
+		aiPokemon := gameState.OpposingPlayer.GetActivePokemon()
+
+		bestMoveIndex := 0
+		var bestMove *game.MoveFull
+		var bestMoveDamage uint = 0
+
+		for i, move := range aiPokemon.Moves {
+			if move == nil {
+				continue
+			}
+
+			moveDamage := game.Damage(aiPokemon, playerPokemon, move)
+			if moveDamage > bestMoveDamage {
+				bestMoveIndex = i
+				bestMove = move
+				bestMoveDamage = moveDamage
+			}
+		}
+
+		if bestMove == nil {
+			return &state.SkipAction{}
+		} else {
+			return state.NewAttackAction(state.AI, bestMoveIndex)
+		}
+
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.OpposingPlayer.Team {
