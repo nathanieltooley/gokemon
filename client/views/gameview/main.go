@@ -8,7 +8,6 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
 	"github.com/nathanieltooley/gokemon/client/rendering"
-	"github.com/rs/zerolog/log"
 )
 
 // BIG PROBLEM IM GONNA HAVE TO FIGURE OUT
@@ -24,7 +23,11 @@ var (
 	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
 )
 
-const _MESSAGE_TIME = time.Second * 2
+const (
+	_MESSAGE_TIME     = time.Second * 2
+	_TICKS_PER_SECOND = 20
+	_TICK_TIME        = 1000 / _TICKS_PER_SECOND
+)
 
 type gameContext struct {
 	state        *state.GameState
@@ -37,6 +40,8 @@ type MainGameModel struct {
 	playerSide           int
 	startedTurnResolving bool
 	currentStateMessage  string
+
+	inited bool
 
 	panel tea.Model
 }
@@ -57,7 +62,16 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 	}
 }
 
+type tickMsg time.Time
+
+func tick() tea.Cmd {
+	return tea.Tick(time.Millisecond*_TICK_TIME, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
 func (m MainGameModel) Init() tea.Cmd { return nil }
+
 func (m MainGameModel) View() string {
 	panelView := ""
 	if m.ctx.chosenAction == nil {
@@ -81,14 +95,6 @@ func (m MainGameModel) View() string {
 	)
 }
 
-type tickMsg struct {
-	t time.Time
-}
-
-type refreshOnceMsg struct {
-	t time.Time
-}
-
 type nextNotifMsg struct{}
 
 // Returns true if there was a message in the queue
@@ -107,20 +113,10 @@ func (m *MainGameModel) nextStateMsg() bool {
 // TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
-	receivedOnceRefresh := false
 
 	// Debug switch action
-	switch msg := msg.(type) {
+	switch msg.(type) {
 	case tea.KeyMsg:
-		// if msg.Type == tea.KeyCtrlA {
-		// 	m.state.Update(state.SwitchAction{
-		// 		PlayerIndex: state.HOST,
-		// 		SwitchIndex: 1,
-		// 	})
-		// }
-	case refreshOnceMsg:
-		log.Debug().Msgf("Once Refresh Tick: %#v", msg.t.String())
-		receivedOnceRefresh = true
 	case nextNotifMsg:
 		// Only try to update the msg view later if we actually changed it
 		if m.nextStateMsg() {
@@ -130,20 +126,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.currentStateMessage = ""
 		}
+	case tickMsg:
+		cmds = append(cmds, tick())
+
 	case stateupdater.ForceSwitchMessage:
 		// TODO: Handle Force switch on player side
 	case stateupdater.TurnResolvedMessage:
 		m.panel = actionPanel{ctx: m.ctx}
 		m.startedTurnResolving = false
 		m.ctx.chosenAction = nil
-
-		// Might turn this stuff into a constant tick rate
-		// so that the UI is constantly updated
-		if !receivedOnceRefresh {
-			cmds = append(cmds, tea.Tick(time.Second, func(t time.Time) tea.Msg {
-				return refreshOnceMsg{t}
-			}))
-		}
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
@@ -162,12 +153,6 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	} else {
 		m.panel, _ = m.panel.Update(msg)
-
-		if !receivedOnceRefresh {
-			cmds = append(cmds, tea.Tick(time.Second, func(t time.Time) tea.Msg {
-				return refreshOnceMsg{t}
-			}))
-		}
 	}
 
 	if m.currentStateMessage == "" {
@@ -188,6 +173,12 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			return newEndScreen("You Lost :("), nil
 		}
+	}
+
+	// Start tick loop
+	if !m.inited {
+		cmds = append(cmds, tick())
+		m.inited = true
 	}
 
 	return m, tea.Batch(cmds...)
