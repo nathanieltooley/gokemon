@@ -1,6 +1,8 @@
 package stateupdater
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/state"
@@ -86,18 +88,24 @@ func (u LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 	}
 
-	gameState.MessageQueue = append(gameState.MessageQueue, u.PlayerAction.Message()...)
-	gameState.MessageQueue = append(gameState.MessageQueue, u.AIAction.Message()...)
-	log.Info().Msgf("Queued Message: %s", u.PlayerAction.Message())
-	log.Info().Msgf("Queued Message: %s", u.AIAction.Message())
+	messages := make([]string, 0)
 
-	gameState.MessageHistory = append(gameState.MessageHistory, u.PlayerAction.Message()...)
-	gameState.MessageHistory = append(gameState.MessageHistory, u.AIAction.Message()...)
+	messages = append(messages, u.PlayerAction.Message()...)
+	messages = append(messages, u.AIAction.Message()...)
+
+	log.Info().Strs("Queued Messages", messages)
+	gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
 	u.AIAction = nil
 	u.PlayerAction = nil
+
 	return func() tea.Msg {
-		return TurnResolvedMessage{}
+		// Artifical Delay
+		time.Sleep(time.Second * 2)
+
+		return TurnResolvedMessage{
+			Messages: messages,
+		}
 	}
 }
 
@@ -107,5 +115,7 @@ func (u *LocalUpdater) SendAction(action state.Action) {
 
 type (
 	ForceSwitchMessage  struct{}
-	TurnResolvedMessage struct{}
+	TurnResolvedMessage struct {
+		Messages []string
+	}
 )

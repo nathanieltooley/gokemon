@@ -40,6 +40,7 @@ type MainGameModel struct {
 	playerSide           int
 	startedTurnResolving bool
 	currentStateMessage  string
+	messageQueue         []string
 
 	inited bool
 
@@ -99,10 +100,10 @@ type nextNotifMsg struct{}
 
 // Returns true if there was a message in the queue
 func (m *MainGameModel) nextStateMsg() bool {
-	if len(m.ctx.state.MessageQueue) != 0 {
+	if len(m.messageQueue) != 0 {
 		// Pop queue
-		m.currentStateMessage = m.ctx.state.MessageQueue[0]
-		m.ctx.state.MessageQueue = m.ctx.state.MessageQueue[1:]
+		m.currentStateMessage = m.messageQueue[0]
+		m.messageQueue = m.messageQueue[1:]
 
 		return true
 	}
@@ -115,7 +116,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
 	// Debug switch action
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case tea.KeyMsg:
 	case nextNotifMsg:
 		// Only try to update the msg view later if we actually changed it
@@ -135,6 +136,8 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.panel = actionPanel{ctx: m.ctx}
 		m.startedTurnResolving = false
 		m.ctx.chosenAction = nil
+
+		m.messageQueue = append(m.messageQueue, msg.Messages...)
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead

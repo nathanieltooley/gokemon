@@ -26,7 +26,6 @@ type GameState struct {
 	OpposingPlayer Player
 	Turn           int
 
-	MessageQueue   []string
 	MessageHistory []string
 
 	// HOST or PEER
