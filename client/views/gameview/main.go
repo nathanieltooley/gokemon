@@ -1,6 +1,7 @@
 package gameview
 
 import (
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -83,6 +84,8 @@ func (m MainGameModel) View() string {
 		lipgloss.JoinVertical(
 			lipgloss.Center,
 
+			fmt.Sprintf("Turn: %d", m.ctx.state.Turn),
+
 			rendering.ButtonStyle.Width(40).Render(m.currentStateMessage),
 
 			lipgloss.JoinHorizontal(
@@ -126,18 +129,30 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}))
 		} else {
 			m.currentStateMessage = ""
+			// make sure that the player can only make changes once the messages are done
+			// displaying
+			m.startedTurnResolving = false
 		}
 	case tickMsg:
 		cmds = append(cmds, tick())
 
 	case stateupdater.ForceSwitchMessage:
 		// TODO: Handle Force switch on player side
+		if msg.ForThisPlayer {
+		} else {
+			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, true))
+		}
+
+		m.messageQueue = append(m.messageQueue, msg.Messages...)
 	case stateupdater.TurnResolvedMessage:
 		m.panel = actionPanel{ctx: m.ctx}
-		m.startedTurnResolving = false
 		m.ctx.chosenAction = nil
 
 		m.messageQueue = append(m.messageQueue, msg.Messages...)
+
+		if len(m.messageQueue) == 0 {
+			m.startedTurnResolving = false
+		}
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
@@ -151,7 +166,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.ctx.chosenAction != nil && !m.startedTurnResolving {
 		m.stateUpdater.SendAction(m.ctx.chosenAction)
-		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
+		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, false))
 		m.startedTurnResolving = true
 
 	} else {
