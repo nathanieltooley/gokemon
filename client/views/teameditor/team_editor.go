@@ -523,7 +523,7 @@ func (i itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fmt.Fprint(w, renderStr)
 }
 
-func getMoveName(move *game.MoveFull) string {
+func getMoveName(move *game.Move) string {
 	if move != nil {
 		return move.Name
 	} else {

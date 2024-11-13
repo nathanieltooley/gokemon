@@ -14,15 +14,16 @@ import (
 )
 
 type playerPanel struct {
-	ctx *gameContext
+	gameState state.GameState
 
 	player *state.Player
 	name   string
 }
 
-func newPlayerPanel(ctx *gameContext, name string, player *state.Player) playerPanel {
+func newPlayerPanel(gameState state.GameState, name string, player *state.Player) playerPanel {
 	return playerPanel{
-		ctx:    ctx,
+		gameState: gameState,
+
 		player: player,
 		name:   name,
 	}
@@ -112,7 +113,7 @@ type movePanel struct {
 	ctx           *gameContext
 	moveGridFocus int
 
-	moves [4]*game.MoveFull
+	moves [4]*game.Move
 }
 
 func (m movePanel) Init() tea.Cmd { return nil }

@@ -242,8 +242,24 @@ func main() {
 			moveMap[pokeName] = append(moveMap[pokeName], moveName)
 		}
 
+		// Gross hack to get rid of LearnedByPokemon info
+		move := game.Move{
+			Accuracy:     moveJson.Accuracy,
+			DamageClass:  moveJson.DamageClass,
+			EffectChance: movePreJson.EffectChance,
+			EffectEntry:  moveJson.EffectEntry,
+			Meta:         moveJson.Meta,
+			Name:         moveJson.Name,
+			Power:        moveJson.Power,
+			PP:           moveJson.PP,
+			Priority:     moveJson.Priority,
+			StatChanges:  moveJson.StatChanges,
+			Target:       moveJson.Target,
+			Type:         moveJson.Type,
+		}
+
 		// log.Printf("Move: %+v\n", moveJson)
-		allMoves = append(allMoves, moveJson)
+		allMoves = append(allMoves, move)
 	}
 
 	movesFileName := "./data/moves.json"

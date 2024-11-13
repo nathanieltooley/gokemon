@@ -382,21 +382,21 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 }
 
 type moveEditor struct {
-	validMoves []*game.MoveFull
+	validMoves []*game.Move
 
 	moveIndex     int
-	selectedMoves [4]*game.MoveFull
+	selectedMoves [4]*game.Move
 	lists         [4]list.Model
 }
 
 type moveItem struct {
-	*game.MoveFull
+	*game.Move
 }
 
 func (i moveItem) FilterValue() string { return i.Name }
 func (i moveItem) Value() string       { return i.Name }
 
-func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.MoveFull) moveEditor {
+func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.Move) moveEditor {
 	startingMoves := pokemon.Moves
 	var lists [4]list.Model
 
@@ -473,9 +473,9 @@ func (e moveEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 			currentList := e.lists[e.moveIndex]
 			choice := currentList.Items()[currentList.Index()].(moveItem)
 
-			e.selectedMoves[e.moveIndex] = choice.MoveFull
+			e.selectedMoves[e.moveIndex] = choice.Move
 			// Update the actual pokemon as well
-			rootModel.currentPokemon.Moves[e.moveIndex] = choice.MoveFull
+			rootModel.currentPokemon.Moves[e.moveIndex] = choice.Move
 
 			e.moveIndex++
 

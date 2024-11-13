@@ -97,7 +97,7 @@ type Pokemon struct {
 	SpAttack Stat
 	SpDef    Stat
 	Speed    Stat
-	Moves    [4]*MoveFull
+	Moves    [4]*Move
 	Nature   Nature
 	Ability  string
 	Item     string
@@ -265,8 +265,8 @@ func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
 	return pb
 }
 
-func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*MoveFull) *PokemonBuilder {
-	var moves [4]*MoveFull
+func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder {
+	var moves [4]*Move
 
 	if len(possibleMoves) == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available moves to randomize with!")
@@ -278,7 +278,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*MoveFull) *PokemonBuil
 		moves[i] = move
 	}
 
-	moveNames := lo.Map(moves[:], func(move *MoveFull, _ int) string {
+	moveNames := lo.Map(moves[:], func(move *Move, _ int) string {
 		return move.Name
 	})
 
@@ -385,7 +385,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-func Damage(attacker *Pokemon, defendent *Pokemon, move *MoveFull) uint {
+func Damage(attacker *Pokemon, defendent *Pokemon, move *Move) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var a, d int16                  // TODO: Add exception for Beat Up
 

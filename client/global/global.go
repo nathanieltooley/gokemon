@@ -169,7 +169,7 @@ func loadMoves() *reg.MoveRegistry {
 		initLogger.Fatal().Err(err).Msg("Couldn't read move map file")
 	}
 
-	parsedMoves := make([]game.MoveFull, 0, 1000)
+	parsedMoves := make([]game.Move, 0, 1000)
 	moveMap := make(map[string][]string)
 
 	if err := json.Unmarshal(moveDataBytes, &parsedMoves); err != nil {

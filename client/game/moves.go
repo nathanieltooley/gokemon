@@ -67,3 +67,18 @@ type MoveFull struct {
 	Target           Target
 	Type             string
 }
+
+type Move struct {
+	Accuracy     int
+	DamageClass  string `json:"damage_class"`
+	EffectChance int
+	EffectEntry  EffectEntry
+	Meta         *MoveMeta
+	Name         string
+	Power        int
+	PP           int
+	Priority     int
+	StatChanges  []StatChange `json:"stat_changes"`
+	Target       Target
+	Type         string
+}
