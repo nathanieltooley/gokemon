@@ -213,6 +213,8 @@ func (m pokemonPanel) View() string {
 func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// TODO: Add backing out of the menu
+
 		if key.Matches(msg, global.MoveLeftKey) {
 			m.selectedPokemon--
 			if m.selectedPokemon < 0 {
@@ -231,11 +233,9 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, global.SelectKey) {
 			currentValidPokemon := m.pokemon[m.selectedPokemon]
 
-			var currentPokemonIndex int
-
 			// Only allow switches to alive and existing pokemon
 			if currentValidPokemon.Alive() {
-				action := state.NewSwitchAction(m.ctx.state, state.HOST, currentPokemonIndex)
+				action := state.NewSwitchAction(m.ctx.state, state.HOST, m.selectedPokemon)
 
 				m.ctx.chosenAction = action
 			}
