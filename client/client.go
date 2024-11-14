@@ -36,7 +36,7 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if cmd != nil {
-		log.Debug().Msgf("New CMD: %#v", cmd)
+		// log.Debug().Msgf("New CMD: %#v", cmd)
 	}
 
 	return m, cmd

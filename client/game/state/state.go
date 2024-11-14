@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
@@ -45,20 +46,20 @@ func playerIntToString(player int) string {
 	return ""
 }
 
-func DefaultTeam() [6]*game.Pokemon {
-	var defaultTeam [6]*game.Pokemon
+func DefaultTeam() []game.Pokemon {
+	defaultTeam := make([]game.Pokemon, 0)
 
 	defaultMove := global.MOVES.GetMove("tackle")
-	defaultTeam[0] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
-	defaultTeam[1] = game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build()
+	defaultTeam = append(defaultTeam, game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build())
+	defaultTeam = append(defaultTeam, game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build())
 
 	defaultTeam[0].Moves[0] = defaultMove
 
 	return defaultTeam
 }
 
-func RandomTeam() [6]*game.Pokemon {
-	var team [6]*game.Pokemon
+func RandomTeam() []game.Pokemon {
+	team := make([]game.Pokemon, 6)
 
 	for i := 0; i < 6; i++ {
 		rndBasePkm := global.POKEMON.GetRandomPokemon()
@@ -76,7 +77,7 @@ func RandomTeam() [6]*game.Pokemon {
 	return team
 }
 
-func NewState(localTeam [6]*game.Pokemon, opposingTeam [6]*game.Pokemon) GameState {
+func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
 	// For testing purposes only
 	localPlayer := Player{
 		Name: "Local",
@@ -109,26 +110,18 @@ func (g *GameState) GetPlayer(index int) *Player {
 func (g *GameState) GameOver() int {
 	hostLoss := true
 	for _, pokemon := range g.LocalPlayer.Team {
-		if pokemon == nil {
-			continue
-		}
-
 		if pokemon.Hp.Value > 0 {
 			hostLoss = false
-			log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
+			// log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}
 
 	peerLoss := true
 	for _, pokemon := range g.OpposingPlayer.Team {
-		if pokemon == nil {
-			continue
-		}
-
 		if pokemon.Hp.Value > 0 {
 			peerLoss = false
-			log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
+			// log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}
@@ -146,14 +139,36 @@ func (g *GameState) GameOver() int {
 	return -1
 }
 
-type Player struct {
-	Name            string
-	Team            [6]*game.Pokemon
-	ActivePokeIndex uint8
+// Creates a copy of this state, handling new slice creation and allocation
+func (g GameState) Clone() GameState {
+	newState := g
+	newLTeam := slices.Clone(newState.LocalPlayer.Team)
+	newOTeam := slices.Clone(newState.OpposingPlayer.Team)
+
+	newState.LocalPlayer.Team = newLTeam
+	newState.OpposingPlayer.Team = newOTeam
+
+	return newState
 }
 
-func (p Player) GetActivePokemon() *game.Pokemon {
-	return p.Team[p.ActivePokeIndex]
+type Player struct {
+	Name            string
+	Team            []game.Pokemon
+	ActivePokeIndex int
+}
+
+// TODO: OOB Error handling
+func (p Player) GetActivePokemon() game.Pokemon {
+	return p.GetPokemon(p.ActivePokeIndex)
+}
+
+// Get a copy of a pokemon on a player's team
+func (p Player) GetPokemon(index int) game.Pokemon {
+	return p.Team[index]
+}
+
+func (p *Player) SetPokemon(index int, pokemon game.Pokemon) {
+	p.Team[index] = pokemon
 }
 
 type ActionCtx struct {
@@ -164,13 +179,16 @@ func NewActionCtx(playerId int) ActionCtx {
 	return ActionCtx{PlayerId: playerId}
 }
 
-type Action interface {
-	// Updates the state using a pointer, based on what type of action it is
-	// Should be pointer receiver method so that Message can have accurate info to send
-	UpdateState(*GameState)
+type StateUpdate struct {
+	// The resulting state from a given action
+	State GameState
+	// The messages that communicate what happened
+	Messages []string
+}
 
-	// Returns a list of human readable messages to been shown to both players
-	Message() []string
+type Action interface {
+	// Takes in a state and returns a new state and messages that communicate what happened
+	UpdateState(GameState) StateUpdate
 
 	Ctx() ActionCtx
 }
@@ -184,21 +202,25 @@ type SwitchAction struct {
 
 func NewSwitchAction(state *GameState, playerId int, switchIndex int) *SwitchAction {
 	return &SwitchAction{
-		ctx:         NewActionCtx(playerId),
+		ctx: NewActionCtx(playerId),
+		// TODO: OOB Check
 		SwitchIndex: switchIndex,
 
-		Poke: *state.GetPlayer(playerId).Team[switchIndex],
+		Poke: state.GetPlayer(playerId).Team[switchIndex],
 	}
 }
 
-func (a *SwitchAction) UpdateState(state *GameState) {
+func (a *SwitchAction) UpdateState(state GameState) StateUpdate {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), a.SwitchIndex)
-	player.ActivePokeIndex = uint8(a.SwitchIndex)
-}
+	// TODO: OOB Check
+	player.ActivePokeIndex = a.SwitchIndex
 
-func (a SwitchAction) Message() []string {
-	return []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
+	messages := []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
+	return StateUpdate{
+		State:    state,
+		Messages: messages,
+	}
 }
 
 func (a SwitchAction) Ctx() ActionCtx {
@@ -223,13 +245,13 @@ func NewAttackAction(attacker int, attackMove int) *AttackAction {
 	}
 }
 
-func (a *AttackAction) UpdateState(state *GameState) {
+func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	attacker := state.GetPlayer(a.ctx.PlayerId)
 	defenderInt := invertPlayerIndex(a.ctx.PlayerId)
 	defender := state.GetPlayer(defenderInt)
 
-	attackPokemon := attacker.Team[attacker.ActivePokeIndex]
-	defPokemon := defender.Team[defender.ActivePokeIndex]
+	attackPokemon := attacker.GetActivePokemon()
+	defPokemon := defender.GetActivePokemon()
 
 	a.pokemonName = attackPokemon.Nickname
 	move := attackPokemon.Moves[a.AttackerMove]
@@ -244,12 +266,16 @@ func (a *AttackAction) UpdateState(state *GameState) {
 	a.attackPercent = uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
 
 	defPokemon.Hp.Value = defPokemon.Hp.Value - int16(damage)
-}
 
-func (a AttackAction) Message() []string {
-	return []string{
-		fmt.Sprintf("Player %d's %s used %s", a.ctx.PlayerId, a.pokemonName, a.moveName),
-		fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
+	attacker.SetPokemon(attacker.ActivePokeIndex, attackPokemon)
+	defender.SetPokemon(defender.ActivePokeIndex, defPokemon)
+
+	return StateUpdate{
+		State: state,
+		Messages: []string{
+			fmt.Sprintf("Player %d's %s used %s", a.ctx.PlayerId, a.pokemonName, a.moveName),
+			fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
+		},
 	}
 }
 
@@ -275,9 +301,11 @@ func NewSkipAction(playerId int) *SkipAction {
 	}
 }
 
-func (a *SkipAction) UpdateState(state *GameState) { return }
-func (a SkipAction) Message() []string {
-	return []string{fmt.Sprintf("Player %d skipped their turn", a.ctx.PlayerId)}
+func (a *SkipAction) UpdateState(state GameState) StateUpdate {
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("Player %d skipped their turn", a.ctx.PlayerId)},
+	}
 }
 
 func (a SkipAction) Ctx() ActionCtx {

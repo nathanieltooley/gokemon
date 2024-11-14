@@ -20,6 +20,15 @@ type StateUpdater interface {
 	SendAction(state.Action)
 }
 
+func syncState(mainState *state.GameState, newState state.StateUpdate) state.StateUpdate {
+	// Clone here because of slices
+	*mainState = newState.State.Clone()
+	log.Info().Int("Active Health: ", int(newState.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
+	log.Info().Int("Active Health: ", int(newState.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
+
+	return newState
+}
+
 type LocalUpdater struct {
 	Actions []state.Action
 }
@@ -30,7 +39,7 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 		aiPokemon := gameState.OpposingPlayer.GetActivePokemon()
 
 		bestMoveIndex := 0
-		var bestMove *game.MoveFull
+		var bestMove *game.Move
 		var bestMoveDamage uint = 0
 
 		for i, move := range aiPokemon.Moves {
@@ -55,7 +64,7 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.OpposingPlayer.Team {
-			if pokemon != nil && pokemon.Alive() {
+			if pokemon.Alive() {
 				return state.NewSwitchAction(gameState, state.AI, i)
 			}
 		}
@@ -71,7 +80,7 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 	switches := make([]state.SwitchAction, 0)
 	otherActions := make([]state.Action, 0)
 
-	messages := make([]string, 0)
+	states := make([]state.StateUpdate, 0)
 
 	for _, a := range u.Actions {
 		switch a := a.(type) {
@@ -92,22 +101,27 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 
 	// Process switches first
 	lo.ForEach(switches, func(a state.SwitchAction, i int) {
-		a.UpdateState(gameState)
-		messages = append(messages, a.Message()...)
+		states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 	})
 
 	if resolvingForcedSwitches {
 		u.Actions = make([]state.Action, 0)
-		gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
 		gameState.Turn++
 
 		return func() tea.Msg {
 			time.Sleep(time.Second * 1)
 
-			return TurnResolvedMessage{
-				Messages: messages,
-			}
+			messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {
+				return item.Messages
+			})
+
+			log.Info().Msgf("States: %d", len(states))
+			log.Info().Strs("Queued Messages", messages).Msg("")
+
+			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+
+			return TurnResolvedMessage{}
 		}
 	}
 
@@ -144,12 +158,10 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 			player := gameState.GetPlayer(a.Ctx().PlayerId)
 
 			if player.GetActivePokemon().Alive() {
-				a.UpdateState(gameState)
-				messages = append(messages, a.Message()...)
+				states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 			}
 		default:
-			a.UpdateState(gameState)
-			messages = append(messages, a.Message()...)
+			states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 		}
 	})
 
@@ -161,7 +173,7 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		return func() tea.Msg {
 			return ForceSwitchMessage{
 				ForThisPlayer: true,
-				Messages:      messages,
+				StateUpdates:  states,
 			}
 		}
 	}
@@ -170,12 +182,18 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		return func() tea.Msg {
 			return ForceSwitchMessage{
 				ForThisPlayer: false,
-				Messages:      messages,
+				StateUpdates:  states,
 			}
 		}
 	}
 
-	log.Info().Strs("Queued Messages", messages)
+	messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {
+		return item.Messages
+	})
+
+	log.Info().Msgf("States: %d", len(states))
+	log.Info().Strs("Queued Messages", messages).Msg("")
+
 	gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
 	return func() tea.Msg {
@@ -184,8 +202,13 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 
 		gameState.Turn++
 
+		for _, s := range states {
+			log.Debug().Int("Active Health: ", int(s.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
+			log.Debug().Int("Active Health: ", int(s.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
+		}
+
 		return TurnResolvedMessage{
-			Messages: messages,
+			StateUpdates: states,
 		}
 	}
 }
@@ -197,9 +220,9 @@ func (u *LocalUpdater) SendAction(action state.Action) {
 type (
 	ForceSwitchMessage struct {
 		ForThisPlayer bool
-		Messages      []string
+		StateUpdates  []state.StateUpdate
 	}
 	TurnResolvedMessage struct {
-		Messages []string
+		StateUpdates []state.StateUpdate
 	}
 )

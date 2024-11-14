@@ -9,6 +9,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/rs/zerolog/log"
 )
 
 // BIG PROBLEM IM GONNA HAVE TO FIGURE OUT
@@ -31,17 +32,30 @@ const (
 )
 
 type gameContext struct {
+	// This state is "The One True State", the actual state that dictates how the game is going
+	// If / When multiplayer is added, this will only be true for the host, but it will true be the
+	// actual state of that client
 	state        *state.GameState
 	chosenAction state.Action
 }
 
 type MainGameModel struct {
-	ctx                  *gameContext
-	stateUpdater         stateupdater.StateUpdater
-	playerSide           int
+	ctx          *gameContext
+	stateUpdater stateupdater.StateUpdater
+	playerSide   int
+	// Player has submitted their action and starts waiting for the opponent to submit their's
+	// and for both of their actions to be processed
 	startedTurnResolving bool
-	currentStateMessage  string
-	messageQueue         []string
+
+	// Intermediate states (in between turns) that need to be displayed to the client
+	stateQueue []state.StateUpdate
+	// State that should be rendered when inbetween turns
+	currentRenderedState state.GameState
+	// Whether we started the state update rendering process
+	renderingPastState         bool
+	waitingOnPastStateMessages bool
+	messageQueue               []string
+	currentStateMessage        string
 
 	inited bool
 
@@ -55,9 +69,10 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 	}
 
 	return MainGameModel{
-		ctx:          ctx,
-		playerSide:   playerSide,
-		stateUpdater: &stateupdater.LocalUpdater{},
+		ctx:                  ctx,
+		playerSide:           playerSide,
+		stateUpdater:         &stateupdater.LocalUpdater{},
+		currentRenderedState: *ctx.state,
 		panel: actionPanel{
 			ctx: ctx,
 		},
@@ -75,8 +90,12 @@ func tick() tea.Cmd {
 func (m MainGameModel) Init() tea.Cmd { return nil }
 
 func (m MainGameModel) View() string {
+	var stateToRender state.GameState
+	stateToRender = m.currentRenderedState
+
 	panelView := ""
-	if m.ctx.chosenAction == nil {
+
+	if m.ctx.chosenAction == nil && !m.startedTurnResolving {
 		panelView = m.panel.View()
 	}
 
@@ -90,8 +109,8 @@ func (m MainGameModel) View() string {
 
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(m.ctx, "HOST", m.ctx.state.GetPlayer(state.HOST)).View(),
-				newPlayerPanel(m.ctx, "PEER", m.ctx.state.GetPlayer(state.PEER)).View(),
+				newPlayerPanel(stateToRender, "HOST", stateToRender.GetPlayer(state.HOST)).View(),
+				newPlayerPanel(stateToRender, "PEER", stateToRender.GetPlayer(state.PEER)).View(),
 			),
 
 			panelView,
@@ -99,14 +118,36 @@ func (m MainGameModel) View() string {
 	)
 }
 
-type nextNotifMsg struct{}
+type (
+	nextNotifMsg struct{}
+	nextStateMsg struct{}
+)
+
+func (m *MainGameModel) nextState() bool {
+	if len(m.stateQueue) != 0 {
+		// Pop queue
+		stateUpdate := m.stateQueue[0]
+		m.currentRenderedState = stateUpdate.State
+		m.messageQueue = stateUpdate.Messages
+
+		log.Info().Int("Active Health", int(stateUpdate.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msg("New State: Player")
+		log.Info().Int("Active Health", int(stateUpdate.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msg("New State: AI")
+
+		m.stateQueue = m.stateQueue[1:]
+
+		return true
+	}
+
+	return false
+}
 
 // Returns true if there was a message in the queue
 func (m *MainGameModel) nextStateMsg() bool {
 	if len(m.messageQueue) != 0 {
-		// Pop queue
 		m.currentStateMessage = m.messageQueue[0]
 		m.messageQueue = m.messageQueue[1:]
+
+		log.Info().Msgf("Next Message: %s", m.currentStateMessage)
 
 		return true
 	}
@@ -122,16 +163,24 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 	case nextNotifMsg:
-		// Only try to update the msg view later if we actually changed it
+		// For when we still have messages in the queue
 		if m.nextStateMsg() {
 			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
 				return nextNotifMsg{}
 			}))
 		} else {
-			m.currentStateMessage = ""
-			// make sure that the player can only make changes once the messages are done
-			// displaying
-			m.startedTurnResolving = false
+			// Go to the next state once we run out of messages
+			if m.nextState() {
+				m.nextStateMsg()
+				cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+					return nextNotifMsg{}
+				}))
+			} else {
+				// Reset back to normal
+				m.currentStateMessage = ""
+				m.renderingPastState = false
+				m.startedTurnResolving = false
+			}
 		}
 	case tickMsg:
 		cmds = append(cmds, tick())
@@ -140,19 +189,14 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// TODO: Handle Force switch on player side
 		if msg.ForThisPlayer {
 		} else {
+			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, true))
 		}
-
-		m.messageQueue = append(m.messageQueue, msg.Messages...)
 	case stateupdater.TurnResolvedMessage:
 		m.panel = actionPanel{ctx: m.ctx}
 		m.ctx.chosenAction = nil
 
-		m.messageQueue = append(m.messageQueue, msg.Messages...)
-
-		if len(m.messageQueue) == 0 {
-			m.startedTurnResolving = false
-		}
+		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
@@ -166,9 +210,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.ctx.chosenAction != nil && !m.startedTurnResolving {
 		m.stateUpdater.SendAction(m.ctx.chosenAction)
-		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, false))
+		// Freezes the state while updates are being made
 		m.startedTurnResolving = true
+		m.currentRenderedState = *m.ctx.state
 
+		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, false))
 	} else {
 		m.panel, _ = m.panel.Update(msg)
 	}
@@ -180,6 +226,18 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return nextNotifMsg{}
 			}))
 		}
+	}
+
+	// Once we get some state updates from the state updater,
+	// start displaying them
+	if len(m.stateQueue) != 0 && !m.renderingPastState {
+		m.renderingPastState = true
+		m.nextState()
+		m.nextStateMsg()
+
+		cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+			return nextNotifMsg{}
+		}))
 	}
 
 	// Game Over Check
@@ -197,6 +255,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.inited {
 		cmds = append(cmds, tick())
 		m.inited = true
+	}
+
+	// Render the actual state before turns get processed
+	if !m.startedTurnResolving {
+		m.currentRenderedState = *m.ctx.state
 	}
 
 	return m, tea.Batch(cmds...)

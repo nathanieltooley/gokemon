@@ -115,16 +115,16 @@ func (p *Pokemon) ReCalcStats() {
 	p.Speed.Value = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
 }
 
-func (p *Pokemon) GetCurrentEvTotal() int {
+func (p Pokemon) GetCurrentEvTotal() int {
 	return int(p.Hp.Ev) + int(p.Attack.Ev) + int(p.Def.Ev) + int(p.SpAttack.Ev) + int(p.SpDef.Ev) + int(p.Speed.Ev)
 }
 
-func (p *Pokemon) Alive() bool {
+func (p Pokemon) Alive() bool {
 	return p.Hp.Value > 0
 }
 
 type PokemonBuilder struct {
-	poke *Pokemon
+	poke Pokemon
 }
 
 func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
@@ -141,7 +141,7 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 		Nature:   NATURE_HARDY,
 	}
 
-	return &PokemonBuilder{&poke}
+	return &PokemonBuilder{poke}
 }
 
 func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
@@ -301,7 +301,7 @@ func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []string) *PokemonB
 
 // TODO: SetRandomItem
 
-func (pb *PokemonBuilder) Build() *Pokemon {
+func (pb *PokemonBuilder) Build() Pokemon {
 	pb.poke.ReCalcStats()
 	builderLogger().Debug().Msg("Building pokemon")
 	return pb.poke
@@ -385,7 +385,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-func Damage(attacker *Pokemon, defendent *Pokemon, move *Move) uint {
+func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var a, d int16                  // TODO: Add exception for Beat Up
 

@@ -119,14 +119,8 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			editor := NewTeamEditorModel()
 			teamItem := t.teamList.SelectedItem().(teamItem)
 			team := teamItem.Pokemon
-			pokePointers := make([]*game.Pokemon, len(team))
 
-			for i, poke := range team {
-				pointer := &poke
-				pokePointers[i] = pointer
-			}
-
-			editor.AddStartingTeam(pokePointers)
+			editor.AddStartingTeam(team)
 			return editor, nil
 		}
 	}

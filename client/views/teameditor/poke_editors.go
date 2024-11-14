@@ -79,7 +79,7 @@ const (
 	DE_LEN
 )
 
-func newDetailsEditor(pokeInfo *game.Pokemon) detailsEditor {
+func newDetailsEditor(pokeInfo game.Pokemon) detailsEditor {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Nickname"
 	nameInput.Focus()
@@ -162,7 +162,7 @@ const (
 	EI_SPEEDEV
 )
 
-func newEVIVEditor(pokeInfo *game.Pokemon) evivEditor {
+func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	hpiv := textinput.New()
 	hpiv.Focus()
 	hpiv.CharLimit = 3
@@ -396,7 +396,7 @@ type moveItem struct {
 func (i moveItem) FilterValue() string { return i.Name }
 func (i moveItem) Value() string       { return i.Name }
 
-func newMoveEditor(pokemon *game.Pokemon, validMoves []*game.Move) moveEditor {
+func newMoveEditor(pokemon game.Pokemon, validMoves []*game.Move) moveEditor {
 	startingMoves := pokemon.Moves
 	var lists [4]list.Model
 

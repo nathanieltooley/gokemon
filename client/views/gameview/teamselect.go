@@ -88,11 +88,10 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.focus == 0 && key.Matches(msg, selectKey) {
-			selectedItem := m.teamList.SelectedItem().(teamItem)
-			selectedTeam := teamfs.TeamSliceToArray(selectedItem.Pokemon)
+			selectedTeam := m.teamList.SelectedItem().(teamItem)
 			defaultEnemyTeam := state.RandomTeam()
 
-			return NewMainGameModel(state.NewState(selectedTeam, defaultEnemyTeam), state.HOST), nil
+			return NewMainGameModel(state.NewState(selectedTeam.Pokemon, defaultEnemyTeam), state.HOST), nil
 		}
 	}
 

@@ -73,7 +73,7 @@ const (
 
 type teamEditorCtx struct {
 	// The current team we're editing
-	team               []*game.Pokemon
+	team               []game.Pokemon
 	listeningForEscape bool
 }
 
@@ -98,7 +98,7 @@ type (
 		editorModels       [len(editors)]editor
 		moveRegistry       *reg.MoveRegistry
 		abilities          map[string][]string
-		currentPokemon     *game.Pokemon
+		currentPokemon     game.Pokemon
 		currentEditorIndex int
 	}
 	saveTeamModel struct {
@@ -195,9 +195,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			currentPokemon := m.GetCurrentPokemon()
 
-			if currentPokemon != nil {
-				return newEditPokemonModel(m.ctx, currentPokemon), nil
-			}
+			return newEditPokemonModel(m.ctx, currentPokemon), nil
 		}
 
 		if !m.addingNewPokemon {
@@ -234,15 +232,15 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m editTeamModel) GetCurrentPokemon() *game.Pokemon {
+func (m editTeamModel) GetCurrentPokemon() game.Pokemon {
 	if len(m.ctx.team) > 0 {
 		return m.ctx.team[m.currentPokemonIndex]
 	}
 
-	return nil
+	return game.Pokemon{}
 }
 
-func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editPokemonModel {
+func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon game.Pokemon) editPokemonModel {
 	moveRegistry := global.MOVES
 	abilities := global.ABILITIES
 
@@ -460,7 +458,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func NewTeamEditorModel() TeamEditorModel {
 	ctx := teamEditorCtx{
-		team:               make([]*game.Pokemon, 0),
+		team:               make([]game.Pokemon, 0),
 		listeningForEscape: true,
 	}
 	teamEdit := newEditTeamModel(&ctx)
@@ -472,7 +470,7 @@ func NewTeamEditorModel() TeamEditorModel {
 	}
 }
 
-func (m *TeamEditorModel) AddStartingTeam(team []*game.Pokemon) {
+func (m *TeamEditorModel) AddStartingTeam(team []game.Pokemon) {
 	m.ctx.team = team
 }
 

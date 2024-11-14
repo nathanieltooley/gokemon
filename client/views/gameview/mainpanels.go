@@ -178,20 +178,18 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type pokemonPanel struct {
-	ctx          *gameContext
-	pokemon      [6]*game.Pokemon
-	validPokemon []*game.Pokemon
+	ctx     *gameContext
+	pokemon []game.Pokemon
 
 	selectedPokemon int
 }
 
-func newPokemonPanel(ctx *gameContext, pokemon [6]*game.Pokemon) pokemonPanel {
+func newPokemonPanel(ctx *gameContext, pokemon []game.Pokemon) pokemonPanel {
 	panel := pokemonPanel{
 		ctx:     ctx,
 		pokemon: pokemon,
 	}
 
-	panel.UpdateValidPokemon()
 	return panel
 }
 
@@ -200,7 +198,8 @@ func (m pokemonPanel) View() string {
 	pokeStyle := lipgloss.NewStyle().Width(10).Border(lipgloss.NormalBorder(), true)
 
 	panels := make([]string, 0)
-	for i, pokemon := range m.validPokemon {
+	// TODO: Gray out or get rid of dead pokemon
+	for i, pokemon := range m.pokemon {
 		if i == m.selectedPokemon {
 			panels = append(panels, highlightedPanelStyle.Width(10).Render(pokemon.Nickname))
 		} else {
@@ -217,36 +216,25 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, global.MoveLeftKey) {
 			m.selectedPokemon--
 			if m.selectedPokemon < 0 {
-				m.selectedPokemon = len(m.validPokemon)
+				m.selectedPokemon = len(m.pokemon)
 			}
 		}
 
 		if key.Matches(msg, global.MoveRightKey) {
 			m.selectedPokemon++
 
-			if m.selectedPokemon >= len(m.validPokemon) {
+			if m.selectedPokemon >= len(m.pokemon) {
 				m.selectedPokemon = 0
 			}
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			// All this extra stuff with valid pokemon
-			// is just to make the menus nicer to look at (no gaps)
 			currentValidPokemon := m.pokemon[m.selectedPokemon]
 
-			// m.selectedPokemon is based off of the validPokemon slice
-			// which has different indices than the actual team array
-			// so we find the actual index by comparing pointers
 			var currentPokemonIndex int
 
-			for i, pokemon := range m.pokemon {
-				if pokemon == currentValidPokemon {
-					currentPokemonIndex = i
-				}
-			}
-
 			// Only allow switches to alive and existing pokemon
-			if currentValidPokemon != nil && currentValidPokemon.Hp.Value > 0 {
+			if currentValidPokemon.Alive() {
 				action := state.NewSwitchAction(m.ctx.state, state.HOST, currentPokemonIndex)
 
 				m.ctx.chosenAction = action
@@ -254,18 +242,5 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	m.UpdateValidPokemon()
-
 	return m, nil
-}
-
-func (m *pokemonPanel) UpdateValidPokemon() {
-	newValidPokemon := make([]*game.Pokemon, 0)
-	for _, pokemon := range m.pokemon {
-		if pokemon != nil && pokemon.Hp.Value > 0 {
-			newValidPokemon = append(newValidPokemon, pokemon)
-		}
-	}
-
-	m.validPokemon = newValidPokemon
 }

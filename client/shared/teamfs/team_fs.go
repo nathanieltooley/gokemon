@@ -16,17 +16,15 @@ var ErrNoSuchTeam = errors.New("no such team exists")
 
 type SavedTeams map[string][]game.Pokemon
 
-func SaveTeam(name string, pokemon []*game.Pokemon) error {
+func SaveTeam(name string, pokemon []game.Pokemon) error {
 	teams, err := LoadTeamMap()
 	if err != nil {
 		return err
 	}
 
 	serializablePokemon := make([]game.Pokemon, 0)
-	for _, pokePointer := range pokemon {
-		if pokePointer != nil {
-			serializablePokemon = append(serializablePokemon, *pokePointer)
-		}
+	for _, poke := range pokemon {
+		serializablePokemon = append(serializablePokemon, poke)
 	}
 
 	teams[name] = serializablePokemon
