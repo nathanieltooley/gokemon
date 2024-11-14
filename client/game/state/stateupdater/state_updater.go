@@ -23,8 +23,6 @@ type StateUpdater interface {
 func syncState(mainState *state.GameState, newState state.StateUpdate) state.StateUpdate {
 	// Clone here because of slices
 	*mainState = newState.State.Clone()
-	log.Info().Int("Active Health: ", int(newState.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
-	log.Info().Int("Active Health: ", int(newState.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
 
 	return newState
 }
@@ -201,11 +199,6 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		time.Sleep(time.Second * 2)
 
 		gameState.Turn++
-
-		for _, s := range states {
-			log.Debug().Int("Active Health: ", int(s.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
-			log.Debug().Int("Active Health: ", int(s.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msgf("New State")
-		}
 
 		return TurnResolvedMessage{
 			StateUpdates: states,
