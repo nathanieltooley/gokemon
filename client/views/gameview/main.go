@@ -212,7 +212,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stateUpdater.SendAction(m.ctx.chosenAction)
 		// Freezes the state while updates are being made
 		m.startedTurnResolving = true
-		m.currentRenderedState = *m.ctx.state
+		m.currentRenderedState = m.ctx.state.Clone()
 
 		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, false))
 	} else {
