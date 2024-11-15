@@ -75,7 +75,7 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 }
 
 func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
-	// FIX: State updates happen before the sending of the TurnResolvedMessage
+	artificalDelay := time.Second * 2
 
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
 	if !u.playerNeedsToSwitch && !u.aiNeedsToSwitch || !u.playerNeedsToSwitch && u.aiNeedsToSwitch {
@@ -180,6 +180,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
 		u.playerNeedsToSwitch = true
 		return func() tea.Msg {
+			time.Sleep(artificalDelay)
+
 			return ForceSwitchMessage{
 				ForThisPlayer: true,
 				StateUpdates:  states,
@@ -190,6 +192,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
 		u.aiNeedsToSwitch = true
 		return func() tea.Msg {
+			time.Sleep(artificalDelay)
+
 			return ForceSwitchMessage{
 				ForThisPlayer: false,
 				StateUpdates:  states,
@@ -208,7 +212,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	return func() tea.Msg {
 		// Artifical Delay
-		time.Sleep(time.Second * 2)
+		time.Sleep(artificalDelay)
 
 		gameState.Turn++
 
