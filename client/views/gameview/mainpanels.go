@@ -34,7 +34,7 @@ func (m playerPanel) View() string {
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
 	pokeInfo := fmt.Sprintf("%s\n%d / %d\nLevel: %d",
 		currentPokemon.Nickname,
-		currentPokemon.Hp.Value,
+		int(math.Max(float64(currentPokemon.Hp.Value), 0)),
 		currentPokemon.MaxHp,
 		currentPokemon.Level,
 	)
