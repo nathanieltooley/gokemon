@@ -130,9 +130,6 @@ func (m *MainGameModel) nextState() bool {
 		m.currentRenderedState = stateUpdate.State
 		m.messageQueue = stateUpdate.Messages
 
-		log.Info().Int("Active Health", int(stateUpdate.State.LocalPlayer.GetActivePokemon().Hp.Value)).Msg("New State: Player")
-		log.Info().Int("Active Health", int(stateUpdate.State.OpposingPlayer.GetActivePokemon().Hp.Value)).Msg("New State: AI")
-
 		m.stateQueue = m.stateQueue[1:]
 
 		return true
@@ -191,9 +188,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ctx.chosenAction = nil
 			m.startedTurnResolving = false
 			m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
+
+			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 		} else {
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
-			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, true))
+			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
 		}
 	case stateupdater.TurnResolvedMessage:
 		m.panel = actionPanel{ctx: m.ctx}
@@ -217,7 +216,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.startedTurnResolving = true
 		m.currentRenderedState = m.ctx.state.Clone()
 
-		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state, false))
+		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
 	} else {
 		m.panel, _ = m.panel.Update(msg)
 	}

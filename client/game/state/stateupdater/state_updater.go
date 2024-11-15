@@ -14,7 +14,7 @@ import (
 
 type StateUpdater interface {
 	// Updates the state of the game
-	Update(*state.GameState, bool) tea.Cmd
+	Update(*state.GameState) tea.Cmd
 
 	// Sets the Host's action for this turn
 	SendAction(state.Action)
@@ -29,6 +29,9 @@ func syncState(mainState *state.GameState, newState state.StateUpdate) state.Sta
 
 type LocalUpdater struct {
 	Actions []state.Action
+
+	aiNeedsToSwitch     bool
+	playerNeedsToSwitch bool
 }
 
 func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
@@ -71,9 +74,13 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	return &state.SkipAction{}
 }
 
-func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches bool) tea.Cmd {
+func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	// FIX: State updates happen before the sending of the TurnResolvedMessage
-	u.Actions = append(u.Actions, u.BestAiAction(gameState))
+
+	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
+	if !u.playerNeedsToSwitch && !u.aiNeedsToSwitch || !u.playerNeedsToSwitch && u.aiNeedsToSwitch {
+		u.Actions = append(u.Actions, u.BestAiAction(gameState))
+	}
 
 	switches := make([]state.SwitchAction, 0)
 	otherActions := make([]state.Action, 0)
@@ -89,6 +96,8 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		}
 	}
 
+	u.Actions = make([]state.Action, 0)
+
 	// Sort switching order by speed
 	slices.SortFunc(switches, func(a, b state.SwitchAction) int {
 		return cmp.Compare(a.Poke.Speed.Value, b.Poke.Speed.Value)
@@ -102,8 +111,11 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 	})
 
-	if resolvingForcedSwitches {
+	if u.playerNeedsToSwitch || u.aiNeedsToSwitch {
 		u.Actions = make([]state.Action, 0)
+
+		u.playerNeedsToSwitch = false
+		u.aiNeedsToSwitch = false
 
 		gameState.Turn++
 
@@ -163,11 +175,10 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 		}
 	})
 
-	u.Actions = make([]state.Action, 0)
-
 	// Seems weird but should make sense if or when multiplayer is added
 	// also these checks will have to change if double battles are added
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
+		u.playerNeedsToSwitch = true
 		return func() tea.Msg {
 			return ForceSwitchMessage{
 				ForThisPlayer: true,
@@ -177,6 +188,7 @@ func (u LocalUpdater) Update(gameState *state.GameState, resolvingForcedSwitches
 	}
 
 	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
+		u.aiNeedsToSwitch = true
 		return func() tea.Msg {
 			return ForceSwitchMessage{
 				ForThisPlayer: false,
