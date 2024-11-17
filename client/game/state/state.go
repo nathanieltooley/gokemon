@@ -235,7 +235,6 @@ type AttackAction struct {
 	attackPercent uint
 	pokemonName   string
 	moveName      string
-	effectiveness string
 }
 
 func NewAttackAction(attacker int, attackMove int) *AttackAction {
@@ -270,12 +269,32 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	attacker.SetPokemon(attacker.ActivePokeIndex, attackPokemon)
 	defender.SetPokemon(defender.ActivePokeIndex, defPokemon)
 
+	effectiveness := defPokemon.Base.AttackEffectiveness(move.Type)
+
+	log.Debug().Float32("effectiveness", effectiveness).Msg("")
+
+	effectivenessText := ""
+
+	if effectiveness >= 2 {
+		effectivenessText = "It was super effective!"
+	} else if effectiveness <= 0.5 {
+		effectivenessText = "It was not very effective"
+	} else if effectiveness == 0 {
+		effectivenessText = "It had no effect"
+	}
+
+	messages := []string{
+		fmt.Sprintf("Player %d's %s used %s", a.ctx.PlayerId, a.pokemonName, a.moveName),
+		fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
+	}
+
+	if effectivenessText != "" {
+		messages = append(messages, effectivenessText)
+	}
+
 	return StateUpdate{
-		State: state,
-		Messages: []string{
-			fmt.Sprintf("Player %d's %s used %s", a.ctx.PlayerId, a.pokemonName, a.moveName),
-			fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
-		},
+		State:    state,
+		Messages: messages,
 	}
 }
 
