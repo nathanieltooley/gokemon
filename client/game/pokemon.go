@@ -31,6 +31,7 @@ func (t PokemonType) AttackEffectiveness(attackType string) float32 {
 	effectiveness, ok := t.effectiveness[attackType]
 
 	if !ok {
+		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, attackType)
 		return 1
 	} else {
 		return effectiveness

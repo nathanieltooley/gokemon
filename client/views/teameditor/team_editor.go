@@ -98,7 +98,7 @@ type (
 		editorModels       [len(editors)]editor
 		moveRegistry       *reg.MoveRegistry
 		abilities          map[string][]string
-		currentPokemon     game.Pokemon
+		currentPokemon     *game.Pokemon
 		currentEditorIndex int
 	}
 	saveTeamModel struct {
@@ -193,9 +193,15 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentPokemonIndex = len(m.ctx.team) - 1
 			}
 
-			currentPokemon := m.GetCurrentPokemon()
+			var currentPokemon *game.Pokemon
 
-			return newEditPokemonModel(m.ctx, currentPokemon), nil
+			if len(m.ctx.team) > 0 {
+				currentPokemon = &m.ctx.team[m.currentPokemonIndex]
+			}
+
+			if currentPokemon != nil {
+				return newEditPokemonModel(m.ctx, currentPokemon), nil
+			}
 		}
 
 		if !m.addingNewPokemon {
@@ -233,23 +239,19 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m editTeamModel) GetCurrentPokemon() game.Pokemon {
-	if len(m.ctx.team) > 0 {
-		return m.ctx.team[m.currentPokemonIndex]
-	}
-
 	return game.Pokemon{}
 }
 
-func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon game.Pokemon) editPokemonModel {
+func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editPokemonModel {
 	moveRegistry := global.MOVES
 	abilities := global.ABILITIES
 
 	var editorModels [len(editors)]editor
-	editorModels[0] = newDetailsEditor(currentPokemon)
-	editorModels[1] = newMoveEditor(currentPokemon, moveRegistry.GetFullMovesForPokemon(currentPokemon.Base.Name))
+	editorModels[0] = newDetailsEditor(*currentPokemon)
+	editorModels[1] = newMoveEditor(*currentPokemon, moveRegistry.GetFullMovesForPokemon(currentPokemon.Base.Name))
 	editorModels[2] = newItemEditor()
 	editorModels[3] = newAbilityEditor(abilities[strings.ToLower(currentPokemon.Base.Name)])
-	editorModels[4] = newEVIVEditor(currentPokemon)
+	editorModels[4] = newEVIVEditor(*currentPokemon)
 
 	return editPokemonModel{
 		ctx: ctx,
