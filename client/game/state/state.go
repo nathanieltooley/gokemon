@@ -269,7 +269,7 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	attacker.SetPokemon(attacker.ActivePokeIndex, attackPokemon)
 	defender.SetPokemon(defender.ActivePokeIndex, defPokemon)
 
-	effectiveness := defPokemon.Base.AttackEffectiveness(move.Type)
+	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
 
 	log.Debug().Float32("effectiveness", effectiveness).Msg("")
 

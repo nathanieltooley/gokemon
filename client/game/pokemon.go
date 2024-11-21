@@ -52,29 +52,15 @@ type BasePokemon struct {
 	Speed         int16
 }
 
-func (b BasePokemon) AttackEffectiveness(attackType string) float32 {
-	effectiveness1, ok := b.Type1.Effectiveness[attackType]
-	if !ok {
-		effectiveness1 = 1
-	}
+func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
+	effectiveness1 := attackType.AttackEffectiveness(b.Type1.Name)
 
 	var effectiveness2 float32 = 1
 	if b.Type2 != nil {
-		effectiveness2, ok = b.Type2.Effectiveness[attackType]
-		if !ok {
-			effectiveness2 = 1
-		}
+		effectiveness2 = attackType.AttackEffectiveness(b.Type2.Name)
 	}
 
 	return effectiveness1 * effectiveness2
-}
-
-func (b BasePokemon) SuperEffective(attackType string) bool {
-	return b.AttackEffectiveness(attackType) >= 2
-}
-
-func (b BasePokemon) NotVeryEffective(attackType string) bool {
-	return b.AttackEffectiveness(attackType) >= 0.5
 }
 
 type Stat struct {
