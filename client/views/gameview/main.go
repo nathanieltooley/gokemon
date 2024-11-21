@@ -37,6 +37,7 @@ type gameContext struct {
 	// actual state of that client
 	state        *state.GameState
 	chosenAction state.Action
+	forcedSwitch bool
 }
 
 type MainGameModel struct {
@@ -187,6 +188,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
 			m.startedTurnResolving = false
+			m.ctx.forcedSwitch = true
 			m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
 
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
@@ -197,6 +199,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateupdater.TurnResolvedMessage:
 		m.panel = actionPanel{ctx: m.ctx}
 		m.ctx.chosenAction = nil
+		m.ctx.forcedSwitch = false
 
 		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 	}

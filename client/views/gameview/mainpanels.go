@@ -207,7 +207,12 @@ func (m pokemonPanel) View() string {
 		}
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...)
+	forcedSwitch := ""
+	if m.ctx.forcedSwitch {
+		forcedSwitch = "Your Pokemon fainted, please select a new one to switch in"
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Center, forcedSwitch, lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...))
 }
 
 func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
