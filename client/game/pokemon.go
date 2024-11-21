@@ -24,14 +24,15 @@ var damageLogger = func() *zerolog.Logger {
 
 type PokemonType struct {
 	Name          string
-	effectiveness map[string]float32
+	Effectiveness map[string]float32
 }
 
-func (t PokemonType) AttackEffectiveness(attackType string) float32 {
-	effectiveness, ok := t.effectiveness[attackType]
+// The effectiveness of this type against some defense type
+func (t PokemonType) AttackEffectiveness(defenseType string) float32 {
+	effectiveness, ok := t.Effectiveness[defenseType]
 
 	if !ok {
-		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, attackType)
+		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, defenseType)
 		return 1
 	} else {
 		return effectiveness
@@ -52,14 +53,14 @@ type BasePokemon struct {
 }
 
 func (b BasePokemon) AttackEffectiveness(attackType string) float32 {
-	effectiveness1, ok := b.Type1.effectiveness[attackType]
+	effectiveness1, ok := b.Type1.Effectiveness[attackType]
 	if !ok {
 		effectiveness1 = 1
 	}
 
 	var effectiveness2 float32 = 1
 	if b.Type2 != nil {
-		effectiveness2, ok = b.Type2.effectiveness[attackType]
+		effectiveness2, ok = b.Type2.Effectiveness[attackType]
 		if !ok {
 			effectiveness2 = 1
 		}
@@ -412,12 +413,14 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	damageLogger().Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
 	damageLogger().Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
 
-	type1Effectiveness := defendent.Base.Type1.AttackEffectiveness(move.Type)
+	attackType := GetAttackTypeMapping(move.Type)
+
+	type1Effectiveness := attackType.AttackEffectiveness(defendent.Base.Type1.Name)
 
 	var type2Effectiveness float32 = 1
 
 	if defendent.Base.Type2 != nil {
-		type2Effectiveness = defendent.Base.Type2.AttackEffectiveness(move.Type)
+		type2Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type2.Name)
 	}
 
 	if type1Effectiveness == 0 || type2Effectiveness == 0 {

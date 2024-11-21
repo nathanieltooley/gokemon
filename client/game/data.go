@@ -470,3 +470,7 @@ var TYPE_FAIRY = PokemonType{
 		TYPENAME_STEEL:  .5,
 	},
 }
+
+func GetAttackTypeMapping(t string) *PokemonType {
+	return TYPE_MAP[t]
+}
