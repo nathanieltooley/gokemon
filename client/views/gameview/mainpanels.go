@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
@@ -13,38 +14,50 @@ import (
 	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
+const playerPanelWidth = 20
+
 type playerPanel struct {
 	gameState state.GameState
 
-	player *state.Player
-	name   string
+	player    *state.Player
+	name      string
+	healthBar progress.Model
 }
 
 func newPlayerPanel(gameState state.GameState, name string, player *state.Player) playerPanel {
+	progressBar := progress.New(progress.WithDefaultGradient())
+	progressBar.Width = playerPanelWidth * .75
+
 	return playerPanel{
 		gameState: gameState,
 
-		player: player,
-		name:   name,
+		player:    player,
+		name:      name,
+		healthBar: progressBar,
 	}
 }
 
 func (m playerPanel) Init() tea.Cmd { return nil }
 func (m playerPanel) View() string {
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
-	pokeInfo := fmt.Sprintf("%s\n%d / %d\nLevel: %d",
+	pokeInfo := fmt.Sprintf("%s\nLevel: %d",
 		currentPokemon.Nickname,
-		int(math.Max(float64(currentPokemon.Hp.Value), 0)),
-		currentPokemon.MaxHp,
 		currentPokemon.Level,
 	)
+	// m.healthBar.SetPercent(1.0)
 
-	pokeStyle := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Width(20).Height(5)
+	healthPerc := float64(currentPokemon.Hp.Value) / float64(currentPokemon.MaxHp)
 
-	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, pokeStyle.Render(pokeInfo)))
+	pokeStyle := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Width(playerPanelWidth).Height(5)
+	pokeInfo = pokeStyle.Render(lipgloss.JoinVertical(lipgloss.Center, pokeInfo, m.healthBar.ViewAs(healthPerc)))
+
+	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, pokeInfo))
 }
 
 func (m playerPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	progressModel, _ := m.healthBar.Update(msg)
+	m.healthBar = progressModel.(progress.Model)
+
 	return m, nil
 }
 
