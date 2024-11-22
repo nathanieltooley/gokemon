@@ -3,7 +3,6 @@ package global
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -46,20 +45,15 @@ var (
 )
 
 func init() {
-	logFile, err := os.OpenFile("client.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	rollingWriter := rollingFileWriter{}
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
-	if err != nil {
-		fmt.Println("Could not open file 'client.log' for logging. logging will be console only")
-		initLogger = zerolog.New(consoleWriter).With().Timestamp().Logger()
-	} else {
-		// TODO: Custom formatter, ends up printing out console format codes (obviously)
-		fileWriter := zerolog.ConsoleWriter{Out: logFile}
-		multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
+	// TODO: Custom formatter, ends up printing out console format codes (obviously)
+	fileWriter := zerolog.ConsoleWriter{Out: rollingWriter}
+	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
 
-		initLogger = multiLogger
-		log.Logger = zerolog.New(fileWriter).With().Timestamp().Logger()
-	}
+	initLogger = multiLogger
+	log.Logger = zerolog.New(fileWriter).With().Timestamp().Logger()
 
 	var wg sync.WaitGroup
 
