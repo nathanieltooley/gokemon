@@ -102,13 +102,13 @@ func loadPokemon() reg.PokemonRegistry {
 	// Load CSV data
 	for _, row := range rows {
 		// These are "unwraped" because the data inserted should always follow this format
-		pokedexNumber := int16(errors.Must(strconv.ParseInt(row[0], 10, 16)))
-		hp := int16(errors.Must(strconv.ParseInt(row[4], 10, 16)))
-		attack := int16(errors.Must(strconv.ParseInt(row[5], 10, 16)))
-		def := int16(errors.Must(strconv.ParseInt(row[6], 10, 16)))
-		spAttack := int16(errors.Must(strconv.ParseInt(row[7], 10, 16)))
-		spDef := int16(errors.Must(strconv.ParseInt(row[8], 10, 16)))
-		speed := int16(errors.Must(strconv.ParseInt(row[9], 10, 16)))
+		pokedexNumber := uint(errors.Must(strconv.ParseInt(row[0], 10, 16)))
+		hp := uint(errors.Must(strconv.ParseInt(row[4], 10, 16)))
+		attack := uint(errors.Must(strconv.ParseInt(row[5], 10, 16)))
+		def := uint(errors.Must(strconv.ParseInt(row[6], 10, 16)))
+		spAttack := uint(errors.Must(strconv.ParseInt(row[7], 10, 16)))
+		spDef := uint(errors.Must(strconv.ParseInt(row[8], 10, 16)))
+		speed := uint(errors.Must(strconv.ParseInt(row[9], 10, 16)))
 
 		name := row[1]
 		type1Name := row[2]

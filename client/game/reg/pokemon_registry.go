@@ -11,7 +11,7 @@ type PokemonRegistry []game.BasePokemon
 
 func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *game.BasePokemon {
 	for _, pkm := range p {
-		if pkm.PokedexNumber == int16(pkdNumber) {
+		if pkm.PokedexNumber == uint(pkdNumber) {
 			return &pkm
 		}
 	}

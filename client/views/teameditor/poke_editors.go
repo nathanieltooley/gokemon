@@ -132,7 +132,7 @@ func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 				} else {
 					parsedLevel = int64(math.Min(100, float64(parsedLevel)))
 
-					currentPokemon.Level = uint8(parsedLevel)
+					currentPokemon.Level = uint(parsedLevel)
 					currentPokemon.ReCalcStats()
 				}
 			}
@@ -300,78 +300,78 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.Hp.Iv = uint8(parsedIv)
+				currentPokemon.Hp.Iv = uint(parsedIv)
 			}
 		case EI_HPEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.Hp.Ev = uint8(parsedEv)
+				currentPokemon.Hp.Ev = uint(parsedEv)
 			}
 
 		case EI_ATTACKIV:
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.Attack.Iv = uint8(parsedIv)
+				currentPokemon.Attack.Iv = uint(parsedIv)
 			}
 		case EI_ATTACKEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.Attack.Ev = uint8(parsedEv)
+				currentPokemon.Attack.Ev = uint(parsedEv)
 			}
 
 		case EI_DEFIV:
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.Def.Iv = uint8(parsedIv)
+				currentPokemon.Def.Iv = uint(parsedIv)
 			}
 		case EI_DEFEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.Def.Ev = uint8(parsedEv)
+				currentPokemon.Def.Ev = uint(parsedEv)
 			}
 
 		case EI_SPAIV:
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.SpAttack.Iv = uint8(parsedIv)
+				currentPokemon.SpAttack.Iv = uint(parsedIv)
 			}
 		case EI_SPAEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.SpAttack.Ev = uint8(parsedEv)
+				currentPokemon.SpAttack.Ev = uint(parsedEv)
 			}
 
 		case EI_SPDEFIV:
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.SpDef.Iv = uint8(parsedIv)
+				currentPokemon.SpDef.Iv = uint(parsedIv)
 			}
 		case EI_SPDEFEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.SpDef.Ev = uint8(parsedEv)
+				currentPokemon.SpDef.Ev = uint(parsedEv)
 			}
 
 		case EI_SPEEDIV:
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.Speed.Iv = uint8(parsedIv)
+				currentPokemon.Speed.Iv = uint(parsedIv)
 			}
 		case EI_SPEEDEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.Speed.Ev = uint8(parsedEv)
+				currentPokemon.Speed.Ev = uint(parsedEv)
 			}
 		}
 	}

@@ -40,16 +40,16 @@ func (t PokemonType) AttackEffectiveness(defenseType string) float32 {
 }
 
 type BasePokemon struct {
-	PokedexNumber int16
+	PokedexNumber uint
 	Name          string
 	Type1         *PokemonType
 	Type2         *PokemonType
-	Hp            int16
-	Attack        int16
-	Def           int16
-	SpAttack      int16
-	SpDef         int16
-	Speed         int16
+	Hp            uint
+	Attack        uint
+	Def           uint
+	SpAttack      uint
+	SpDef         uint
+	Speed         uint
 }
 
 func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
@@ -64,9 +64,44 @@ func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
 }
 
 type Stat struct {
-	Value int16
-	Ev    uint8
-	Iv    uint8
+	rawValue uint
+	Ev       uint
+	Iv       uint
+	stage    int
+}
+
+type HpStat struct {
+	Value uint
+	Ev    uint
+	Iv    uint
+}
+
+var stageMultipliers = map[int]float32{
+	-6: 2 / 8,
+	-5: 2 / 7,
+	-4: 2 / 6,
+	-3: 2 / 5,
+	-2: 2 / 4,
+	-1: 2 / 3,
+	0:  1,
+	1:  3 / 2,
+	2:  4 / 2,
+	3:  5 / 2,
+	4:  6 / 2,
+	5:  7 / 2,
+	6:  8 / 2,
+}
+
+func (s Stat) Value() int {
+	return int(float32(s.rawValue) * stageMultipliers[s.stage])
+}
+
+func (s *Stat) IncreaseStage(inc int) {
+	s.stage = int(math.Min(6, float64(s.stage+inc)))
+}
+
+func (s *Stat) DecreaseStage(dec int) {
+	s.stage = int(math.Max(-6, float64(s.stage-dec)))
 }
 
 type Nature struct {
@@ -77,9 +112,9 @@ type Nature struct {
 type Pokemon struct {
 	Base     *BasePokemon
 	Nickname string
-	Level    uint8
-	Hp       Stat
-	MaxHp    int16
+	Level    uint
+	Hp       HpStat
+	MaxHp    uint
 	Attack   Stat
 	Def      Stat
 	SpAttack Stat
@@ -92,15 +127,15 @@ type Pokemon struct {
 }
 
 func (p *Pokemon) ReCalcStats() {
-	hpNumerator := ((2*p.Base.Hp + int16(p.Hp.Iv) + int16(p.Hp.Ev/4)) * int16(p.Level))
-	p.Hp.Value = (hpNumerator / 100) + int16(p.Level) + 10
+	hpNumerator := (2*p.Base.Hp + p.Hp.Iv + (p.Hp.Ev / 4)) * (p.Level)
+	p.Hp.Value = (hpNumerator / 100) + p.Level + 10
 	p.MaxHp = p.Hp.Value
 
-	p.Attack.Value = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
-	p.Def.Value = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
-	p.SpAttack.Value = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
-	p.SpDef.Value = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
-	p.Speed.Value = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
+	p.Attack.rawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
+	p.Def.rawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
+	p.SpAttack.rawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
+	p.SpDef.rawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
+	p.Speed.rawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
 }
 
 func (p Pokemon) GetCurrentEvTotal() int {
@@ -120,19 +155,19 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 		Base:     base,
 		Nickname: base.Name,
 		Level:    1,
-		Hp:       Stat{0, 0, 0},
-		Attack:   Stat{0, 0, 0},
-		Def:      Stat{0, 0, 0},
-		SpAttack: Stat{0, 0, 0},
-		SpDef:    Stat{0, 0, 0},
-		Speed:    Stat{0, 0, 0},
+		Hp:       HpStat{0, 0, 0},
+		Attack:   Stat{0, 0, 0, 0},
+		Def:      Stat{0, 0, 0, 0},
+		SpAttack: Stat{0, 0, 0, 0},
+		SpDef:    Stat{0, 0, 0, 0},
+		Speed:    Stat{0, 0, 0, 0},
 		Nature:   NATURE_HARDY,
 	}
 
 	return &PokemonBuilder{poke}
 }
 
-func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
+func (pb *PokemonBuilder) SetEvs(evs [6]uint) *PokemonBuilder {
 	pb.poke.Hp.Ev = evs[0]
 	pb.poke.Attack.Ev = evs[1]
 	pb.poke.Def.Ev = evs[2]
@@ -141,17 +176,17 @@ func (pb *PokemonBuilder) SetEvs(evs [6]uint8) *PokemonBuilder {
 	pb.poke.Speed.Ev = evs[5]
 
 	builderLogger().Debug().
-		Uint8("HP", evs[0]).
-		Uint8("ATTACK", evs[1]).
-		Uint8("DEF", evs[2]).
-		Uint8("SPATTACK", evs[3]).
-		Uint8("SPDEF", evs[4]).
-		Uint8("SPEED", evs[5]).Msg("Setting EVs")
+		Uint("HP", evs[0]).
+		Uint("ATTACK", evs[1]).
+		Uint("DEF", evs[2]).
+		Uint("SPATTACK", evs[3]).
+		Uint("SPDEF", evs[4]).
+		Uint("SPEED", evs[5]).Msg("Setting EVs")
 
 	return pb
 }
 
-func (pb *PokemonBuilder) SetIvs(ivs [6]uint8) *PokemonBuilder {
+func (pb *PokemonBuilder) SetIvs(ivs [6]uint) *PokemonBuilder {
 	pb.poke.Hp.Iv = ivs[0]
 	pb.poke.Attack.Iv = ivs[1]
 	pb.poke.Def.Iv = ivs[2]
@@ -160,12 +195,12 @@ func (pb *PokemonBuilder) SetIvs(ivs [6]uint8) *PokemonBuilder {
 	pb.poke.Speed.Iv = ivs[5]
 
 	builderLogger().Debug().
-		Uint8("HP", ivs[0]).
-		Uint8("ATTACK", ivs[1]).
-		Uint8("DEF", ivs[2]).
-		Uint8("SPATTACK", ivs[3]).
-		Uint8("SPDEF", ivs[4]).
-		Uint8("SPEED", ivs[5]).Msg("Setting IVs")
+		Uint("HP", ivs[0]).
+		Uint("ATTACK", ivs[1]).
+		Uint("DEF", ivs[2]).
+		Uint("SPATTACK", ivs[3]).
+		Uint("SPDEF", ivs[4]).
+		Uint("SPEED", ivs[5]).Msg("Setting IVs")
 
 	return pb
 }
@@ -184,11 +219,11 @@ func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
-	var ivs [6]uint8
+	var ivs [6]uint
 
 	for i := range ivs {
 		iv := rand.UintN(MAX_IV + 1)
-		ivs[i] = uint8(iv)
+		ivs[i] = iv
 	}
 
 	builderLogger().Debug().Msg("Setting Random IVs")
@@ -201,7 +236,7 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 // and follow the order of HP, ATTACK, DEF, SPATTACK, SPDEF, SPEED
 func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 	evPool := MAX_TOTAL_EV
-	var evs [6]uint8
+	var evs [6]uint
 
 	for evPool > 0 {
 		// randomly select a stat to add EVs to
@@ -217,7 +252,7 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 		// Get a random value to increase the EV by
 		// ranges from 0 to (remainingEvSpace or MAX_EV) + 1
 		randomEv := rand.UintN(uint(math.Max(float64(remainingEvSpace), MAX_EV)) + 1)
-		evs[randomIndex] += uint8(randomEv)
+		evs[randomIndex] += randomEv
 		evPool -= int(randomEv)
 	}
 
@@ -228,15 +263,15 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 	return pb
 }
 
-func (pb *PokemonBuilder) SetLevel(level uint8) *PokemonBuilder {
+func (pb *PokemonBuilder) SetLevel(level uint) *PokemonBuilder {
 	pb.poke.Level = level
 	return pb
 }
 
 func (pb *PokemonBuilder) SetRandomLevel(low int, high int) *PokemonBuilder {
-	n := high - low
-	rndLevel := rand.IntN(n) + low
-	pb.poke.Level = uint8(rndLevel)
+	var n uint = uint(high - low)
+	rndLevel := rand.UintN(n) + uint(low)
+	pb.poke.Level = rndLevel
 
 	return pb
 }
@@ -299,10 +334,10 @@ func (pb *PokemonBuilder) Build() Pokemon {
 // 	pkm []BasePokemon
 // }
 
-func calcStat(baseValue int16, level uint8, iv uint8, ev uint8, natureMod float32) int16 {
-	statNumerator := (2*baseValue + int16(iv) + int16(ev/4)) * int16(level)
+func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
+	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
 	statValue := float32((statNumerator/100)+5) * natureMod
-	return int16(statValue)
+	return uint(statValue)
 }
 
 func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
@@ -375,7 +410,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 
 func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
-	var a, d int16                  // TODO: Add exception for Beat Up
+	var a, d uint                   // TODO: Add exception for Beat Up
 
 	// Determine damage type
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
@@ -439,7 +474,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 
 	damageLogger().Debug().
 		Int("power", power).
-		Uint8("attackerLevel", attackerLevel).
+		Uint("attackerLevel", attackerLevel).
 		Float32("damageInner", damageInner).
 		Float32("randomSpread", randomSpread).
 		Float32("STAB", stab).
