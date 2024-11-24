@@ -264,7 +264,7 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	log.Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
 	a.attackPercent = uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
 
-	defPokemon.Hp.Value = defPokemon.Hp.Value - damage
+	defPokemon.Hp.Value = uint(math.Max(0, float64(defPokemon.Hp.Value-damage)))
 
 	attacker.SetPokemon(attacker.ActivePokeIndex, attackPokemon)
 	defender.SetPokemon(defender.ActivePokeIndex, defPokemon)
