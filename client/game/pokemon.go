@@ -22,6 +22,20 @@ var damageLogger = func() *zerolog.Logger {
 	return &logger
 }
 
+const (
+	STATUS_NONE = iota
+	STATUS_BURN
+	// idea for both para and sleep:
+	// when a move gets sent as an action
+	// theres a chance the move action turns into
+	// a para or sleep action (functionally same as skip but with different messages)
+	STATUS_PARA
+	STATUS_SLEEP
+	// will have to check at the end of a turn for damage
+	STATUS_POISON
+	STATUS_TOXIC
+)
+
 type PokemonType struct {
 	Name          string
 	Effectiveness map[string]float32
@@ -110,20 +124,22 @@ type Nature struct {
 }
 
 type Pokemon struct {
-	Base     *BasePokemon
-	Nickname string
-	Level    uint
-	Hp       HpStat
-	MaxHp    uint
-	Attack   Stat
-	Def      Stat
-	SpAttack Stat
-	SpDef    Stat
-	Speed    Stat
-	Moves    [4]*Move
-	Nature   Nature
-	Ability  string
-	Item     string
+	Base       *BasePokemon
+	Nickname   string
+	Level      uint
+	Hp         HpStat
+	MaxHp      uint
+	Attack     Stat
+	Def        Stat
+	SpAttack   Stat
+	SpDef      Stat
+	Speed      Stat
+	Moves      [4]*Move
+	Nature     Nature
+	Ability    string
+	Item       string
+	Status     int
+	ToxicCount int
 }
 
 func (p *Pokemon) ReCalcStats() {
@@ -458,7 +474,12 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	}
 
 	// TODO: Add crits, exceptions for Battle Armor and Shell Armor
-	// TODO: Add burn check for 1/2 damage which needs its own expection for Guts and Facade
+	var burn float32 = 1
+	// TODO: Add exception for Guts and Facade
+	if attacker.Status == STATUS_BURN && move.DamageClass == DAMAGETYPE_PHYSICAL {
+		burn = 0.5
+		damageLogger().Info().Float32("burn", burn).Msg("Attacker is burned and is using a physical move")
+	}
 
 	// TODO: Maybe add weather
 	// TODO: Maybe check for parental bond, glaive rush, targets in DBs, ZMoves
@@ -470,7 +491,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	// and it seems that the lowest possible value in a damage range may not be able
 	// to show up as often because rounding is a bit different
 	// TODO: maybe make a custom rounding function that rounds DOWN at .5
-	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab)))
+	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn)))
 
 	damageLogger().Debug().
 		Int("power", power).
