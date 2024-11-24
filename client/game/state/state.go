@@ -330,3 +330,37 @@ func (a *SkipAction) UpdateState(state GameState) StateUpdate {
 func (a SkipAction) Ctx() ActionCtx {
 	return a.ctx
 }
+
+type SleepAction struct {
+	ctx ActionCtx
+}
+
+func NewSleepAction(playerId int) *SleepAction {
+	return &SleepAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a *SleepAction) UpdateState(state GameState) StateUpdate {
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("Player %d's pokemon stayed asleep", a.ctx.PlayerId)},
+	}
+}
+
+type ParaAction struct {
+	ctx ActionCtx
+}
+
+func NewParaAction(playerId int) *ParaAction {
+	return &ParaAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a *ParaAction) UpdateState(state GameState) StateUpdate {
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("Player %d's pokemon is paralyzed and cannot move", a.ctx.PlayerId)},
+	}
+}
