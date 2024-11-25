@@ -16,6 +16,24 @@ import (
 
 const playerPanelWidth = 20
 
+var statusColors map[int]lipgloss.Color = map[int]lipgloss.Color{
+	game.STATUS_BURN:   lipgloss.Color("#E36D1C"),
+	game.STATUS_PARA:   lipgloss.Color("#FFD400"),
+	game.STATUS_TOXIC:  lipgloss.Color("#A61AE5"),
+	game.STATUS_POISON: lipgloss.Color("#A61AE5"),
+	game.STATUS_FROZEN: lipgloss.Color("#31BBCE"),
+	game.STATUS_SLEEP:  lipgloss.Color("#BCE9EF"),
+}
+
+var statusTxt map[int]string = map[int]string{
+	game.STATUS_BURN:   "BRN",
+	game.STATUS_PARA:   "PAR",
+	game.STATUS_FROZEN: "FRZ",
+	game.STATUS_TOXIC:  "TOX",
+	game.STATUS_POISON: "PSN",
+	game.STATUS_SLEEP:  "SLP",
+}
+
 type playerPanel struct {
 	gameState state.GameState
 
@@ -40,11 +58,18 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 func (m playerPanel) Init() tea.Cmd { return nil }
 func (m playerPanel) View() string {
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
-	pokeInfo := fmt.Sprintf("%s\nLevel: %d",
+	statusStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true)
+	statusText := ""
+	if currentPokemon.Status != game.STATUS_NONE {
+		statusStyle.Background(statusColors[currentPokemon.Status])
+		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
+	}
+
+	pokeInfo := fmt.Sprintf("%s %s\nLevel: %d",
+		statusText,
 		currentPokemon.Nickname,
 		currentPokemon.Level,
 	)
-	// m.healthBar.SetPercent(1.0)
 
 	healthPerc := float64(currentPokemon.Hp.Value) / float64(currentPokemon.MaxHp)
 
