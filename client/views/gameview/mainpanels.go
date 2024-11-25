@@ -58,10 +58,9 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 func (m playerPanel) Init() tea.Cmd { return nil }
 func (m playerPanel) View() string {
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
-	statusStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true)
 	statusText := ""
 	if currentPokemon.Status != game.STATUS_NONE {
-		statusStyle.Background(statusColors[currentPokemon.Status])
+		statusStyle := lipgloss.NewStyle().Background(statusColors[currentPokemon.Status])
 		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
 	}
 
@@ -173,7 +172,7 @@ func (m movePanel) View() string {
 			if m.moves[arrayIndex] == nil {
 				row = append(row, style.Render("Empty"))
 			} else {
-				row = append(row, style.Render(m.moves[i].Name))
+				row = append(row, style.Render(m.moves[arrayIndex].Name))
 			}
 		}
 
