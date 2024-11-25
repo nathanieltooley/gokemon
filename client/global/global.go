@@ -53,7 +53,7 @@ func init() {
 	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
 
 	initLogger = multiLogger
-	log.Logger = zerolog.New(fileWriter).With().Timestamp().Logger()
+	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger()
 
 	var wg sync.WaitGroup
 
