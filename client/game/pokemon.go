@@ -31,6 +31,7 @@ const (
 	// a para or sleep action (functionally same as skip but with different messages)
 	STATUS_PARA
 	STATUS_SLEEP
+	STATUS_FROZEN
 	// will have to check at the end of a turn for damage
 	STATUS_POISON
 	STATUS_TOXIC
@@ -160,6 +161,10 @@ func (p Pokemon) GetCurrentEvTotal() int {
 
 func (p Pokemon) Alive() bool {
 	return p.Hp.Value > 0
+}
+
+func (p *Pokemon) Damage(dmg uint) {
+	p.Hp.Value = uint(math.Max(0, float64(p.Hp.Value-dmg)))
 }
 
 type PokemonBuilder struct {

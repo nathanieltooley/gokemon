@@ -52,6 +52,14 @@ type MoveMeta struct {
 	CritRateBonus int `json:"crit_rate"`
 }
 
+var STATUS_NAME_MAP = map[string]int{
+	"paralysis": STATUS_PARA,
+	"sleep":     STATUS_SLEEP,
+	"freeze":    STATUS_FROZEN,
+	"burn":      STATUS_BURN,
+	"poison":    STATUS_POISON,
+}
+
 type MoveFull struct {
 	Accuracy         int
 	DamageClass      string `json:"damage_class"`

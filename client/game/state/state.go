@@ -3,11 +3,13 @@ package state
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"slices"
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -158,17 +160,13 @@ type Player struct {
 }
 
 // TODO: OOB Error handling
-func (p Player) GetActivePokemon() game.Pokemon {
+func (p Player) GetActivePokemon() *game.Pokemon {
 	return p.GetPokemon(p.ActivePokeIndex)
 }
 
 // Get a copy of a pokemon on a player's team
-func (p Player) GetPokemon(index int) game.Pokemon {
-	return p.Team[index]
-}
-
-func (p *Player) SetPokemon(index int, pokemon game.Pokemon) {
-	p.Team[index] = pokemon
+func (p Player) GetPokemon(index int) *game.Pokemon {
+	return &p.Team[index]
 }
 
 type ActionCtx struct {
@@ -231,10 +229,6 @@ type AttackAction struct {
 	ctx ActionCtx
 
 	AttackerMove int
-
-	attackPercent uint
-	pokemonName   string
-	moveName      string
 }
 
 func NewAttackAction(attacker int, attackMove int) *AttackAction {
@@ -242,6 +236,11 @@ func NewAttackAction(attacker int, attackMove int) *AttackAction {
 		ctx:          NewActionCtx(attacker),
 		AttackerMove: attackMove,
 	}
+}
+
+var attackActionLogger = func() *zerolog.Logger {
+	logger := log.With().Str("location", "attack-action").Logger()
+	return &logger
 }
 
 func (a *AttackAction) UpdateState(state GameState) StateUpdate {
@@ -252,44 +251,78 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
-	a.pokemonName = attackPokemon.Nickname
+	// TODO: Make sure a.AttackerMove is between 0 -> 3
 	move := attackPokemon.Moves[a.AttackerMove]
 
-	a.moveName = move.Name
+	messages := make([]string, 0)
+	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
 
-	// TODO: Make sure a.AttackerMove is between 0 -> 3
-	damage := game.Damage(attackPokemon, defPokemon, move)
-	log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), defenderInt, playerIntToString(defenderInt), damage)
+	accuracyCheck := rand.Intn(100)
+	if accuracyCheck < move.Accuracy {
+		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
+		damage := game.Damage(*attackPokemon, *defPokemon, move)
+		log.Info().Msgf("Player %d: %s attacks %d: %s and deals %d damage", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), defenderInt, playerIntToString(defenderInt), damage)
 
-	log.Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
-	a.attackPercent = uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
+		attackActionLogger().Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
+		attackPercent := uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
 
-	defPokemon.Hp.Value = uint(math.Max(0, float64(defPokemon.Hp.Value-damage)))
+		defPokemon.Damage(damage)
 
-	attacker.SetPokemon(attacker.ActivePokeIndex, attackPokemon)
-	defender.SetPokemon(defender.ActivePokeIndex, defPokemon)
+		effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
 
-	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
+		attackActionLogger().Debug().Float32("effectiveness", effectiveness).Msg("")
 
-	log.Debug().Float32("effectiveness", effectiveness).Msg("")
+		effectivenessText := ""
 
-	effectivenessText := ""
+		if effectiveness >= 2 {
+			effectivenessText = "It was super effective!"
+		} else if effectiveness <= 0.5 {
+			effectivenessText = "It was not very effective"
+		} else if effectiveness == 0 {
+			effectivenessText = "It had no effect"
+		}
 
-	if effectiveness >= 2 {
-		effectivenessText = "It was super effective!"
-	} else if effectiveness <= 0.5 {
-		effectivenessText = "It was not very effective"
-	} else if effectiveness == 0 {
-		effectivenessText = "It had no effect"
-	}
+		messages = append(messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
 
-	messages := []string{
-		fmt.Sprintf("Player %d's %s used %s", a.ctx.PlayerId, a.pokemonName, a.moveName),
-		fmt.Sprintf("It dealt %d%% damage", a.attackPercent),
-	}
+		if effectivenessText != "" {
+			messages = append(messages, effectivenessText)
+		}
 
-	if effectivenessText != "" {
-		messages = append(messages, effectivenessText)
+		// TODO: Setup state updates so that this can be in its own separate update
+		// (probably make update functions return []StateUpdate)
+		ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
+		if ok && defPokemon.Status == game.STATUS_NONE {
+			ailmentCheck := rand.Intn(100)
+			ailmentChance := move.Meta.AilmentChance
+
+			// in pokeapi speak, 0 here means the chance is 100% (at least as it relates to moves like toxic and poison-powder)
+			// might have to fix edge-cases here
+			if ailmentChance == 0 {
+				ailmentChance = 100
+			}
+
+			if ailmentCheck < ailmentChance {
+				attackActionLogger().
+					Debug().
+					Int("ailmentCheck", accuracyCheck).
+					Int("AilmentChance", ailmentChance).
+					Msg("Check succeeded")
+
+				defPokemon.Status = ailment
+
+				attackActionLogger().Info().
+					Msgf("%s was aflicted with ailment: %s:%d", attackPokemon.Nickname, move.Meta.Ailment.Name, ailment)
+			} else {
+				attackActionLogger().
+					Debug().
+					Int("ailmentCheck", accuracyCheck).
+					Int("AilmentChance", ailmentChance).
+					Msg("Check failed")
+			}
+		}
+	} else {
+		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
+		messages = append(messages, "It missed!")
 	}
 
 	return StateUpdate{
@@ -363,4 +396,35 @@ func (a *ParaAction) UpdateState(state GameState) StateUpdate {
 		State:    state,
 		Messages: []string{fmt.Sprintf("Player %d's pokemon is paralyzed and cannot move", a.ctx.PlayerId)},
 	}
+}
+
+type BurnAction struct {
+	ctx ActionCtx
+}
+
+func NewBurnAction(playerId int) *ParaAction {
+	return &ParaAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a *BurnAction) UpdateState(state GameState) StateUpdate {
+	player := state.GetPlayer(a.ctx.PlayerId)
+	pokemon := player.GetActivePokemon()
+
+	damage := pokemon.MaxHp / 16
+	pokemon.Damage(damage)
+
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("Player %d's pokemon burned", a.ctx.PlayerId)},
+	}
+}
+
+type PoisonAction struct {
+	ctx ActionCtx
+}
+
+type ToxicAction struct {
+	ctx ActionCtx
 }
