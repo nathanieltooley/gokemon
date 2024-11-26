@@ -24,7 +24,9 @@ func NewModel() MainMenuModel {
 		{
 			Name: "Edit Teams",
 			OnClick: func() tea.Model {
-				return teameditor.NewTeamMenu()
+				return teameditor.NewTeamMenu(func() tea.Model {
+					return NewModel()
+				})
 			},
 		},
 	}

@@ -13,18 +13,21 @@ import (
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 )
 
-// Root Model that holds the Main Team Menu (create new, edit existing team)
-// and the Team Selection submodels
-type rootTeamModel struct {
-	subModel tea.Model
+type teamMenuCtx struct {
+	// We have to do this indirection to avoid a dependency cycle
+	// TODO: maybe consolidate all of these view packages into a single package?
+	mainMenuFunction func() tea.Model
 }
 
 type startTeamMenu struct {
+	ctx     *teamMenuCtx
 	buttons components.MenuButtons
 }
 
 // Allows the user to select an already existing team for editing
 type teamSelectionMenu struct {
+	ctx *teamMenuCtx
+
 	teamList list.Model
 	teams    teamfs.SavedTeams
 }
@@ -44,16 +47,7 @@ type teamItem struct {
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func (m rootTeamModel) Init() tea.Cmd { return nil }
-func (m rootTeamModel) View() string {
-	return m.subModel.View()
-}
-
-func (m rootTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	return m.subModel.Update(msg)
-}
-
-func newTeamMainMenu() startTeamMenu {
+func newTeamMainMenu(ctx *teamMenuCtx) startTeamMenu {
 	buttons := []components.ViewButton{
 		{
 			Name: "Create New Team",
@@ -78,6 +72,8 @@ func newTeamMainMenu() startTeamMenu {
 				}
 
 				return teamSelectionMenu{
+					ctx: ctx,
+
 					teams:    teams,
 					teamList: list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT),
 				}
@@ -86,6 +82,7 @@ func newTeamMainMenu() startTeamMenu {
 	}
 
 	return startTeamMenu{
+		ctx:     ctx,
 		buttons: components.NewMenuButton(buttons),
 	}
 }
@@ -96,6 +93,13 @@ func (m startTeamMenu) View() string {
 
 func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newModel := m.buttons.Update(msg)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyEsc {
+			return m.ctx.mainMenuFunction(), nil
+		}
+	}
 
 	if newModel != nil {
 		return newModel, nil
@@ -123,13 +127,19 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			editor.AddStartingTeam(team)
 			return editor, nil
 		}
+
+		if msg.Type == tea.KeyEsc {
+			return newTeamMainMenu(t.ctx), nil
+		}
 	}
 
 	return t, cmd
 }
 
-func NewTeamMenu() rootTeamModel {
-	return rootTeamModel{
-		subModel: newTeamMainMenu(),
+func NewTeamMenu(backMenuFunction func() tea.Model) startTeamMenu {
+	ctx := teamMenuCtx{
+		mainMenuFunction: backMenuFunction,
 	}
+
+	return newTeamMainMenu(&ctx)
 }
