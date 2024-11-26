@@ -311,23 +311,23 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.Hp.Iv,
 		m.currentPokemon.Hp.Ev,
 
-		m.currentPokemon.Attack.Value,
+		m.currentPokemon.Attack.Value(),
 		m.currentPokemon.Attack.Iv,
 		m.currentPokemon.Attack.Ev,
 
-		m.currentPokemon.Def.Value,
+		m.currentPokemon.Def.Value(),
 		m.currentPokemon.Def.Iv,
 		m.currentPokemon.Def.Ev,
 
-		m.currentPokemon.SpAttack.Value,
+		m.currentPokemon.SpAttack.Value(),
 		m.currentPokemon.SpAttack.Iv,
 		m.currentPokemon.SpAttack.Ev,
 
-		m.currentPokemon.SpDef.Value,
+		m.currentPokemon.SpDef.Value(),
 		m.currentPokemon.SpDef.Iv,
 		m.currentPokemon.SpDef.Ev,
 
-		m.currentPokemon.Speed.Value,
+		m.currentPokemon.Speed.Value(),
 		m.currentPokemon.Speed.Iv,
 		m.currentPokemon.Speed.Ev,
 
