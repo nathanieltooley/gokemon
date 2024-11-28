@@ -79,7 +79,7 @@ func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
 }
 
 type Stat struct {
-	rawValue uint
+	RawValue uint
 	Ev       uint
 	Iv       uint
 	stage    int
@@ -107,8 +107,8 @@ var stageMultipliers = map[int]float32{
 	6:  8 / 2,
 }
 
-func (s Stat) Value() int {
-	return int(float32(s.rawValue) * stageMultipliers[s.stage])
+func (s Stat) CalcValue() int {
+	return int(float32(s.RawValue) * stageMultipliers[s.stage])
 }
 
 func (s *Stat) IncreaseStage(inc int) {
@@ -148,11 +148,11 @@ func (p *Pokemon) ReCalcStats() {
 	p.Hp.Value = (hpNumerator / 100) + p.Level + 10
 	p.MaxHp = p.Hp.Value
 
-	p.Attack.rawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
-	p.Def.rawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
-	p.SpAttack.rawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
-	p.SpDef.rawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
-	p.Speed.rawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
+	p.Attack.RawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
+	p.Def.RawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
+	p.SpAttack.RawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
+	p.SpDef.RawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
+	p.Speed.RawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
 }
 
 func (p Pokemon) GetCurrentEvTotal() int {
@@ -357,7 +357,7 @@ func (pb *PokemonBuilder) Build() Pokemon {
 
 func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
 	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
-	statValue := float32((statNumerator/100)+5) * natureMod
+	statValue := (float32(statNumerator)/100 + 5) * natureMod
 	return uint(statValue)
 }
 
@@ -435,15 +435,15 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 
 	// Determine damage type
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
-		a = attacker.Base.Attack
+		a = uint(attacker.Attack.CalcValue())
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
-		a = attacker.Base.SpAttack
+		a = uint(attacker.SpAttack.CalcValue())
 	}
 
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
-		d = defendent.Base.Def
+		d = uint(defendent.Def.CalcValue())
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
-		d = defendent.Base.SpDef
+		d = uint(defendent.SpDef.CalcValue())
 	}
 
 	power := move.Power
