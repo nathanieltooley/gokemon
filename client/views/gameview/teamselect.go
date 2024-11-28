@@ -44,7 +44,12 @@ func NewTeamSelectModel() TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
 		OnClick: func() tea.Model {
-			return teameditor.NewTeamEditorModel()
+			backtrack := components.NewBreadcrumb()
+
+			backtrack.PushNew(func() tea.Model {
+				return NewTeamSelectModel()
+			})
+			return teameditor.NewTeamEditorModel(&backtrack)
 		},
 	}
 

@@ -13,20 +13,15 @@ import (
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 )
 
-type teamMenuCtx struct {
-	// We have to do this indirection to avoid a dependency cycle
-	// TODO: maybe consolidate all of these view packages into a single package?
-	mainMenuFunction func() tea.Model
-}
-
+// HACK: have to make this public for the gameview team editor
 type startTeamMenu struct {
-	ctx     *teamMenuCtx
-	buttons components.MenuButtons
+	backtrace *components.Breadcrumbs
+	buttons   components.MenuButtons
 }
 
 // Allows the user to select an already existing team for editing
 type teamSelectionMenu struct {
-	ctx *teamMenuCtx
+	backtrace *components.Breadcrumbs
 
 	teamList list.Model
 	teams    teamfs.SavedTeams
@@ -47,12 +42,14 @@ type teamItem struct {
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func newTeamMainMenu(ctx *teamMenuCtx) startTeamMenu {
+func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
+	startMenu := startTeamMenu{}
 	buttons := []components.ViewButton{
 		{
 			Name: "Create New Team",
 			OnClick: func() tea.Model {
-				return NewTeamEditorModel()
+				backtrace.Push(startMenu)
+				return NewTeamEditorModel(backtrace)
 			},
 		},
 		{
@@ -72,7 +69,7 @@ func newTeamMainMenu(ctx *teamMenuCtx) startTeamMenu {
 				}
 
 				return teamSelectionMenu{
-					ctx: ctx,
+					backtrace: backtrace,
 
 					teams:    teams,
 					teamList: list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT),
@@ -81,10 +78,10 @@ func newTeamMainMenu(ctx *teamMenuCtx) startTeamMenu {
 		},
 	}
 
-	return startTeamMenu{
-		ctx:     ctx,
-		buttons: components.NewMenuButton(buttons),
-	}
+	startMenu.backtrace = backtrace
+	startMenu.buttons = components.NewMenuButton(buttons)
+
+	return startMenu
 }
 func (m startTeamMenu) Init() tea.Cmd { return nil }
 func (m startTeamMenu) View() string {
@@ -97,7 +94,7 @@ func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEsc {
-			return m.ctx.mainMenuFunction(), nil
+			return m.backtrace.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
@@ -120,7 +117,8 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			editor := NewTeamEditorModel()
+			t.backtrace.Push(t)
+			editor := NewTeamEditorModel(t.backtrace)
 			teamItem := t.teamList.SelectedItem().(teamItem)
 			team := teamItem.Pokemon
 
@@ -129,17 +127,16 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.Type == tea.KeyEsc {
-			return newTeamMainMenu(t.ctx), nil
+			return newTeamMainMenu(t.backtrace), nil
 		}
 	}
 
 	return t, cmd
 }
 
-func NewTeamMenu(backMenuFunction func() tea.Model) startTeamMenu {
-	ctx := teamMenuCtx{
-		mainMenuFunction: backMenuFunction,
-	}
+func NewTeamMenu(mainMenuFunction func() tea.Model) startTeamMenu {
+	backtrack := components.NewBreadcrumb()
+	backtrack.PushNew(mainMenuFunction)
 
-	return newTeamMainMenu(&ctx)
+	return newTeamMainMenu(&backtrack)
 }

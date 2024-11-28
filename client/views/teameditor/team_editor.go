@@ -15,6 +15,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/reg"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 )
 
@@ -75,6 +76,8 @@ type teamEditorCtx struct {
 	// The current team we're editing
 	team               []game.Pokemon
 	listeningForEscape bool
+	// HACK: needed to probably back out into team selection
+	backtrack *components.Breadcrumbs
 }
 
 type TeamEditorModel struct {
@@ -458,10 +461,11 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func NewTeamEditorModel() TeamEditorModel {
+func NewTeamEditorModel(backtrack *components.Breadcrumbs) TeamEditorModel {
 	ctx := teamEditorCtx{
 		team:               make([]game.Pokemon, 0),
 		listeningForEscape: true,
+		backtrack:          backtrack,
 	}
 	teamEdit := newEditTeamModel(&ctx)
 
@@ -491,6 +495,10 @@ func (m TeamEditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if !m.ctx.listeningForEscape && msg.Type == tea.KeyEsc {
 			return m, cmd
+		}
+
+		if m.ctx.listeningForEscape && msg.Type == tea.KeyEsc {
+			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 	m.subModel, cmd = m.subModel.Update(msg)
