@@ -519,6 +519,7 @@ func newAbilityEditor(validAbilities []string) abilityEditor {
 
 	aList := list.New(items, rendering.NewSimpleListDelegate(), 10, 10)
 	aList.SetShowStatusBar(false)
+	aList.DisableQuitKeybindings()
 	return abilityEditor{aList}
 }
 
@@ -559,6 +560,7 @@ func newItemEditor() itemEditor {
 
 	iList := list.New(items, rendering.NewSimpleListDelegate(), 10, 10)
 	iList.SetShowStatusBar(false)
+	iList.DisableQuitKeybindings()
 	return itemEditor{iList}
 }
 

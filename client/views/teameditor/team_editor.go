@@ -124,6 +124,7 @@ func newEditTeamModel(ctx *teamEditorCtx) editTeamModel {
 	list.SetShowStatusBar(false)
 	list.SetFilteringEnabled(true)
 	list.SetShowFilter(true)
+	list.DisableQuitKeybindings()
 
 	choice := list.Items()[0].(item).BasePokemon // grab first pokemon as default
 

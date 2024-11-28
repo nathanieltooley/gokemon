@@ -70,6 +70,7 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	buttons.Unfocus()
 
 	list := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT/2)
+	list.DisableQuitKeybindings()
 	return TeamSelectModel{
 		teamList:  list,
 		buttons:   buttons,

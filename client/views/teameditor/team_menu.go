@@ -68,11 +68,14 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 					})
 				}
 
+				teamList := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT)
+				teamList.DisableQuitKeybindings()
+
 				return teamSelectionMenu{
 					backtrace: backtrace,
 
 					teams:    teams,
-					teamList: list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT),
+					teamList: teamList,
 				}
 			},
 		},
