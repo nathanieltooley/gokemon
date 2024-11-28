@@ -364,7 +364,25 @@ func (m editPokemonModel) View() string {
 	}
 
 	tabs := lipgloss.JoinHorizontal(lipgloss.Center, newEditors[0:]...)
-	return lipgloss.JoinVertical(lipgloss.Center, info, tabs, editorView)
+
+	fullEditorStyle := lipgloss.NewStyle().
+		Width(int(float32(global.TERM_WIDTH-2)*0.75)).
+		Height(global.TERM_HEIGHT-2).
+		// AlignHorizontal(lipgloss.Center).
+		Border(lipgloss.NormalBorder(), true).
+		Padding(4)
+
+	fullEditorView := fullEditorStyle.Render(lipgloss.JoinVertical(lipgloss.Left, tabs, editorView))
+
+	editorInfoStyle := lipgloss.NewStyle().
+		Width(int(float32(global.TERM_WIDTH)*0.25)).
+		Height(global.TERM_HEIGHT-6).
+		AlignHorizontal(lipgloss.Center).
+		Border(lipgloss.InnerHalfBlockBorder(), true).
+		Padding(4)
+
+	view := lipgloss.JoinHorizontal(lipgloss.Center, editorInfoStyle.Render(info), fullEditorView)
+	return rendering.GlobalCenter(view)
 }
 
 func (m editPokemonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -418,15 +436,9 @@ func newSaveTeamModel(ctx *teamEditorCtx) saveTeamModel {
 
 func (m saveTeamModel) Init() tea.Cmd { return nil }
 func (m saveTeamModel) View() string {
-	// teams, err := LoadTeamMap()
-	// if err != nil {
-	// 	return views.Center(fmt.Sprintf("Could not load teams: %s", err))
-	// }
-
 	promptStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Padding(2, 15)
 	prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
 
-	// return views.Center(lipgloss.JoinVertical(lipgloss.Center, slices.Collect(maps.Keys(teams))...))
 	return rendering.GlobalCenter(prompt)
 }
 

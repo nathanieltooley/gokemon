@@ -102,7 +102,7 @@ func (e detailsEditor) View() string {
 	for _, input := range e.is.inputs {
 		views = append(views, input.View())
 	}
-	return lipgloss.JoinVertical(lipgloss.Center, views...)
+	return lipgloss.JoinVertical(lipgloss.Left, views...)
 }
 
 func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
@@ -247,7 +247,7 @@ func (e evivEditor) View() string {
 		views = append(views, lipgloss.JoinVertical(lipgloss.Left, header,
 			lipgloss.JoinHorizontal(lipgloss.Center, e.is.inputs[i].View(), e.is.inputs[i+1].View())))
 	}
-	return lipgloss.JoinVertical(lipgloss.Center, views...)
+	return lipgloss.JoinVertical(lipgloss.Left, views...)
 }
 
 func getValidatedEv(inputString string, allowedTotalEvs int) (int, error) {
