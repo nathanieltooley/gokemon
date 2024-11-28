@@ -204,6 +204,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if currentPokemon != nil {
+				m.ctx.backtrack.Push(m)
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
 			}
 		}
@@ -315,23 +316,23 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.Hp.Iv,
 		m.currentPokemon.Hp.Ev,
 
-		m.currentPokemon.Attack.Value(),
+		m.currentPokemon.Attack.RawValue,
 		m.currentPokemon.Attack.Iv,
 		m.currentPokemon.Attack.Ev,
 
-		m.currentPokemon.Def.Value(),
+		m.currentPokemon.Def.RawValue,
 		m.currentPokemon.Def.Iv,
 		m.currentPokemon.Def.Ev,
 
-		m.currentPokemon.SpAttack.Value(),
+		m.currentPokemon.SpAttack.RawValue,
 		m.currentPokemon.SpAttack.Iv,
 		m.currentPokemon.SpAttack.Ev,
 
-		m.currentPokemon.SpDef.Value(),
+		m.currentPokemon.SpDef.RawValue,
 		m.currentPokemon.SpDef.Iv,
 		m.currentPokemon.SpDef.Ev,
 
-		m.currentPokemon.Speed.Value(),
+		m.currentPokemon.Speed.RawValue,
 		m.currentPokemon.Speed.Iv,
 		m.currentPokemon.Speed.Ev,
 
