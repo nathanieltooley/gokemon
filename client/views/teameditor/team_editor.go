@@ -204,6 +204,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if currentPokemon != nil {
+				m.addingNewPokemon = true
 				m.ctx.backtrack.Push(m)
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
 			}
@@ -236,7 +237,12 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, openSaveTeam) {
+			m.ctx.backtrack.Push(m)
 			return newSaveTeamModel(m.ctx), nil
+		}
+
+		if msg.Type == tea.KeyEsc {
+			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
@@ -415,7 +421,7 @@ func (m editPokemonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, goToPreviousPage) {
-			return newEditTeamModel(m.ctx), nil
+			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
@@ -469,6 +475,8 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return newEditTeamModel(m.ctx), nil
 			}
+		case tea.KeyEsc:
+			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
