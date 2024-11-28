@@ -18,9 +18,10 @@ import (
 )
 
 type TeamSelectModel struct {
-	teamList list.Model
-	buttons  components.MenuButtons
-	focus    int
+	teamList  list.Model
+	buttons   components.MenuButtons
+	focus     int
+	backtrack *components.Breadcrumbs
 }
 
 type teamItem struct {
@@ -40,16 +41,14 @@ var (
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func NewTeamSelectModel() TeamSelectModel {
+func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
 		OnClick: func() tea.Model {
-			backtrack := components.NewBreadcrumb()
-
 			backtrack.PushNew(func() tea.Model {
-				return NewTeamSelectModel()
+				return NewTeamSelectModel(backtrack)
 			})
-			return teameditor.NewTeamEditorModel(&backtrack)
+			return teameditor.NewTeamEditorModel(backtrack)
 		},
 	}
 
@@ -72,8 +71,9 @@ func NewTeamSelectModel() TeamSelectModel {
 
 	list := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT/2)
 	return TeamSelectModel{
-		teamList: list,
-		buttons:  buttons,
+		teamList:  list,
+		buttons:   buttons,
+		backtrack: backtrack,
 	}
 }
 
@@ -97,6 +97,10 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			defaultEnemyTeam := state.RandomTeam()
 
 			return NewMainGameModel(state.NewState(selectedTeam.Pokemon, defaultEnemyTeam), state.HOST), nil
+		}
+
+		if msg.Type == tea.KeyEsc {
+			return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 

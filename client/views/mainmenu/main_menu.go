@@ -18,7 +18,9 @@ func NewModel() MainMenuModel {
 		{
 			Name: "Play Game",
 			OnClick: func() tea.Model {
-				return gameview.NewTeamSelectModel()
+				backtrack := components.NewBreadcrumb()
+				backtrack.PushNew(func() tea.Model { return NewModel() })
+				return gameview.NewTeamSelectModel(&backtrack)
 			},
 		},
 		{
