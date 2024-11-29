@@ -3,7 +3,6 @@ package teameditor
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -17,6 +16,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -467,10 +467,18 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.Type {
 		case tea.KeyEnter:
-			// TODO: Add confirmation check if a team with this name already exists
 			if m.saveNameInput.Value() != "" {
+				teams, _ := teamfs.LoadTeamMap()
+				_, ok := teams[m.saveNameInput.Value()]
+
+				// TODO: Add confirmation check if a team with this name already exists
+				if ok {
+					log.Info().Msgf("Team: %s already exists", m.saveNameInput.Value())
+				}
+
+				// TODO: Show error instead of crashing
 				if err := teamfs.SaveTeam(m.saveNameInput.Value(), m.ctx.team); err != nil {
-					log.Fatalln("Failed to save team: ", err)
+					log.Fatal().Msgf("Failed to save team: %s", err)
 				}
 
 				return newEditTeamModel(m.ctx), nil
