@@ -7,12 +7,14 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/samber/lo"
 )
 
 type editor interface {
@@ -144,7 +146,9 @@ func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 }
 
 type evivEditor struct {
-	is inputSelector
+	is       inputSelector
+	evBars   []progress.Model
+	evValues []int
 }
 
 const (
@@ -163,6 +167,8 @@ const (
 )
 
 func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
+	barWidth := 35
+
 	hpiv := textinput.New()
 	hpiv.Focus()
 	hpiv.CharLimit = 3
@@ -170,6 +176,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	hpev := textinput.New()
 	hpev.CharLimit = 3
 	hpev.SetValue(string(pokeInfo.Hp.Ev))
+	hpBar := progress.New()
+	hpBar.Width = barWidth
 
 	attackIv := textinput.New()
 	attackIv.CharLimit = 3
@@ -177,6 +185,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	attackEv := textinput.New()
 	attackEv.CharLimit = 3
 	attackEv.SetValue(string(pokeInfo.Attack.Ev))
+	attackBar := progress.New()
+	attackBar.Width = barWidth
 
 	defIv := textinput.New()
 	defIv.CharLimit = 3
@@ -184,6 +194,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	defEv := textinput.New()
 	defEv.CharLimit = 3
 	defEv.SetValue(string(pokeInfo.Def.Ev))
+	defBar := progress.New()
+	defBar.Width = barWidth
 
 	spAttackIv := textinput.New()
 	spAttackIv.CharLimit = 3
@@ -191,6 +203,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	spAttackEv := textinput.New()
 	spAttackEv.CharLimit = 3
 	spAttackEv.SetValue(string(pokeInfo.SpAttack.Ev))
+	spAttackBar := progress.New()
+	spAttackBar.Width = barWidth
 
 	spDefIv := textinput.New()
 	spDefIv.CharLimit = 3
@@ -198,6 +212,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	spDefEv := textinput.New()
 	spDefEv.CharLimit = 3
 	spDefEv.SetValue(string(pokeInfo.SpDef.Ev))
+	spDefBar := progress.New()
+	spDefBar.Width = barWidth
 
 	speedIv := textinput.New()
 	speedIv.CharLimit = 3
@@ -205,6 +221,8 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	speedEv := textinput.New()
 	speedEv.CharLimit = 3
 	speedEv.SetValue(string(pokeInfo.Speed.Ev))
+	speedBar := progress.New()
+	speedBar.Width = barWidth
 
 	return evivEditor{
 		newInputSelector([]textinput.Model{
@@ -221,6 +239,15 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 			speedIv,
 			speedEv,
 		}),
+		[]progress.Model{
+			hpBar,
+			attackBar,
+			defBar,
+			spAttackBar,
+			spDefBar,
+			speedBar,
+		},
+		make([]int, 6),
 	}
 }
 
@@ -228,6 +255,15 @@ func (e evivEditor) View() string {
 	views := make([]string, 0)
 	for i := 0; i < len(e.is.inputs); i += 2 {
 		header := ""
+		evValue := e.evValues[i/2]
+		evSum := lo.Sum(e.evValues)
+		percent := float64(evValue) / float64(evSum)
+
+		if percent == math.NaN() {
+			percent = 0
+		}
+
+		barView := e.evBars[i/2].ViewAs(percent)
 
 		switch i {
 		case EI_HPIV:
@@ -245,7 +281,7 @@ func (e evivEditor) View() string {
 		}
 
 		views = append(views, lipgloss.JoinVertical(lipgloss.Left, header,
-			lipgloss.JoinHorizontal(lipgloss.Center, e.is.inputs[i].View(), e.is.inputs[i+1].View())))
+			lipgloss.JoinHorizontal(lipgloss.Center, e.is.inputs[i].View(), e.is.inputs[i+1].View(), barView)))
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, views...)
 }
@@ -377,6 +413,12 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 	}
 
 	currentPokemon.ReCalcStats()
+	e.evValues[0] = int(currentPokemon.Hp.Ev)
+	e.evValues[1] = int(currentPokemon.Attack.Ev)
+	e.evValues[2] = int(currentPokemon.Def.Ev)
+	e.evValues[3] = int(currentPokemon.SpAttack.Ev)
+	e.evValues[4] = int(currentPokemon.SpDef.Ev)
+	e.evValues[5] = int(currentPokemon.Speed.Ev)
 
 	return e, cmd
 }
