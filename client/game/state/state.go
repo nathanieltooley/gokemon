@@ -402,8 +402,8 @@ type BurnAction struct {
 	ctx ActionCtx
 }
 
-func NewBurnAction(playerId int) *ParaAction {
-	return &ParaAction{
+func NewBurnAction(playerId int) *BurnAction {
+	return &BurnAction{
 		ctx: NewActionCtx(playerId),
 	}
 }

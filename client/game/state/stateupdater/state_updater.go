@@ -167,6 +167,10 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		case *state.AttackAction:
 			player := gameState.GetPlayer(a.Ctx().PlayerId)
 
+			log.Info().Int("attackIndex", i).
+				Int("attackerSpeed", player.GetActivePokemon().Speed.CalcValue()).
+				Msg("Attack state update")
+
 			if player.GetActivePokemon().Alive() {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 			}
@@ -199,6 +203,19 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				StateUpdates:  states,
 			}
 		}
+	}
+
+	applyBurn := func(playerId int) {
+		burn := state.NewBurnAction(playerId)
+		states = append(states, syncState(gameState, burn.UpdateState(*gameState)))
+	}
+
+	if gameState.LocalPlayer.GetActivePokemon().Status == game.STATUS_BURN {
+		applyBurn(state.PLAYER)
+	}
+
+	if gameState.OpposingPlayer.GetActivePokemon().Status == game.STATUS_BURN {
+		applyBurn(state.AI)
 	}
 
 	messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {
