@@ -501,12 +501,15 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	damageLogger().Debug().
 		Int("power", power).
 		Uint("attackerLevel", attackerLevel).
+		Uint("attackValue", a).
+		Uint("defValue", d).
+		Str("attackType", move.Type).
 		Float32("damageInner", damageInner).
 		Float32("randomSpread", randomSpread).
 		Float32("STAB", stab).
 		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
 		Uint("damage", damage).
-		Msg("")
+		Msg("damage calc")
 
 	return damage
 }
