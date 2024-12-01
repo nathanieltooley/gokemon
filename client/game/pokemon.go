@@ -120,8 +120,8 @@ func (s *Stat) DecreaseStage(dec int) {
 }
 
 type Nature struct {
-	name          string
-	statModifiers [5]float32
+	Name          string
+	StatModifiers [5]float32
 }
 
 type Pokemon struct {
@@ -148,11 +148,11 @@ func (p *Pokemon) ReCalcStats() {
 	p.Hp.Value = (hpNumerator / 100) + p.Level + 10
 	p.MaxHp = p.Hp.Value
 
-	p.Attack.RawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.statModifiers[0])
-	p.Def.RawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.statModifiers[0])
-	p.SpAttack.RawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.statModifiers[0])
-	p.SpDef.RawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.statModifiers[0])
-	p.Speed.RawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.statModifiers[0])
+	p.Attack.RawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.StatModifiers[0])
+	p.Def.RawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.StatModifiers[0])
+	p.SpAttack.RawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.StatModifiers[0])
+	p.SpDef.RawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.StatModifiers[0])
+	p.Speed.RawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.StatModifiers[0])
 }
 
 func (p Pokemon) GetCurrentEvTotal() int {
@@ -358,6 +358,7 @@ func (pb *PokemonBuilder) Build() Pokemon {
 func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
 	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
 	statValue := (float32(statNumerator)/100 + 5) * natureMod
+	log.Debug().Float32("stat", statValue).Msg("")
 	return uint(statValue)
 }
 
