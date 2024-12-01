@@ -210,12 +210,32 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		states = append(states, syncState(gameState, burn.UpdateState(*gameState)))
 	}
 
-	if gameState.LocalPlayer.GetActivePokemon().Status == game.STATUS_BURN {
-		applyBurn(state.PLAYER)
+	applyPoison := func(playerId int) {
+		poison := state.NewPoisonAction(playerId)
+		states = append(states, syncState(gameState, poison.UpdateState(*gameState)))
 	}
 
-	if gameState.OpposingPlayer.GetActivePokemon().Status == game.STATUS_BURN {
+	applyToxic := func(playerId int) {
+		poison := state.NewToxicAction(playerId)
+		states = append(states, syncState(gameState, poison.UpdateState(*gameState)))
+	}
+
+	switch gameState.LocalPlayer.GetActivePokemon().Status {
+	case game.STATUS_BURN:
+		applyBurn(state.PLAYER)
+	case game.STATUS_POISON:
+		applyPoison(state.PLAYER)
+	case game.STATUS_TOXIC:
+		applyToxic(state.PLAYER)
+	}
+
+	switch gameState.OpposingPlayer.GetActivePokemon().Status {
+	case game.STATUS_BURN:
 		applyBurn(state.AI)
+	case game.STATUS_POISON:
+		applyPoison(state.AI)
+	case game.STATUS_TOXIC:
+		applyToxic(state.AI)
 	}
 
 	messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {

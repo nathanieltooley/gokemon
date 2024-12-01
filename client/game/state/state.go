@@ -374,7 +374,7 @@ func NewSleepAction(playerId int) *SleepAction {
 	}
 }
 
-func (a *SleepAction) UpdateState(state GameState) StateUpdate {
+func (a SleepAction) UpdateState(state GameState) StateUpdate {
 	return StateUpdate{
 		State:    state,
 		Messages: []string{fmt.Sprintf("Player %d's pokemon stayed asleep", a.ctx.PlayerId)},
@@ -391,7 +391,7 @@ func NewParaAction(playerId int) *ParaAction {
 	}
 }
 
-func (a *ParaAction) UpdateState(state GameState) StateUpdate {
+func (a ParaAction) UpdateState(state GameState) StateUpdate {
 	return StateUpdate{
 		State:    state,
 		Messages: []string{fmt.Sprintf("Player %d's pokemon is paralyzed and cannot move", a.ctx.PlayerId)},
@@ -408,16 +408,17 @@ func NewBurnAction(playerId int) *BurnAction {
 	}
 }
 
-func (a *BurnAction) UpdateState(state GameState) StateUpdate {
+func (a BurnAction) UpdateState(state GameState) StateUpdate {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	pokemon := player.GetActivePokemon()
 
 	damage := pokemon.MaxHp / 16
 	pokemon.Damage(damage)
+	damagePercent := uint((float32(damage) / float32(pokemon.MaxHp)) * 100)
 
 	return StateUpdate{
 		State:    state,
-		Messages: []string{fmt.Sprintf("Player %d's pokemon burned", a.ctx.PlayerId)},
+		Messages: []string{fmt.Sprintf("%s pokemon is burned", pokemon.Nickname), fmt.Sprintf("Burn did %d damage", damagePercent)},
 	}
 }
 
@@ -425,6 +426,51 @@ type PoisonAction struct {
 	ctx ActionCtx
 }
 
+func NewPoisonAction(playerId int) *PoisonAction {
+	return &PoisonAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a PoisonAction) UpdateState(state GameState) StateUpdate {
+	player := state.GetPlayer(a.ctx.PlayerId)
+	pokemon := player.GetActivePokemon()
+
+	// for future reference, this is MaxHp / 16 in gen 1
+	damage := pokemon.MaxHp / 8
+	pokemon.Damage(damage)
+	damagePercent := uint((float32(damage) / float32(pokemon.MaxHp)) * 100)
+
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("%s is poisoned", pokemon.Nickname), fmt.Sprintf("Poison did %d damage", damagePercent)},
+	}
+}
+
 type ToxicAction struct {
 	ctx ActionCtx
+}
+
+func NewToxicAction(playerId int) *ToxicAction {
+	return &ToxicAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a ToxicAction) UpdateState(state GameState) StateUpdate {
+	player := state.GetPlayer(a.ctx.PlayerId)
+	pokemon := player.GetActivePokemon()
+
+	damage := (pokemon.MaxHp / 16) * uint(pokemon.ToxicCount)
+	pokemon.Damage(damage)
+	damagePercent := uint((float32(damage) / float32(pokemon.MaxHp)) * 100)
+
+	log.Info().Int("toxicCount", pokemon.ToxicCount).Uint("damage", damage).Msg("Toxic Action")
+
+	pokemon.ToxicCount++
+
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("%s is badly poisoned", pokemon.Nickname), fmt.Sprintf("Toxic did %d damage", damagePercent)},
+	}
 }
