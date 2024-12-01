@@ -307,6 +307,7 @@ func (m editPokemonModel) View() string {
             Type: %s
             Ability: %s
             Item: %s
+			Nature %s
 
             Move 1: %s
             Move 2: %s
@@ -345,6 +346,7 @@ func (m editPokemonModel) View() string {
 		typeString,
 		m.currentPokemon.Ability,
 		m.currentPokemon.Item,
+		m.currentPokemon.Nature.Name,
 
 		getMoveName(m.currentPokemon.Moves[0]),
 		getMoveName(m.currentPokemon.Moves[1]),
