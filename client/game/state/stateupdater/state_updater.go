@@ -2,6 +2,7 @@ package stateupdater
 
 import (
 	"cmp"
+	"math/rand"
 	"slices"
 	"time"
 
@@ -174,7 +175,21 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
 				Msg("Attack state update")
 
-			if player.GetActivePokemon().Alive() {
+			pokemon := player.GetActivePokemon()
+
+			if pokemon.Status == game.STATUS_PARA {
+				paraChance := 0.5
+				paraCheck := rand.Float64()
+
+				if paraCheck <= paraChance {
+					a := state.NewParaAction(a.Ctx().PlayerId)
+					log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
+					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					return
+				}
+			}
+
+			if pokemon.Alive() {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 			}
 		default:
