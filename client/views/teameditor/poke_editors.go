@@ -217,10 +217,10 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 
 	speedIv := textinput.New()
 	speedIv.CharLimit = 3
-	speedIv.SetValue(string(pokeInfo.Speed.Iv))
+	speedIv.SetValue(string(pokeInfo.RawSpeed.Iv))
 	speedEv := textinput.New()
 	speedEv.CharLimit = 3
-	speedEv.SetValue(string(pokeInfo.Speed.Ev))
+	speedEv.SetValue(string(pokeInfo.RawSpeed.Ev))
 	speedBar := progress.New()
 	speedBar.Width = barWidth
 
@@ -319,7 +319,7 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 	currentPokemon.Def.Ev = 0
 	currentPokemon.SpAttack.Ev = 0
 	currentPokemon.SpDef.Ev = 0
-	currentPokemon.Speed.Ev = 0
+	currentPokemon.RawSpeed.Ev = 0
 
 	e.is, cmd = e.is.Update(msg)
 
@@ -401,13 +401,13 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 			parsedIv, err := getValidatedIv(currentInputValue)
 
 			if err == nil {
-				currentPokemon.Speed.Iv = uint(parsedIv)
+				currentPokemon.RawSpeed.Iv = uint(parsedIv)
 			}
 		case EI_SPEEDEV:
 			parsedEv, err := getValidatedEv(currentInputValue, allowedEvs)
 
 			if err == nil {
-				currentPokemon.Speed.Ev = uint(parsedEv)
+				currentPokemon.RawSpeed.Ev = uint(parsedEv)
 			}
 		}
 	}
@@ -418,7 +418,7 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 	e.evValues[2] = int(currentPokemon.Def.Ev)
 	e.evValues[3] = int(currentPokemon.SpAttack.Ev)
 	e.evValues[4] = int(currentPokemon.SpDef.Ev)
-	e.evValues[5] = int(currentPokemon.Speed.Ev)
+	e.evValues[5] = int(currentPokemon.RawSpeed.Ev)
 
 	return e, cmd
 }

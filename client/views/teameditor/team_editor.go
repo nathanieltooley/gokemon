@@ -339,9 +339,9 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.SpDef.Iv,
 		m.currentPokemon.SpDef.Ev,
 
-		m.currentPokemon.Speed.RawValue,
-		m.currentPokemon.Speed.Iv,
-		m.currentPokemon.Speed.Ev,
+		m.currentPokemon.RawSpeed.RawValue,
+		m.currentPokemon.RawSpeed.Iv,
+		m.currentPokemon.RawSpeed.Ev,
 
 		typeString,
 		m.currentPokemon.Ability,

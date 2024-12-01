@@ -134,7 +134,7 @@ type Pokemon struct {
 	Def        Stat
 	SpAttack   Stat
 	SpDef      Stat
-	Speed      Stat
+	RawSpeed   Stat
 	Moves      [4]*Move
 	Nature     Nature
 	Ability    string
@@ -152,11 +152,11 @@ func (p *Pokemon) ReCalcStats() {
 	p.Def.RawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.StatModifiers[0])
 	p.SpAttack.RawValue = calcStat(p.Base.SpAttack, p.Level, p.SpAttack.Iv, p.SpAttack.Ev, p.Nature.StatModifiers[0])
 	p.SpDef.RawValue = calcStat(p.Base.SpDef, p.Level, p.SpDef.Iv, p.SpDef.Ev, p.Nature.StatModifiers[0])
-	p.Speed.RawValue = calcStat(p.Base.Speed, p.Level, p.Speed.Iv, p.Speed.Ev, p.Nature.StatModifiers[0])
+	p.RawSpeed.RawValue = calcStat(p.Base.Speed, p.Level, p.RawSpeed.Iv, p.RawSpeed.Ev, p.Nature.StatModifiers[0])
 }
 
 func (p Pokemon) GetCurrentEvTotal() int {
-	return int(p.Hp.Ev) + int(p.Attack.Ev) + int(p.Def.Ev) + int(p.SpAttack.Ev) + int(p.SpDef.Ev) + int(p.Speed.Ev)
+	return int(p.Hp.Ev) + int(p.Attack.Ev) + int(p.Def.Ev) + int(p.SpAttack.Ev) + int(p.SpDef.Ev) + int(p.RawSpeed.Ev)
 }
 
 func (p Pokemon) Alive() bool {
@@ -165,6 +165,15 @@ func (p Pokemon) Alive() bool {
 
 func (p *Pokemon) Damage(dmg uint) {
 	p.Hp.Value = uint(math.Max(0, float64(p.Hp.Value-dmg)))
+}
+
+// Get the speed of the Pokemon, accounting for effects like paralysis
+func (p *Pokemon) Speed() int {
+	if p.Status == STATUS_PARA {
+		return p.RawSpeed.CalcValue() / 2
+	} else {
+		return p.RawSpeed.CalcValue()
+	}
 }
 
 type PokemonBuilder struct {
@@ -181,7 +190,7 @@ func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
 		Def:      Stat{0, 0, 0, 0},
 		SpAttack: Stat{0, 0, 0, 0},
 		SpDef:    Stat{0, 0, 0, 0},
-		Speed:    Stat{0, 0, 0, 0},
+		RawSpeed: Stat{0, 0, 0, 0},
 		Nature:   NATURE_HARDY,
 	}
 
@@ -194,7 +203,7 @@ func (pb *PokemonBuilder) SetEvs(evs [6]uint) *PokemonBuilder {
 	pb.poke.Def.Ev = evs[2]
 	pb.poke.SpAttack.Ev = evs[3]
 	pb.poke.SpDef.Ev = evs[4]
-	pb.poke.Speed.Ev = evs[5]
+	pb.poke.RawSpeed.Ev = evs[5]
 
 	builderLogger().Debug().
 		Uint("HP", evs[0]).
@@ -213,7 +222,7 @@ func (pb *PokemonBuilder) SetIvs(ivs [6]uint) *PokemonBuilder {
 	pb.poke.Def.Iv = ivs[2]
 	pb.poke.SpAttack.Iv = ivs[3]
 	pb.poke.SpDef.Iv = ivs[4]
-	pb.poke.Speed.Iv = ivs[5]
+	pb.poke.RawSpeed.Iv = ivs[5]
 
 	builderLogger().Debug().
 		Uint("HP", ivs[0]).
@@ -232,7 +241,7 @@ func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
 	pb.poke.Def.Iv = MAX_IV
 	pb.poke.SpAttack.Iv = MAX_IV
 	pb.poke.SpDef.Iv = MAX_IV
-	pb.poke.Speed.Iv = MAX_IV
+	pb.poke.RawSpeed.Iv = MAX_IV
 
 	builderLogger().Debug().Msg("Setting Perfect IVS")
 

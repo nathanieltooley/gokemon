@@ -100,7 +100,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	// Sort switching order by speed
 	slices.SortFunc(switches, func(a, b state.SwitchAction) int {
-		return cmp.Compare(a.Poke.Speed.CalcValue(), b.Poke.Speed.CalcValue())
+		return cmp.Compare(a.Poke.Speed(), b.Poke.Speed())
 	})
 
 	// Reverse for desc order
@@ -142,14 +142,16 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 		switch a := a.(type) {
 		case *state.AttackAction:
-			aSpeed = gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon().Speed.CalcValue()
+			activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
+			aSpeed = activePokemon.Speed()
 		default:
 			return 0
 		}
 
 		switch b := a.(type) {
 		case *state.AttackAction:
-			bSpeed = gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon().Speed.CalcValue()
+			activePokemon := gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
+			bSpeed = activePokemon.Speed()
 		default:
 			return 0
 		}
@@ -168,7 +170,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			player := gameState.GetPlayer(a.Ctx().PlayerId)
 
 			log.Info().Int("attackIndex", i).
-				Int("attackerSpeed", player.GetActivePokemon().Speed.CalcValue()).
+				Int("attackerSpeed", player.GetActivePokemon().Speed()).
+				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
 				Msg("Attack state update")
 
 			if player.GetActivePokemon().Alive() {
