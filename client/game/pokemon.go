@@ -164,7 +164,11 @@ func (p Pokemon) Alive() bool {
 }
 
 func (p *Pokemon) Damage(dmg uint) {
-	p.Hp.Value = uint(math.Max(0, float64(p.Hp.Value-dmg)))
+	cappedNewHealth := uint(math.Max(0, float64(int(p.Hp.Value)-int(dmg))))
+
+	log.Debug().Uint("dmg", dmg).Uint("oldHealth", p.Hp.Value).Uint("cappedNewHealth", cappedNewHealth).Msg("pkm damage")
+
+	p.Hp.Value = cappedNewHealth
 }
 
 // Get the speed of the Pokemon, accounting for effects like paralysis
