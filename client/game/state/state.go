@@ -290,16 +290,19 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 			effectivenessText = "It had no effect"
 		}
 
-		messages = append(messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
+		if move.Type != "status" {
+			messages = append(messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
 
-		if effectivenessText != "" {
-			messages = append(messages, effectivenessText)
+			if effectivenessText != "" {
+				messages = append(messages, effectivenessText)
+			}
 		}
 
 		// TODO: Setup state updates so that this can be in its own separate update
 		// (probably make update functions return []StateUpdate)
 		ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 		if ok && defPokemon.Status == game.STATUS_NONE {
+
 			ailmentCheck := rand.Intn(100)
 			ailmentChance := move.Meta.AilmentChance
 
@@ -317,6 +320,11 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 					Msg("Check succeeded")
 
 				defPokemon.Status = ailment
+
+				// Manual override of toxic so that it applies toxic and not poison
+				if move.Name == "toxic" {
+					defPokemon.Status = game.STATUS_TOXIC
+				}
 
 				// Post-Ailment initialization
 				switch defPokemon.Status {
