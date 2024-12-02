@@ -418,7 +418,7 @@ func (a BurnAction) UpdateState(state GameState) StateUpdate {
 
 	return StateUpdate{
 		State:    state,
-		Messages: []string{fmt.Sprintf("%s pokemon is burned", pokemon.Nickname), fmt.Sprintf("Burn did %d damage", damagePercent)},
+		Messages: []string{fmt.Sprintf("%s pokemon is burned", pokemon.Nickname), fmt.Sprintf("Burn did %d%% damage", damagePercent)},
 	}
 }
 
@@ -443,7 +443,7 @@ func (a PoisonAction) UpdateState(state GameState) StateUpdate {
 
 	return StateUpdate{
 		State:    state,
-		Messages: []string{fmt.Sprintf("%s is poisoned", pokemon.Nickname), fmt.Sprintf("Poison did %d damage", damagePercent)},
+		Messages: []string{fmt.Sprintf("%s is poisoned", pokemon.Nickname), fmt.Sprintf("Poison did %d%% damage", damagePercent)},
 	}
 }
 
@@ -471,6 +471,6 @@ func (a ToxicAction) UpdateState(state GameState) StateUpdate {
 
 	return StateUpdate{
 		State:    state,
-		Messages: []string{fmt.Sprintf("%s is badly poisoned", pokemon.Nickname), fmt.Sprintf("Toxic did %d damage", damagePercent)},
+		Messages: []string{fmt.Sprintf("%s is badly poisoned", pokemon.Nickname), fmt.Sprintf("Toxic did %d%% damage", damagePercent)},
 	}
 }

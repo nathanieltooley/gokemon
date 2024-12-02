@@ -139,8 +139,9 @@ type Pokemon struct {
 	Nature     Nature
 	Ability    string
 	Item       string
-	Status     int
-	ToxicCount int
+	Status     int `json:"-"`
+	ToxicCount int `json:"-"`
+	SleepCount int `json:"-"`
 }
 
 func (p *Pokemon) ReCalcStats() {
