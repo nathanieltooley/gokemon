@@ -177,6 +177,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			pokemon := player.GetActivePokemon()
 
+			// Skip attack with para
 			if pokemon.Status == game.STATUS_PARA {
 				paraChance := 0.5
 				paraCheck := rand.Float64()
@@ -184,6 +185,19 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				if paraCheck <= paraChance {
 					a := state.NewParaAction(a.Ctx().PlayerId)
 					log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
+					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					return
+				}
+			}
+
+			// Skip attack with sleep
+			if pokemon.Status == game.STATUS_SLEEP {
+				// Sleep is over
+				// TODO: Add message for waking up
+				if pokemon.SleepCount <= 0 {
+					pokemon.Status = game.STATUS_NONE
+				} else {
+					a := state.NewSleepAction(a.Ctx().PlayerId)
 					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 					return
 				}

@@ -214,6 +214,14 @@ func (a *SwitchAction) UpdateState(state GameState) StateUpdate {
 	// TODO: OOB Check
 	player.ActivePokeIndex = a.SwitchIndex
 
+	newActivePkm := player.GetActivePokemon()
+
+	// --- On Switch-In Updates ---
+	// Reset toxic count
+	if newActivePkm.Status == game.STATUS_TOXIC {
+		newActivePkm.ToxicCount = 1
+	}
+
 	messages := []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
 	return StateUpdate{
 		State:    state,
@@ -310,8 +318,18 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 
 				defPokemon.Status = ailment
 
+				// Post-Ailment initialization
+				switch defPokemon.Status {
+				// Set how many turns the pokemon is asleep for
+				case game.STATUS_SLEEP:
+					randTime := rand.Intn(2) + 1
+					defPokemon.SleepCount = randTime
+				case game.STATUS_TOXIC:
+					defPokemon.ToxicCount = 1
+				}
+
 				attackActionLogger().Info().
-					Msgf("%s was aflicted with ailment: %s:%d", attackPokemon.Nickname, move.Meta.Ailment.Name, ailment)
+					Msgf("%s was afflicted with ailment: %s:%d", defPokemon.Nickname, move.Meta.Ailment.Name, ailment)
 			} else {
 				attackActionLogger().
 					Debug().
@@ -375,9 +393,13 @@ func NewSleepAction(playerId int) *SleepAction {
 }
 
 func (a SleepAction) UpdateState(state GameState) StateUpdate {
+	poke := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
+
+	poke.SleepCount--
+
 	return StateUpdate{
 		State:    state,
-		Messages: []string{fmt.Sprintf("Player %d's pokemon stayed asleep", a.ctx.PlayerId)},
+		Messages: []string{fmt.Sprintf("%s is asleep", poke.Nickname)},
 	}
 }
 
