@@ -211,6 +211,25 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 	})
 
+	gameOverValue := gameState.GameOver()
+	if gameOverValue == state.PLAYER {
+		return func() tea.Msg {
+			time.Sleep(artificalDelay)
+
+			return GameOverMessage{
+				ForThisPlayer: true,
+			}
+		}
+	} else if gameOverValue == state.AI {
+		return func() tea.Msg {
+			time.Sleep(artificalDelay)
+
+			return GameOverMessage{
+				ForThisPlayer: false,
+			}
+		}
+	}
+
 	// Seems weird but should make sense if or when multiplayer is added
 	// also these checks will have to change if double battles are added
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
@@ -302,5 +321,8 @@ type (
 	}
 	TurnResolvedMessage struct {
 		StateUpdates []state.StateUpdate
+	}
+	GameOverMessage struct {
+		ForThisPlayer bool
 	}
 )

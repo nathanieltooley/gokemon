@@ -114,7 +114,7 @@ func (g *GameState) GameOver() int {
 	for _, pokemon := range g.LocalPlayer.Team {
 		if pokemon.Hp.Value > 0 {
 			hostLoss = false
-			// log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
+			log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}

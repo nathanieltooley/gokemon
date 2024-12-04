@@ -202,6 +202,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ctx.forcedSwitch = false
 
 		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
+
+	// Game Over Check
+	// NOTE: Assuming singleplayer
+	case stateupdater.GameOverMessage:
+		if msg.ForThisPlayer {
+			return newEndScreen("You Won!"), nil
+		} else {
+			return newEndScreen("You Lost :("), nil
+		}
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
@@ -243,17 +252,6 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
 			return nextNotifMsg{}
 		}))
-	}
-
-	// Game Over Check
-	// NOTE: Assuming singleplayer
-	gameOverValue := m.ctx.state.GameOver()
-	if gameOverValue != -1 {
-		if gameOverValue == m.playerSide {
-			return newEndScreen("You Won!"), nil
-		} else {
-			return newEndScreen("You Lost :("), nil
-		}
 	}
 
 	// Start tick loop
