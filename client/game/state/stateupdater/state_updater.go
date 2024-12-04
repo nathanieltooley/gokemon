@@ -149,13 +149,21 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			return 0
 		}
 
-		switch b := a.(type) {
+		switch b := b.(type) {
 		case *state.AttackAction:
 			activePokemon := gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
 			bSpeed = activePokemon.Speed()
 		default:
 			return 0
 		}
+
+		log.Debug().
+			Int("aPlayer", a.Ctx().PlayerId).
+			Int("bPlayer", b.Ctx().PlayerId).
+			Int("aSpeed", aSpeed).
+			Int("bSpeed", bSpeed).
+			Int("comp", cmp.Compare(aSpeed, bSpeed)).
+			Msg("sort debug")
 
 		return cmp.Compare(aSpeed, bSpeed)
 	})
