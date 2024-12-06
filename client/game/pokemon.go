@@ -172,6 +172,12 @@ func (p *Pokemon) Damage(dmg uint) {
 	p.Hp.Value = cappedNewHealth
 }
 
+func (p *Pokemon) Heal(heal uint) {
+	cappedNewHealth := uint(math.Min(float64(p.MaxHp), float64(p.Hp.Value+heal)))
+
+	p.Hp.Value = cappedNewHealth
+}
+
 // Get the speed of the Pokemon, accounting for effects like paralysis
 func (p *Pokemon) Speed() int {
 	if p.Status == STATUS_PARA {
