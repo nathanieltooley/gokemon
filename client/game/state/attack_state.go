@@ -88,21 +88,22 @@ func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, mo
 	defPokemon.Damage(damage)
 	var drainedHealth uint = 0
 
+	// TODO: need to make this a separate "update" as well so it changes visually
 	if move.Meta.Drain > 0 {
 		drainPercent := float32(move.Meta.Drain) / float32(100)
 		drainedHealth = uint(float32(damage) * drainPercent)
 
 		attackPokemon.Heal(drainedHealth)
 
-		drainedHealthPercent := (float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100
+		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
 		log.Info().
 			Float32("drainPercent", drainPercent).
 			Uint("drainedHealth", drainedHealth).
-			Float32("drainedHealthPercent", drainedHealthPercent).
+			Int("drainedHealthPercent", drainedHealthPercent).
 			Msg("Attack health drain")
 
-		messages = append(messages, fmt.Sprintf("%s drain health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
+		messages = append(messages, fmt.Sprintf("%s drained health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
 	}
 
 	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
