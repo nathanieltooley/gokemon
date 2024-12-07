@@ -373,3 +373,39 @@ func (a ToxicAction) UpdateState(state GameState) StateUpdate {
 		Messages: []string{fmt.Sprintf("%s is badly poisoned", pokemon.Nickname), fmt.Sprintf("Toxic did %d%% damage", damagePercent)},
 	}
 }
+
+type FrozenAction struct {
+	ctx ActionCtx
+}
+
+func NewFrozenAction(playerId int) *FrozenAction {
+	return &FrozenAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a FrozenAction) UpdateState(state GameState) StateUpdate {
+	pokemonName := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon().Nickname
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("%s is frozen and cannot move", pokemonName)},
+	}
+}
+
+type ThawAction struct {
+	ctx ActionCtx
+}
+
+func NewThawAction(playerId int) *ThawAction {
+	return &ThawAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a ThawAction) UpdateState(state GameState) StateUpdate {
+	pokemonName := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon().Nickname
+	return StateUpdate{
+		State:    state,
+		Messages: []string{fmt.Sprintf("%s has thawed out!", pokemonName)},
+	}
+}

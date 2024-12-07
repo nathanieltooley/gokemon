@@ -52,7 +52,6 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - net-good-stats
-		// - heal
 		// - swagger
 		// - damage+lower
 		// - damage+raise

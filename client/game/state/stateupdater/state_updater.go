@@ -142,7 +142,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		var bSpeed int
 
 		switch a := a.(type) {
-		case *state.AttackAction:
+		case *state.AttackAction, *state.SkipAction:
 			activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
 			aSpeed = activePokemon.Speed()
 		default:
@@ -150,7 +150,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 
 		switch b := b.(type) {
-		case *state.AttackAction:
+		case *state.AttackAction, *state.SkipAction:
 			activePokemon := gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
 			bSpeed = activePokemon.Speed()
 		default:
@@ -174,8 +174,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	// Process otherActions next
 	lo.ForEach(otherActions, func(a state.Action, i int) {
 		switch a.(type) {
-		// Only Update if the pokemon is alive
-		case *state.AttackAction:
+		case *state.AttackAction, *state.SkipAction:
 			player := gameState.GetPlayer(a.Ctx().PlayerId)
 
 			log.Info().Int("attackIndex", i).
@@ -208,6 +207,24 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 					a := state.NewSleepAction(a.Ctx().PlayerId)
 					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 					return
+				}
+			}
+
+			if pokemon.Status == game.STATUS_FROZEN {
+				thawChance := .20
+				thawCheck := rand.Float64()
+
+				// pokemon stays frozen
+				if thawCheck > thawChance {
+					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check failed")
+					a := state.NewFrozenAction(a.Ctx().PlayerId)
+					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					return
+				} else {
+					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check succeeded!")
+					pokemon.Status = game.STATUS_NONE
+					a := state.NewThawAction(a.Ctx().PlayerId)
+					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 				}
 			}
 
