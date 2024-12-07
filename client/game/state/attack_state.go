@@ -43,7 +43,12 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
 
 	accuracyCheck := rand.Intn(100)
-	if accuracyCheck < move.Accuracy {
+	accuracy := move.Accuracy
+	if accuracy == 0 {
+		accuracy = 100
+	}
+
+	if accuracyCheck < accuracy {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - net-good-stats
@@ -51,7 +56,6 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		// - swagger
 		// - damage+lower
 		// - damage+raise
-		// - damage+heal
 		// - ohko
 		// - force-switch
 		// - unique
@@ -60,10 +64,14 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		case "damage", "damage+heal":
 			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
 		case "ailment":
-			ailmentHandler(attackPokemon, defPokemon, move)
+			ailmentHandler(defPokemon, move)
 		case "damage+ailment":
 			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
-			ailmentHandler(attackPokemon, defPokemon, move)
+			ailmentHandler(defPokemon, move)
+		case "heal":
+			messages = append(messages, healHandler(attackPokemon, move)...)
+		default:
+			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
@@ -129,7 +137,7 @@ func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, mo
 	return messages
 }
 
-func ailmentHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) {
+func ailmentHandler(defPokemon *game.Pokemon, move *game.Move) {
 	// TODO: Setup state updates so that this can be in its own separate update
 	// (probably make update functions return []StateUpdate)
 	ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
@@ -177,6 +185,19 @@ func ailmentHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move 
 				Msg("Check failed")
 		}
 	}
+}
+
+func healHandler(attackPokemon *game.Pokemon, move *game.Move) []string {
+	messages := make([]string, 0)
+
+	healPercent := float32(move.Meta.Healing) / 100
+	healAmount := float32(attackPokemon.MaxHp) * healPercent
+
+	attackPokemon.Heal(uint(healAmount))
+
+	messages = append(messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
+
+	return messages
 }
 
 func (a AttackAction) Ctx() ActionCtx {
