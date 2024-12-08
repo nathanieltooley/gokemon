@@ -409,3 +409,32 @@ func (a ThawAction) UpdateState(state GameState) StateUpdate {
 		Messages: []string{fmt.Sprintf("%s has thawed out!", pokemonName)},
 	}
 }
+
+type ConfusionAction struct {
+	ctx ActionCtx
+}
+
+func NewConfusionAction(playerId int) *ConfusionAction {
+	return &ConfusionAction{
+		ctx: NewActionCtx(playerId),
+	}
+}
+
+func (a ConfusionAction) UpdateState(state GameState) StateUpdate {
+	confusedPokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
+
+	confMove := game.Move{
+		Name:  "Confusion",
+		Power: 40,
+	}
+
+	dmg := game.Damage(*confusedPokemon, *confusedPokemon, &confMove)
+	confusedPokemon.Damage(dmg)
+
+	log.Info().Uint("damage", dmg).Msgf("%s hit itself in confusion", confusedPokemon.Nickname)
+
+	return StateUpdate{
+		State:    state,
+		Messages: []string{"It hurt itself in confusion"},
+	}
+}

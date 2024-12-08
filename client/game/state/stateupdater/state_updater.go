@@ -228,6 +228,17 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				}
 			}
 
+			if pokemon.ConfusionCount > 0 {
+				confChance := .33
+				confCheck := rand.Float64()
+
+				if confCheck < confChance {
+					a := state.NewConfusionAction(a.Ctx().PlayerId)
+					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					return
+				}
+			}
+
 			if pokemon.Alive() {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState)))
 			}

@@ -125,23 +125,24 @@ type Nature struct {
 }
 
 type Pokemon struct {
-	Base       *BasePokemon
-	Nickname   string
-	Level      uint
-	Hp         HpStat
-	MaxHp      uint
-	Attack     Stat
-	Def        Stat
-	SpAttack   Stat
-	SpDef      Stat
-	RawSpeed   Stat
-	Moves      [4]*Move
-	Nature     Nature
-	Ability    string
-	Item       string
-	Status     int `json:"-"`
-	ToxicCount int `json:"-"`
-	SleepCount int `json:"-"`
+	Base           *BasePokemon
+	Nickname       string
+	Level          uint
+	Hp             HpStat
+	MaxHp          uint
+	Attack         Stat
+	Def            Stat
+	SpAttack       Stat
+	SpDef          Stat
+	RawSpeed       Stat
+	Moves          [4]*Move
+	Nature         Nature
+	Ability        string
+	Item           string
+	Status         int `json:"-"`
+	ConfusionCount int `json:"-"`
+	ToxicCount     int `json:"-"`
+	SleepCount     int `json:"-"`
 }
 
 func (p *Pokemon) ReCalcStats() {
