@@ -49,7 +49,7 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 			Name: "Create New Team",
 			OnClick: func() tea.Model {
 				backtrace.Push(startMenu)
-				return NewTeamEditorModel(backtrace)
+				return NewTeamEditorModel(backtrace, make([]game.Pokemon, 0))
 			},
 		},
 		{
@@ -120,12 +120,11 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			t.backtrace.Push(t)
-			editor := NewTeamEditorModel(t.backtrace)
 			teamItem := t.teamList.SelectedItem().(teamItem)
 			team := teamItem.Pokemon
+			t.backtrace.Push(t)
+			editor := NewTeamEditorModel(t.backtrace, team)
 
-			editor.AddStartingTeam(team)
 			return editor, nil
 		}
 

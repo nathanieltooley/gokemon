@@ -25,9 +25,6 @@ var (
 
 	unselectedEditorStyle = lipgloss.NewStyle().Margin(2)
 	selectedEditorStyle   = lipgloss.NewStyle().Margin(2).Bold(true).Border(lipgloss.BlockBorder(), true)
-
-	pokemonTeamStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Width(20)
-	highlightedPokemonTeamStyle = lipgloss.NewStyle().Border(lipgloss.DoubleBorder(), true).Align(lipgloss.Center).Width(20)
 )
 
 var (
@@ -41,14 +38,6 @@ var (
 
 	enterPokeEditor = key.NewBinding(
 		key.WithKeys("enter"),
-	)
-
-	moveTeamDown = key.NewBinding(
-		key.WithKeys("j", "down"),
-	)
-
-	moveTeamUp = key.NewBinding(
-		key.WithKeys("k", "up"),
 	)
 
 	openSaveTeam = key.NewBinding(
@@ -90,10 +79,10 @@ type (
 	editTeamModel struct {
 		ctx *teamEditorCtx
 
-		addPokemonList      list.Model
-		addingNewPokemon    bool
-		currentPokemonIndex int
-		choice              *game.BasePokemon
+		addPokemonList   list.Model
+		addingNewPokemon bool
+		choice           *game.BasePokemon
+		teamView         components.TeamView
 	}
 	editPokemonModel struct {
 		ctx *teamEditorCtx
@@ -134,6 +123,7 @@ func newEditTeamModel(ctx *teamEditorCtx) editTeamModel {
 		addPokemonList:   list,
 		addingNewPokemon: true,
 		choice:           choice,
+		teamView:         components.NewTeamView(ctx.team),
 	}
 }
 
@@ -158,21 +148,7 @@ func (m editTeamModel) View() string {
 	dialog := lipgloss.JoinVertical(lipgloss.Left, infoHeaderStyle.Render(header), body)
 	selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.addPokemonList.View())
 
-	teamPanels := make([]string, 0)
-
-	for i, pokemon := range m.ctx.team {
-		panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
-
-		if i == m.currentPokemonIndex && !m.addingNewPokemon {
-			teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))
-		} else {
-			teamPanels = append(teamPanels, pokemonTeamStyle.Render(panel))
-		}
-	}
-
-	teamView := lipgloss.JoinVertical(lipgloss.Center, teamPanels...)
-
-	return rendering.GlobalCenter(lipgloss.JoinHorizontal(lipgloss.Center, selection, teamView))
+	return rendering.GlobalCenter(lipgloss.JoinHorizontal(lipgloss.Center, selection, m.teamView.View()))
 }
 
 func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -194,13 +170,13 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.ctx.team = append(m.ctx.team, newPokemon)
 				}
 
-				m.currentPokemonIndex = len(m.ctx.team) - 1
+				m.teamView.CurrentPokemonIndex = len(m.ctx.team) - 1
 			}
 
 			var currentPokemon *game.Pokemon
 
 			if len(m.ctx.team) > 0 {
-				currentPokemon = &m.ctx.team[m.currentPokemonIndex]
+				currentPokemon = &m.ctx.team[m.teamView.CurrentPokemonIndex]
 			}
 
 			if currentPokemon != nil {
@@ -208,25 +184,6 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ctx.backtrack.Push(m)
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
 			}
-		}
-
-		if !m.addingNewPokemon {
-			if key.Matches(msg, moveTeamDown) {
-				m.currentPokemonIndex++
-
-				if m.currentPokemonIndex > len(m.ctx.team)-1 {
-					m.currentPokemonIndex = 0
-				}
-			}
-
-			if key.Matches(msg, moveTeamUp) {
-				m.currentPokemonIndex--
-
-				if m.currentPokemonIndex < 0 {
-					m.currentPokemonIndex = len(m.ctx.team) - 1
-				}
-			}
-
 		}
 
 		if key.Matches(msg, toggleAddingPokemon) {
@@ -245,6 +202,10 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
+
+	m.teamView.Focused = !m.addingNewPokemon
+	newTeamView, _ := m.teamView.Update(msg)
+	m.teamView = newTeamView.(components.TeamView)
 
 	return m, cmd
 }
@@ -493,9 +454,9 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func NewTeamEditorModel(backtrack *components.Breadcrumbs) TeamEditorModel {
+func NewTeamEditorModel(backtrack *components.Breadcrumbs, team []game.Pokemon) TeamEditorModel {
 	ctx := teamEditorCtx{
-		team:               make([]game.Pokemon, 0),
+		team:               team,
 		listeningForEscape: true,
 		backtrack:          backtrack,
 	}
@@ -506,10 +467,6 @@ func NewTeamEditorModel(backtrack *components.Breadcrumbs) TeamEditorModel {
 
 		subModel: teamEdit,
 	}
-}
-
-func (m *TeamEditorModel) AddStartingTeam(team []game.Pokemon) {
-	m.ctx.team = team
 }
 
 func (m TeamEditorModel) Init() tea.Cmd {

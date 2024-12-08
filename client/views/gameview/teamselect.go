@@ -48,7 +48,7 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 			backtrack.PushNew(func() tea.Model {
 				return NewTeamSelectModel(backtrack)
 			})
-			return teameditor.NewTeamEditorModel(backtrack)
+			return teameditor.NewTeamEditorModel(backtrack, make([]game.Pokemon, 0))
 		},
 	}
 
