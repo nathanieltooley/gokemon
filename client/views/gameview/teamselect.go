@@ -1,7 +1,6 @@
 package gameview
 
 import (
-	"log"
 	"maps"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -15,13 +14,16 @@ import (
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
 	"github.com/nathanieltooley/gokemon/client/views/teameditor"
+	"github.com/rs/zerolog/log"
 )
 
 type TeamSelectModel struct {
-	teamList  list.Model
-	buttons   components.MenuButtons
-	focus     int
-	backtrack *components.Breadcrumbs
+	teamList         list.Model
+	teamView         components.TeamView
+	buttons          components.MenuButtons
+	focus            int
+	backtrack        *components.Breadcrumbs
+	selectingStarter bool
 }
 
 type teamItem struct {
@@ -57,7 +59,7 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	teams, err := teamfs.LoadTeamMap()
 	// TODO: Error handling
 	if err != nil {
-		log.Panicln("Could not load Teams: ", err)
+		log.Panic().Msgf("Could not load Teams: %s", err)
 	}
 	items := make([]list.Item, 0)
 	for team := range maps.Keys(teams) {
@@ -75,12 +77,18 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 		teamList:  list,
 		buttons:   buttons,
 		backtrack: backtrack,
+		teamView:  components.NewTeamView(list.SelectedItem().(teamItem).Pokemon),
 	}
 }
 
 func (m TeamSelectModel) Init() tea.Cmd { return nil }
 func (m TeamSelectModel) View() string {
-	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.teamList.View(), m.buttons.View()))
+	teamSelectionView := lipgloss.JoinVertical(lipgloss.Center, m.teamList.View(), m.buttons.View())
+	view := lipgloss.JoinHorizontal(lipgloss.Center, teamSelectionView, m.teamView.View())
+	if m.selectingStarter {
+		view = m.teamView.View()
+	}
+	return rendering.GlobalCenter(view)
 }
 
 func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -93,33 +101,56 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if m.focus == 0 && key.Matches(msg, selectKey) {
+		if m.selectingStarter && key.Matches(msg, selectKey) {
 			selectedTeam := m.teamList.SelectedItem().(teamItem)
 			defaultEnemyTeam := state.RandomTeam()
 
-			return NewMainGameModel(state.NewState(selectedTeam.Pokemon, defaultEnemyTeam), state.HOST), nil
+			gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
+			// update the starter to what the player selects in this screen
+			gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+
+			return NewMainGameModel(gameState, state.HOST), nil
+		}
+
+		if m.focus == 0 && key.Matches(msg, selectKey) && !m.selectingStarter {
+			m.selectingStarter = true
+			m.teamView.Focused = true
 		}
 
 		if msg.Type == tea.KeyEsc {
-			return m.backtrack.PopDefault(func() tea.Model { return m }), nil
+			if m.selectingStarter {
+				m.selectingStarter = false
+			} else {
+				return m.backtrack.PopDefault(func() tea.Model { return m }), nil
+			}
 		}
 	}
 
-	switch m.focus {
-	case 0:
-		m.buttons.Unfocus()
+	if !m.selectingStarter {
+		switch m.focus {
+		case 0:
+			m.buttons.Unfocus()
 
-		var cmd tea.Cmd
-		m.teamList, cmd = m.teamList.Update(msg)
+			var cmd tea.Cmd
+			m.teamList, cmd = m.teamList.Update(msg)
 
-		return m, cmd
-	case 1:
-		m.buttons.Focus()
+			return m, cmd
+		case 1:
+			m.buttons.Focus()
 
-		newModel := m.buttons.Update(msg)
-		if newModel != nil {
-			return newModel, nil
+			newModel := m.buttons.Update(msg)
+			if newModel != nil {
+				return newModel, nil
+			}
 		}
+	}
+
+	m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
+
+	log.Debug().Msg("help me!!!")
+	if m.selectingStarter {
+		newTeamView, _ := m.teamView.Update(msg)
+		m.teamView = newTeamView.(components.TeamView)
 	}
 
 	return m, nil

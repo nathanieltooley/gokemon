@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/rs/zerolog/log"
 )
 
 type TeamView struct {
@@ -63,6 +64,7 @@ func (m TeamView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.CurrentPokemonIndex > len(m.Team)-1 {
 					m.CurrentPokemonIndex = 0
 				}
+				log.Debug().Msg("help me!!!")
 			}
 
 			if key.Matches(msg, moveTeamUp) {
