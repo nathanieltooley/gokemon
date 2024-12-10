@@ -52,7 +52,6 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 	if accuracyCheck < accuracy {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
-		// - net-good-stats
 		// - swagger
 		// - damage+lower
 		// - damage+raise
@@ -77,6 +76,21 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 				}
 
 				messages = append(messages, statChangeHandler(affectedPokemon, statChange)...)
+			})
+		// Damages and then CHANGES the targets stats
+		case "damage+lower":
+			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
+			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				messages = append(messages, statChangeHandler(defPokemon, statChange)...)
+			})
+		// Damages and then CHANGES the user's stats
+		// this is different from what pokeapi says (raises instead of changes)
+		// and this is important because moves like draco-meteor and overheat
+		// lower the user's stats but are in this category
+		case "damage+raise":
+			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
+			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				messages = append(messages, statChangeHandler(attackPokemon, statChange)...)
 			})
 		case "heal":
 			messages = append(messages, healHandler(attackPokemon, move)...)
