@@ -8,6 +8,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 )
 
 var attackActionLogger = func() *zerolog.Logger {
@@ -67,6 +68,16 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		case "damage+ailment":
 			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
 			ailmentHandler(defPokemon, move)
+		case "net-good-stats":
+			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				// since its "net-good-stats", the stat change always has to benefit the user
+				affectedPokemon := attackPokemon
+				if statChange.Change < 0 {
+					affectedPokemon = defPokemon
+				}
+
+				messages = append(messages, statChangeHandler(affectedPokemon, statChange)...)
+			})
 		case "heal":
 			messages = append(messages, healHandler(attackPokemon, move)...)
 		default:
@@ -195,6 +206,41 @@ func healHandler(attackPokemon *game.Pokemon, move *game.Move) []string {
 	attackPokemon.Heal(uint(healAmount))
 
 	messages = append(messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
+
+	return messages
+}
+
+func statChangeHandler(pokemon *game.Pokemon, statChange game.StatChange) []string {
+	statChangeMessages := make([]string, 0)
+
+	statChangeMessages = append(statChangeMessages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
+
+	return statChangeMessages
+}
+
+func changeStat(pokemon *game.Pokemon, statName string, change int) []string {
+	messages := make([]string, 0)
+
+	absChange := int(math.Abs(float64(change)))
+	if change > 0 {
+		messages = append(messages, fmt.Sprintf("%s's %s increased by %d stages!", pokemon.Nickname, statName, absChange))
+	} else {
+		messages = append(messages, fmt.Sprintf("%s's %s decreased by %d stages!", pokemon.Nickname, statName, absChange))
+	}
+
+	// sorry
+	switch statName {
+	case "attack":
+		pokemon.Attack.ChangeStat(change)
+	case "defense":
+		pokemon.Def.ChangeStat(change)
+	case "special-attack":
+		pokemon.SpAttack.ChangeStat(change)
+	case "special-defense":
+		pokemon.SpDef.ChangeStat(change)
+	case "speed":
+		pokemon.RawSpeed.ChangeStat(change)
+	}
 
 	return messages
 }

@@ -111,6 +111,14 @@ func (s Stat) CalcValue() int {
 	return int(float32(s.RawValue) * stageMultipliers[s.stage])
 }
 
+func (s *Stat) ChangeStat(change int) {
+	if change > 0 {
+		s.IncreaseStage(change)
+	} else {
+		s.DecreaseStage(change)
+	}
+}
+
 func (s *Stat) IncreaseStage(inc int) {
 	s.stage = int(math.Min(6, float64(s.stage+inc)))
 }
@@ -454,18 +462,23 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var a, d uint                   // TODO: Add exception for Beat Up
+	var aBoost, dBoost int
 
 	// Determine damage type
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		a = uint(attacker.Attack.CalcValue())
+		aBoost = attacker.Attack.stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
 		a = uint(attacker.SpAttack.CalcValue())
+		aBoost = attacker.SpAttack.stage
 	}
 
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		d = uint(defendent.Def.CalcValue())
+		dBoost = defendent.Def.stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
 		d = uint(defendent.SpDef.CalcValue())
+		dBoost = defendent.SpDef.stage
 	}
 
 	power := move.Power
@@ -524,7 +537,9 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 		Int("power", power).
 		Uint("attackerLevel", attackerLevel).
 		Uint("attackValue", a).
+		Int("attackChange", aBoost).
 		Uint("defValue", d).
+		Int("defenseChange", dBoost).
 		Str("attackType", move.Type).
 		Float32("damageInner", damageInner).
 		Float32("randomSpread", randomSpread).
