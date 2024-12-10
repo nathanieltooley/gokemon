@@ -134,6 +134,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			return TurnResolvedMessage{}
 		}
+	} else {
+		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 	}
 
 	// Sort Other Actions
