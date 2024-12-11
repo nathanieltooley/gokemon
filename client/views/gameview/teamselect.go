@@ -147,7 +147,6 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
 
-	log.Debug().Msg("help me!!!")
 	if m.selectingStarter {
 		newTeamView, _ := m.teamView.Update(msg)
 		m.teamView = newTeamView.(components.TeamView)
