@@ -53,8 +53,6 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - swagger
-		// - damage+lower
-		// - damage+raise
 		// - ohko
 		// - force-switch
 		// - unique
@@ -75,13 +73,13 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 					affectedPokemon = defPokemon
 				}
 
-				messages = append(messages, statChangeHandler(affectedPokemon, statChange)...)
+				messages = append(messages, statChangeHandler(affectedPokemon, statChange, move.Meta.StatChance)...)
 			})
 		// Damages and then CHANGES the targets stats
 		case "damage+lower":
 			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				messages = append(messages, statChangeHandler(defPokemon, statChange)...)
+				messages = append(messages, statChangeHandler(defPokemon, statChange, move.Meta.StatChance)...)
 			})
 		// Damages and then CHANGES the user's stats
 		// this is different from what pokeapi says (raises instead of changes)
@@ -90,7 +88,7 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		case "damage+raise":
 			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				messages = append(messages, statChangeHandler(attackPokemon, statChange)...)
+				messages = append(messages, statChangeHandler(attackPokemon, statChange, move.Meta.StatChance)...)
 			})
 		case "heal":
 			messages = append(messages, healHandler(attackPokemon, move)...)
@@ -224,10 +222,20 @@ func healHandler(attackPokemon *game.Pokemon, move *game.Move) []string {
 	return messages
 }
 
-func statChangeHandler(pokemon *game.Pokemon, statChange game.StatChange) []string {
+func statChangeHandler(pokemon *game.Pokemon, statChange game.StatChange, statChance int) []string {
 	statChangeMessages := make([]string, 0)
 
-	statChangeMessages = append(statChangeMessages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
+	statCheck := rand.Intn(100)
+	if statChance == 0 {
+		statChance = 100
+	}
+
+	if statCheck < statChance {
+		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did pass")
+		statChangeMessages = append(statChangeMessages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
+	} else {
+		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did not pass")
+	}
 
 	return statChangeMessages
 }
