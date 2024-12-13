@@ -424,10 +424,6 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if key.Matches(msg, goToPreviousPage) {
-			return newEditTeamModel(m.ctx), nil
-		}
-
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.saveNameInput.Value() != "" {
