@@ -207,6 +207,26 @@ func ailmentHandler(defPokemon *game.Pokemon, move *game.Move) {
 				Msg("Check failed")
 		}
 	}
+
+	effect, ok := game.EFFECT_NAME_MAP[move.Meta.Ailment.Name]
+	if ok {
+		effectChance := move.Meta.AilmentChance
+		if effectChance == 0 {
+			effectChance = 100
+		}
+		effectCheck := rand.Intn(100)
+
+		if effectCheck < effectChance {
+			switch effect {
+			case game.EFFECT_CONFUSION:
+				log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
+
+				confusionDuration := rand.Intn(3) + 2
+				defPokemon.ConfusionCount = confusionDuration
+				log.Info().Int("confusionCount", defPokemon.ConfusionCount).Msg("confusion applied")
+			}
+		}
+	}
 }
 
 func healHandler(attackPokemon *game.Pokemon, move *game.Move) []string {

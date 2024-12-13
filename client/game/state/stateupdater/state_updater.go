@@ -182,10 +182,12 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			log.Info().Int("attackIndex", i).
 				Int("attackerSpeed", player.GetActivePokemon().Speed()).
 				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
+				Int("attackerConfCount", player.GetActivePokemon().ConfusionCount).
 				Msg("Attack state update")
 
 			pokemon := player.GetActivePokemon()
 
+			// TODO: Maybe move all of these checks into their respective actions?
 			// Skip attack with para
 			if pokemon.Status == game.STATUS_PARA {
 				paraChance := 0.5
@@ -235,10 +237,11 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				confCheck := rand.Float64()
 
 				if confCheck < confChance {
-					a := state.NewConfusionAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
-					return
+					a = state.NewConfusionAction(a.Ctx().PlayerId)
 				}
+
+				pokemon.ConfusionCount--
+				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
 			if pokemon.Alive() {

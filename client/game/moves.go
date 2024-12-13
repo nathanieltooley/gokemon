@@ -60,6 +60,10 @@ var STATUS_NAME_MAP = map[string]int{
 	"poison":    STATUS_POISON,
 }
 
+var EFFECT_NAME_MAP = map[string]int{
+	"confusion": EFFECT_CONFUSION,
+}
+
 type MoveFull struct {
 	Accuracy         int
 	DamageClass      string `json:"damage_class"`

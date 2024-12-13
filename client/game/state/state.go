@@ -426,6 +426,15 @@ func (a ConfusionAction) UpdateState(state GameState) StateUpdate {
 	confMove := game.Move{
 		Name:  "Confusion",
 		Power: 40,
+		Meta: &game.MoveMeta{
+			Category: struct {
+				Id   int
+				Name string
+			}{
+				Name: "damage",
+			},
+		},
+		DamageClass: game.DAMAGETYPE_PHYSICAL,
 	}
 
 	dmg := game.Damage(*confusedPokemon, *confusedPokemon, &confMove)
@@ -438,3 +447,5 @@ func (a ConfusionAction) UpdateState(state GameState) StateUpdate {
 		Messages: []string{"It hurt itself in confusion"},
 	}
 }
+
+func (a ConfusionAction) Ctx() ActionCtx { return a.ctx }

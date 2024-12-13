@@ -37,6 +37,10 @@ const (
 	STATUS_TOXIC
 )
 
+const (
+	EFFECT_CONFUSION = iota
+)
+
 type PokemonType struct {
 	Name          string
 	Effectiveness map[string]float32
@@ -492,12 +496,15 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 
 	attackType := GetAttackTypeMapping(move.Type)
 
-	type1Effectiveness := attackType.AttackEffectiveness(defendent.Base.Type1.Name)
-
+	var type1Effectiveness float32 = 1
 	var type2Effectiveness float32 = 1
 
-	if defendent.Base.Type2 != nil {
-		type2Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type2.Name)
+	if attackType != nil {
+		type1Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type1.Name)
+
+		if defendent.Base.Type2 != nil {
+			type2Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type2.Name)
+		}
 	}
 
 	if type1Effectiveness == 0 || type2Effectiveness == 0 {
