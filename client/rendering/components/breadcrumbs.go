@@ -14,6 +14,9 @@ func NewBreadcrumb() Breadcrumbs {
 }
 
 func (b *Breadcrumbs) Push(model tea.Model) {
+	l := len(b.backtrace)
+	log.Debug().Msgf("Push, Len: %d", l)
+
 	b.PushNew(func() tea.Model {
 		return model
 	})
@@ -27,8 +30,6 @@ func (b *Breadcrumbs) PushNew(modelFunc func() tea.Model) {
 func (b *Breadcrumbs) Pop() *tea.Model {
 	l := len(b.backtrace)
 
-	log.Debug().Msgf("Len: %d", l)
-
 	if l == 0 {
 		return nil
 	}
@@ -38,6 +39,7 @@ func (b *Breadcrumbs) Pop() *tea.Model {
 
 	model := modelFunc()
 
+	log.Debug().Msgf("Pop, Len: %d", len(b.backtrace))
 	return &model
 }
 
