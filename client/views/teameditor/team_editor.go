@@ -69,12 +69,6 @@ type teamEditorCtx struct {
 	backtrack *components.Breadcrumbs
 }
 
-type TeamEditorModel struct {
-	// TODO: Maybe make this a global package var?
-	ctx      *teamEditorCtx
-	subModel tea.Model
-}
-
 type (
 	editTeamModel struct {
 		ctx *teamEditorCtx
@@ -100,7 +94,17 @@ type (
 	}
 )
 
-func newEditTeamModel(ctx *teamEditorCtx) editTeamModel {
+func NewTeamEditorModel(backtrack *components.Breadcrumbs, team []game.Pokemon) editTeamModel {
+	ctx := teamEditorCtx{
+		team:               team,
+		listeningForEscape: true,
+		backtrack:          backtrack,
+	}
+
+	return newEditTeamModelCtx(&ctx)
+}
+
+func newEditTeamModelCtx(ctx *teamEditorCtx) editTeamModel {
 	pokemon := global.POKEMON
 
 	items := make([]list.Item, len(pokemon))
@@ -182,6 +186,8 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if currentPokemon != nil {
 				m.addingNewPokemon = true
 				m.ctx.backtrack.Push(m)
+
+				log.Debug().Msgf("len %d", len(m.ctx.team))
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
 			}
 		}
@@ -384,6 +390,7 @@ func (m editPokemonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, goToPreviousPage) {
+			log.Debug().Msgf("len %d", len(m.ctx.team))
 			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
@@ -440,53 +447,12 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					log.Fatal().Msgf("Failed to save team: %s", err)
 				}
 
-				return newEditTeamModel(m.ctx), nil
+				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 			}
 		case tea.KeyEsc:
 			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
-
-	return m, cmd
-}
-
-func NewTeamEditorModel(backtrack *components.Breadcrumbs, team []game.Pokemon) TeamEditorModel {
-	ctx := teamEditorCtx{
-		team:               team,
-		listeningForEscape: true,
-		backtrack:          backtrack,
-	}
-	teamEdit := newEditTeamModel(&ctx)
-
-	return TeamEditorModel{
-		ctx: &ctx,
-
-		subModel: teamEdit,
-	}
-}
-
-func (m TeamEditorModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m TeamEditorModel) View() string {
-	return m.subModel.View()
-}
-
-func (m TeamEditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if !m.ctx.listeningForEscape && msg.Type == tea.KeyEsc {
-			return m, cmd
-		}
-
-		if m.ctx.listeningForEscape && msg.Type == tea.KeyEsc {
-			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
-		}
-	}
-	m.subModel, cmd = m.subModel.Update(msg)
 
 	return m, cmd
 }
