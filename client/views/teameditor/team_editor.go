@@ -185,7 +185,9 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if currentPokemon != nil {
 				m.addingNewPokemon = true
-				m.ctx.backtrack.Push(m)
+				m.ctx.backtrack.PushNew(func() tea.Model {
+					return newEditTeamModelCtx(m.ctx)
+				})
 
 				log.Debug().Msgf("len %d", len(m.ctx.team))
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
