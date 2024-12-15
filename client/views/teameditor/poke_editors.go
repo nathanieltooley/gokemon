@@ -23,6 +23,7 @@ type editor interface {
 }
 
 // Component that regulates focus of text inputs
+// TODO: Refactor this out to a separate component
 type inputSelector struct {
 	focused int
 	inputs  []textinput.Model

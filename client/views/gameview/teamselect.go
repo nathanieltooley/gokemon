@@ -56,7 +56,7 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 
 	buttons := components.NewMenuButton([]components.ViewButton{button})
 
-	teams, err := teamfs.LoadTeamMap()
+	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
 	// TODO: Error handling
 	if err != nil {
 		log.Panic().Msgf("Could not load Teams: %s", err)

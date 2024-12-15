@@ -31,6 +31,14 @@ func NewModel() MainMenuModel {
 				})
 			},
 		},
+		{
+			Name: "Options",
+			OnClick: func() tea.Model {
+				backtrack := components.NewBreadcrumb()
+				backtrack.PushNew(func() tea.Model { return NewModel() })
+				return newOptionsMenu(backtrack)
+			},
+		},
 	}
 
 	return MainMenuModel{

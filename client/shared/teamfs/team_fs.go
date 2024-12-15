@@ -6,18 +6,19 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 )
 
-const TEAM_SAVE_PATH string = "./saves/teams.json"
-
 var ErrNoSuchTeam = errors.New("no such team exists")
+
+var teamsFileName string = "teams.json"
 
 type SavedTeams map[string][]game.Pokemon
 
-func SaveTeam(name string, pokemon []game.Pokemon) error {
-	teams, err := LoadTeamMap()
+func SaveTeam(dir string, name string, pokemon []game.Pokemon) error {
+	teams, err := LoadTeamMap(dir)
 	if err != nil {
 		return err
 	}
@@ -29,7 +30,9 @@ func SaveTeam(name string, pokemon []game.Pokemon) error {
 
 	teams[name] = serializablePokemon
 
-	teamsFile, err := os.Create(TEAM_SAVE_PATH)
+	savePath := path.Join(dir, teamsFileName)
+
+	teamsFile, err := os.Create(savePath)
 	defer teamsFile.Close()
 	if err != nil {
 		return err
@@ -47,10 +50,10 @@ func SaveTeam(name string, pokemon []game.Pokemon) error {
 	return nil
 }
 
-func LoadTeam(name string) ([6]*game.Pokemon, error) {
+func LoadTeam(dir string, name string) ([6]*game.Pokemon, error) {
 	var team [6]*game.Pokemon
 
-	teams, err := LoadTeamMap()
+	teams, err := LoadTeamMap(dir)
 	if err != nil {
 		return team, err
 	}
@@ -71,13 +74,15 @@ func LoadTeam(name string) ([6]*game.Pokemon, error) {
 	return team, nil
 }
 
-func LoadTeamMap() (SavedTeams, error) {
-	teamFile, err := os.Open(TEAM_SAVE_PATH)
+func LoadTeamMap(dir string) (SavedTeams, error) {
+	savePath := path.Join(dir, teamsFileName)
+
+	teamFile, err := os.Open(savePath)
 	defer teamFile.Close()
 	if err != nil {
 		// Create the file if it does not exist
 		if errors.Is(err, fs.ErrNotExist) {
-			teamFile, err = os.Create(TEAM_SAVE_PATH)
+			teamFile, err = os.Create(savePath)
 			if err != nil {
 				return nil, err
 			}

@@ -55,7 +55,7 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 		{
 			Name: "Edit Teams",
 			OnClick: func() tea.Model {
-				teams, err := teamfs.LoadTeamMap()
+				teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
 				if err != nil {
 					// TODO: Show error message
 					return nil

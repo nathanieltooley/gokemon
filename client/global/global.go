@@ -41,6 +41,9 @@ var (
 		key.WithKeys("up", "k"),
 	)
 
+	// TeamSaveLocation = "./saves/teams.json"
+	TeamSaveLocation = "./saves"
+
 	initLogger zerolog.Logger
 )
 
