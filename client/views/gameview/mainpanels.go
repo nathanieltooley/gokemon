@@ -14,7 +14,15 @@ import (
 	"github.com/nathanieltooley/gokemon/client/rendering"
 )
 
-const playerPanelWidth = 20
+const playerPanelWidth = 40
+
+var (
+	playerPanelStyle      = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center).Width(playerPanelWidth)
+	panelStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center)
+	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
+
+	pokeInfoStyle = lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Height(5)
+)
 
 var statusColors map[int]lipgloss.Color = map[int]lipgloss.Color{
 	game.STATUS_BURN:   lipgloss.Color("#E36D1C"),
@@ -72,10 +80,9 @@ func (m playerPanel) View() string {
 
 	healthPerc := float64(currentPokemon.Hp.Value) / float64(currentPokemon.MaxHp)
 
-	pokeStyle := lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Width(playerPanelWidth).Height(5)
-	pokeInfo = pokeStyle.Render(lipgloss.JoinVertical(lipgloss.Center, pokeInfo, m.healthBar.ViewAs(healthPerc)))
+	pokeInfo = pokeInfoStyle.Render(lipgloss.JoinVertical(lipgloss.Center, pokeInfo, m.healthBar.ViewAs(healthPerc)))
 
-	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, pokeInfo))
+	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, pokeInfo))
 }
 
 func (m playerPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -103,15 +110,15 @@ func (m actionPanel) View() string {
 	var pokemon string
 
 	if m.actionFocus == 0 {
-		fight = highlightedPanelStyle.Width(15).Render("Fight")
+		fight = highlightedPanelStyle.Width(20).Render("Fight")
 	} else {
-		fight = panelStyle.Width(15).Render("Fight")
+		fight = panelStyle.Width(20).Render("Fight")
 	}
 
 	if m.actionFocus == 1 {
-		pokemon = highlightedPanelStyle.Width(15).Render("Pokemon")
+		pokemon = highlightedPanelStyle.Width(20).Render("Pokemon")
 	} else {
-		pokemon = panelStyle.Width(15).Render("Pokemon")
+		pokemon = panelStyle.Width(20).Render("Pokemon")
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, fight, pokemon)
@@ -169,7 +176,7 @@ func (m movePanel) View() string {
 		row := make([]string, 0)
 		for j := 0; j < 2; j++ {
 			arrayIndex := (i * 2) + j
-			style := panelStyle
+			style := panelStyle.Width(20)
 
 			if arrayIndex == m.moveGridFocus {
 				style = style.Background(rendering.HighlightedColor)
@@ -238,15 +245,14 @@ func newPokemonPanel(ctx *gameContext, pokemon []game.Pokemon) pokemonPanel {
 
 func (m pokemonPanel) Init() tea.Cmd { return nil }
 func (m pokemonPanel) View() string {
-	pokeStyle := lipgloss.NewStyle().Width(10).Border(lipgloss.NormalBorder(), true)
-
+	pokemonWidth := 15
 	panels := make([]string, 0)
 	// TODO: Gray out or get rid of dead pokemon
 	for i, pokemon := range m.pokemon {
 		if i == m.selectedPokemon {
-			panels = append(panels, highlightedPanelStyle.Width(10).Render(pokemon.Nickname))
+			panels = append(panels, highlightedPanelStyle.Width(pokemonWidth).Render(pokemon.Nickname))
 		} else {
-			panels = append(panels, pokeStyle.Render(pokemon.Nickname))
+			panels = append(panels, panelStyle.Width(pokemonWidth).Render(pokemon.Nickname))
 		}
 	}
 

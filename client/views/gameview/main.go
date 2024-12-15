@@ -20,11 +20,6 @@ import (
 // I may not deal with it ever and just make two panels with pokemon info in the center
 // and a panel with pokemon actions at the bottom ¯\_(ツ)_/¯
 
-var (
-	panelStyle            = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center)
-	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
-)
-
 const (
 	_MESSAGE_TIME     = time.Second * 2
 	_TICKS_PER_SECOND = 20
