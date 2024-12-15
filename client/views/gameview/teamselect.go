@@ -83,10 +83,10 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 
 func (m TeamSelectModel) Init() tea.Cmd { return nil }
 func (m TeamSelectModel) View() string {
-	teamSelectionView := lipgloss.JoinVertical(lipgloss.Center, m.teamList.View(), m.buttons.View())
+	teamSelectionView := lipgloss.JoinVertical(lipgloss.Center, "Select a Team!", m.teamList.View(), m.buttons.View())
 	view := lipgloss.JoinHorizontal(lipgloss.Center, teamSelectionView, m.teamView.View())
 	if m.selectingStarter {
-		view = m.teamView.View()
+		view = lipgloss.JoinVertical(lipgloss.Center, "Select your starting Pokemon!", m.teamView.View())
 	}
 	return rendering.GlobalCenter(view)
 }

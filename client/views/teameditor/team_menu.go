@@ -110,7 +110,7 @@ func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (t teamSelectionMenu) Init() tea.Cmd { return nil }
 func (t teamSelectionMenu) View() string {
-	return t.teamList.View()
+	return rendering.GlobalCenter(t.teamList.View())
 }
 
 func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
