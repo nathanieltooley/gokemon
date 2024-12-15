@@ -3,7 +3,6 @@ package gameview
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
@@ -74,14 +73,31 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 }
 
 func pokemonEffects(pokemon game.Pokemon) string {
-	builder := strings.Builder{}
-	negativePanel := lipgloss.NewStyle().Background(lipgloss.Color("#ff2f2f")).Foreground(lipgloss.Color("white"))
+	panels := make([]string, 0)
 
-	if pokemon.ConfusionCount > 0 {
-		builder.WriteString(negativePanel.Render("Confusion"))
+	negativePanel := lipgloss.NewStyle().Background(lipgloss.Color("#ff2f2f")).Foreground(lipgloss.Color("#ffffff"))
+	positivePanel := lipgloss.NewStyle().Background(lipgloss.Color("#00cf00")).Foreground(lipgloss.Color("#000000"))
+
+	writeStat := func(statName string, statStage int) {
+		statMod := game.StageMultipliers[statStage]
+		if statStage > 0 {
+			panels = append(panels, positivePanel.Render(fmt.Sprintf("%s: x%.2f", statName, statMod)))
+		} else if statStage < 0 {
+			panels = append(panels, negativePanel.Render(fmt.Sprintf("%s: x%.2f", statName, statMod)))
+		}
 	}
 
-	return builder.String()
+	if pokemon.ConfusionCount > 0 {
+		panels = append(panels, negativePanel.Render("Confusion"))
+	}
+
+	writeStat("Attack", pokemon.Attack.GetStage())
+	writeStat("Defense", pokemon.Def.GetStage())
+	writeStat("SpAttack", pokemon.SpAttack.GetStage())
+	writeStat("SpDef", pokemon.SpDef.GetStage())
+	writeStat("Speed", pokemon.RawSpeed.GetStage())
+
+	return lipgloss.JoinVertical(lipgloss.Center, panels...)
 }
 
 func (m playerPanel) Init() tea.Cmd { return nil }

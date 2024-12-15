@@ -95,7 +95,7 @@ type HpStat struct {
 	Iv    uint
 }
 
-var stageMultipliers = map[int]float32{
+var StageMultipliers = map[int]float32{
 	-6: 2.0 / 8.0,
 	-5: 2.0 / 7.0,
 	-4: 2.0 / 6.0,
@@ -112,7 +112,7 @@ var stageMultipliers = map[int]float32{
 }
 
 func (s Stat) CalcValue() int {
-	return int(float32(s.RawValue) * stageMultipliers[s.stage])
+	return int(float32(s.RawValue) * StageMultipliers[s.stage])
 }
 
 func (s *Stat) ChangeStat(change int) {
@@ -129,6 +129,10 @@ func (s *Stat) IncreaseStage(inc int) {
 
 func (s *Stat) DecreaseStage(dec int) {
 	s.stage = int(math.Max(-6, float64(s.stage-dec)))
+}
+
+func (s Stat) GetStage() int {
+	return s.stage
 }
 
 type Nature struct {
