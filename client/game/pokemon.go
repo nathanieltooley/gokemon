@@ -124,10 +124,12 @@ func (s *Stat) ChangeStat(change int) {
 }
 
 func (s *Stat) IncreaseStage(inc int) {
+	inc = int(math.Abs(float64(inc)))
 	s.stage = int(math.Min(6, float64(s.stage+inc)))
 }
 
 func (s *Stat) DecreaseStage(dec int) {
+	dec = int(math.Abs(float64(dec)))
 	s.stage = int(math.Max(-6, float64(s.stage-dec)))
 }
 
