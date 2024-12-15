@@ -51,6 +51,10 @@ var (
 	goToPreviousPage = key.NewBinding(
 		key.WithKeys(tea.KeyEsc.String()),
 	)
+
+	confirm = key.NewBinding(
+		key.WithKeys("y", tea.KeyEnter.String()),
+	)
 )
 
 var editors = [...]string{"Details", "Moves", "Item", "Ability", "EV/IV"}
@@ -91,6 +95,7 @@ type (
 		ctx *teamEditorCtx
 
 		saveNameInput textinput.Model
+		confirming    bool
 	}
 )
 
@@ -418,12 +423,33 @@ func (m saveTeamModel) View() string {
 	promptStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Align(lipgloss.Center).Padding(2, 15)
 	prompt := promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Save Team", m.saveNameInput.View()))
 
+	if m.confirming {
+		prompt = promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "A team with this name already exists. Overwrite?", "Y / N"))
+	}
+
 	return rendering.GlobalCenter(prompt)
 }
 
 func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	var cmd tea.Cmd
+
+	if m.confirming {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if key.Matches(msg, confirm) {
+				if err := teamfs.SaveTeam(m.saveNameInput.Value(), m.ctx.team); err != nil {
+					log.Fatal().Msgf("Failed to save team: %s", err)
+				}
+
+				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+			} else {
+				m.confirming = false
+			}
+		}
+
+		return m, cmd
+	}
 
 	cmd = m.saveNameInput.Focus()
 	cmds = append(cmds, cmd)
@@ -441,7 +467,9 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// TODO: Add confirmation check if a team with this name already exists
 				if ok {
+					m.confirming = true
 					log.Info().Msgf("Team: %s already exists", m.saveNameInput.Value())
+					return m, cmd
 				}
 
 				// TODO: Show error instead of crashing
