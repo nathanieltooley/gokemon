@@ -3,6 +3,7 @@ package gameview
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
@@ -17,11 +18,20 @@ import (
 const playerPanelWidth = 40
 
 var (
-	playerPanelStyle      = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center).Width(playerPanelWidth)
+	playerPanelStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder(), true).
+				Padding(1, 2).
+				AlignHorizontal(lipgloss.Center).
+				AlignVertical(lipgloss.Center).
+				Width(playerPanelWidth).
+				MarginLeft(5).
+				MarginRight(5).
+				Height(20)
+
 	panelStyle            = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).Padding(1, 2).AlignHorizontal(lipgloss.Center)
 	highlightedPanelStyle = panelStyle.Background(rendering.HighlightedColor).Foreground(lipgloss.Color("255"))
 
-	pokeInfoStyle = lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.NormalBorder(), true).Height(5)
+	pokeInfoStyle = lipgloss.NewStyle().Align(lipgloss.Center).Border(lipgloss.RoundedBorder(), true).Height(5).Padding(5, 0).Width(playerPanelWidth - 8)
 )
 
 var statusColors map[int]lipgloss.Color = map[int]lipgloss.Color{
@@ -52,7 +62,7 @@ type playerPanel struct {
 
 func newPlayerPanel(gameState state.GameState, name string, player *state.Player) playerPanel {
 	progressBar := progress.New(progress.WithDefaultGradient())
-	progressBar.Width = playerPanelWidth * .75
+	progressBar.Width = playerPanelWidth * .50
 
 	return playerPanel{
 		gameState: gameState,
@@ -61,6 +71,17 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 		name:      name,
 		healthBar: progressBar,
 	}
+}
+
+func pokemonEffects(pokemon game.Pokemon) string {
+	builder := strings.Builder{}
+	negativePanel := lipgloss.NewStyle().Background(lipgloss.Color("#ff2f2f")).Foreground(lipgloss.Color("white"))
+
+	if pokemon.ConfusionCount > 0 {
+		builder.WriteString(negativePanel.Render("Confusion"))
+	}
+
+	return builder.String()
 }
 
 func (m playerPanel) Init() tea.Cmd { return nil }
@@ -72,10 +93,11 @@ func (m playerPanel) View() string {
 		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
 	}
 
-	pokeInfo := fmt.Sprintf("%s %s\nLevel: %d",
+	pokeInfo := fmt.Sprintf("%s %s\nLevel: %d\n%s",
 		statusText,
 		currentPokemon.Nickname,
 		currentPokemon.Level,
+		pokemonEffects(currentPokemon),
 	)
 
 	healthPerc := float64(currentPokemon.Hp.Value) / float64(currentPokemon.MaxHp)
