@@ -465,7 +465,6 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				teams, _ := teamfs.LoadTeamMap()
 				_, ok := teams[m.saveNameInput.Value()]
 
-				// TODO: Add confirmation check if a team with this name already exists
 				if ok {
 					m.confirming = true
 					log.Info().Msgf("Team: %s already exists", m.saveNameInput.Value())
