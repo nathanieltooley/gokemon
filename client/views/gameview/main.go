@@ -58,7 +58,8 @@ type MainGameModel struct {
 	messageQueue               []string
 	currentStateMessage        string
 
-	inited bool
+	inited      bool
+	insidePanel bool
 
 	panel tea.Model
 }
@@ -74,9 +75,7 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 		playerSide:           playerSide,
 		stateUpdater:         &stateupdater.LocalUpdater{},
 		currentRenderedState: *ctx.state,
-		panel: actionPanel{
-			ctx: ctx,
-		},
+		panel:                newActionPanel(ctx),
 	}
 }
 
@@ -157,9 +156,21 @@ func (m *MainGameModel) nextStateMsg() bool {
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
+	switch m.panel.(type) {
+	case actionPanel:
+		m.insidePanel = false
+	default:
+		m.insidePanel = true
+	}
+
 	// Debug switch action
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if msg.Type == tea.KeyEsc {
+			if m.insidePanel {
+				m.panel = newActionPanel(m.ctx)
+			}
+		}
 	case nextNotifMsg:
 		// For when we still have messages in the queue
 		if m.nextStateMsg() {
@@ -197,7 +208,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
 		}
 	case stateupdater.TurnResolvedMessage:
-		m.panel = actionPanel{ctx: m.ctx}
+		m.panel = newActionPanel(m.ctx)
 		m.ctx.chosenAction = nil
 		m.ctx.forcedSwitch = false
 

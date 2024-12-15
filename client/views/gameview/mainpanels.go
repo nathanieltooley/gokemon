@@ -91,6 +91,12 @@ type actionPanel struct {
 	actionFocus int
 }
 
+func newActionPanel(ctx *gameContext) actionPanel {
+	return actionPanel{
+		ctx: ctx,
+	}
+}
+
 func (m actionPanel) Init() tea.Cmd { return nil }
 func (m actionPanel) View() string {
 	var fight string
