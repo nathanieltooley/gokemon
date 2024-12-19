@@ -98,6 +98,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 			})
 		case "heal":
 			states = append(states, healHandler(&state, attackPokemon, move))
+		case "ohko":
+			states = append(states, ohkoHandler(&state, defPokemon))
 		default:
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
 		}
@@ -178,6 +180,22 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	states = append(states, damageState)
 
 	return states
+}
+
+func ohkoHandler(state *GameState, defPokemon *game.Pokemon) StateUpdate {
+	ohkoState := StateUpdate{}
+	defPokemon.Damage(defPokemon.Hp.Value)
+
+	randCheck := rand.Float64()
+	if randCheck < 0.01 {
+		ohkoState.Messages = append(ohkoState.Messages, "%s took calamitous damage!", defPokemon.Nickname)
+	} else {
+		ohkoState.Messages = append(ohkoState.Messages, "It's a one-hit KO!")
+	}
+
+	ohkoState.State = state.Clone()
+
+	return ohkoState
 }
 
 func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move) StateUpdate {
