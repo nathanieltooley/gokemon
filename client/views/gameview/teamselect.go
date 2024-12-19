@@ -134,6 +134,8 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.teamList, cmd = m.teamList.Update(msg)
 
+			m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
+
 			return m, cmd
 		case 1:
 			m.buttons.Focus()
@@ -144,8 +146,6 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-
-	m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
 
 	if m.selectingStarter {
 		newTeamView, _ := m.teamView.Update(msg)
