@@ -29,7 +29,7 @@ func NewAttackAction(attacker int, attackMove int) *AttackAction {
 	}
 }
 
-func (a *AttackAction) UpdateState(state GameState) StateUpdate {
+func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 	attacker := state.GetPlayer(a.ctx.PlayerId)
 	defenderInt := invertPlayerIndex(a.ctx.PlayerId)
 	defender := state.GetPlayer(defenderInt)
@@ -100,9 +100,11 @@ func (a *AttackAction) UpdateState(state GameState) StateUpdate {
 		messages = append(messages, "It missed!")
 	}
 
-	return StateUpdate{
-		State:    state,
-		Messages: messages,
+	return []StateUpdate{
+		{
+			State:    state,
+			Messages: messages,
+		},
 	}
 }
 

@@ -21,11 +21,13 @@ type StateUpdater interface {
 	SendAction(state.Action)
 }
 
-func syncState(mainState *state.GameState, newState state.StateUpdate) state.StateUpdate {
-	// Clone here because of slices
-	*mainState = newState.State.Clone()
+func syncState(mainState *state.GameState, newStates []state.StateUpdate) []state.StateUpdate {
+	finalState := newStates[len(newStates)-1]
 
-	return newState
+	// Clone here because of slices
+	*mainState = finalState.State.Clone()
+
+	return newStates
 }
 
 type LocalUpdater struct {
@@ -109,7 +111,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	// Process switches first
 	lo.ForEach(switches, func(a state.SwitchAction, i int) {
-		states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+		states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 	})
 
 	if u.playerNeedsToSwitch || u.aiNeedsToSwitch {
@@ -196,7 +198,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				if paraCheck <= paraChance {
 					a := state.NewParaAction(a.Ctx().PlayerId)
 					log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
-					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 					return
 				}
 			}
@@ -209,7 +211,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 					pokemon.Status = game.STATUS_NONE
 				} else {
 					a := state.NewSleepAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 					return
 				}
 			}
@@ -222,13 +224,13 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				if thawCheck > thawChance {
 					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check failed")
 					a := state.NewFrozenAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 					return
 				} else {
 					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check succeeded!")
 					pokemon.Status = game.STATUS_NONE
 					a := state.NewThawAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 				}
 			}
 
@@ -245,10 +247,10 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			}
 
 			if pokemon.Alive() {
-				states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 			}
 		default:
-			states = append(states, syncState(gameState, a.UpdateState(*gameState)))
+			states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 		}
 	})
 
@@ -299,17 +301,17 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	applyBurn := func(playerId int) {
 		burn := state.NewBurnAction(playerId)
-		states = append(states, syncState(gameState, burn.UpdateState(*gameState)))
+		states = append(states, syncState(gameState, burn.UpdateState(*gameState))...)
 	}
 
 	applyPoison := func(playerId int) {
 		poison := state.NewPoisonAction(playerId)
-		states = append(states, syncState(gameState, poison.UpdateState(*gameState)))
+		states = append(states, syncState(gameState, poison.UpdateState(*gameState))...)
 	}
 
 	applyToxic := func(playerId int) {
 		poison := state.NewToxicAction(playerId)
-		states = append(states, syncState(gameState, poison.UpdateState(*gameState)))
+		states = append(states, syncState(gameState, poison.UpdateState(*gameState))...)
 	}
 
 	switch gameState.LocalPlayer.GetActivePokemon().Status {
