@@ -40,8 +40,14 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 	// TODO: Make sure a.AttackerMove is between 0 -> 3
 	move := attackPokemon.Moves[a.AttackerMove]
 
-	messages := make([]string, 0)
-	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
+	states := make([]StateUpdate, 0)
+
+	// "hack" to show this messages first
+	useMoveState := StateUpdate{}
+	useMoveState.State = state.Clone()
+	useMoveState.Messages = append(useMoveState.Messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
+
+	states = append(states, useMoveState)
 
 	accuracyCheck := rand.Intn(100)
 	accuracy := move.Accuracy
@@ -59,12 +65,12 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 
 		switch move.Meta.Category.Name {
 		case "damage", "damage+heal":
-			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
+			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 		case "ailment":
-			ailmentHandler(defPokemon, move)
+			ailmentHandler(&state, defPokemon, move)
 		case "damage+ailment":
-			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
-			ailmentHandler(defPokemon, move)
+			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
+			ailmentHandler(&state, defPokemon, move)
 		case "net-good-stats":
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
 				// since its "net-good-stats", the stat change always has to benefit the user
@@ -73,43 +79,46 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 					affectedPokemon = defPokemon
 				}
 
-				messages = append(messages, statChangeHandler(affectedPokemon, statChange, move.Meta.StatChance)...)
+				states = append(states, statChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
 			})
 		// Damages and then CHANGES the targets stats
 		case "damage+lower":
-			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
+			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				messages = append(messages, statChangeHandler(defPokemon, statChange, move.Meta.StatChance)...)
+				states = append(states, statChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
 			})
 		// Damages and then CHANGES the user's stats
 		// this is different from what pokeapi says (raises instead of changes)
 		// and this is important because moves like draco-meteor and overheat
 		// lower the user's stats but are in this category
 		case "damage+raise":
-			messages = append(messages, damageMoveHandler(attackPokemon, defPokemon, move)...)
+			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				messages = append(messages, statChangeHandler(attackPokemon, statChange, move.Meta.StatChance)...)
+				states = append(states, statChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
 			})
 		case "heal":
-			messages = append(messages, healHandler(attackPokemon, move)...)
+			states = append(states, healHandler(&state, attackPokemon, move))
 		default:
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
-		messages = append(messages, "It missed!")
+		states = append(states, StateUpdate{
+			State:    state.Clone(),
+			Messages: []string{"It Missed!"},
+		})
 	}
 
-	return []StateUpdate{
-		{
-			State:    state,
-			Messages: messages,
-		},
+	finalState := StateUpdate{
+		State: state.Clone(),
 	}
+	states = append(states, finalState)
+
+	return states
 }
 
-func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []string {
-	messages := make([]string, 0)
+func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateUpdate {
+	states := make([]StateUpdate, 0)
 
 	damage := game.Damage(*attackPokemon, *defPokemon, move)
 	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
@@ -122,6 +131,8 @@ func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, mo
 
 	// TODO: need to make this a separate "update" as well so it changes visually
 	if move.Meta.Drain > 0 {
+		drainState := StateUpdate{}
+
 		drainPercent := float32(move.Meta.Drain) / float32(100)
 		drainedHealth = uint(float32(damage) * drainPercent)
 
@@ -135,7 +146,10 @@ func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, mo
 			Int("drainedHealthPercent", drainedHealthPercent).
 			Msg("Attack health drain")
 
-		messages = append(messages, fmt.Sprintf("%s drained health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
+		drainState.State = state.Clone()
+
+		drainState.Messages = append(drainState.Messages, fmt.Sprintf("%s drained health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
+		states = append(states, drainState)
 	}
 
 	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
@@ -152,18 +166,21 @@ func damageMoveHandler(attackPokemon *game.Pokemon, defPokemon *game.Pokemon, mo
 		effectivenessText = "It had no effect"
 	}
 
-	messages = append(messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
+	damageState := StateUpdate{}
+	damageState.State = state.Clone()
+
+	damageState.Messages = append(damageState.Messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
 
 	if effectivenessText != "" {
-		messages = append(messages, effectivenessText)
+		damageState.Messages = append(damageState.Messages, effectivenessText)
 	}
 
-	return messages
+	states = append(states, damageState)
+
+	return states
 }
 
-func ailmentHandler(defPokemon *game.Pokemon, move *game.Move) {
-	// TODO: Setup state updates so that this can be in its own separate update
-	// (probably make update functions return []StateUpdate)
+func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move) StateUpdate {
 	ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	if ok && defPokemon.Status == game.STATUS_NONE {
 		ailmentCheck := rand.Intn(100)
@@ -195,6 +212,7 @@ func ailmentHandler(defPokemon *game.Pokemon, move *game.Move) {
 			case game.STATUS_SLEEP:
 				randTime := rand.Intn(2) + 1
 				defPokemon.SleepCount = randTime
+				attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", defPokemon.Nickname, defPokemon.SleepCount)
 			case game.STATUS_TOXIC:
 				defPokemon.ToxicCount = 1
 			}
@@ -229,37 +247,45 @@ func ailmentHandler(defPokemon *game.Pokemon, move *game.Move) {
 			}
 		}
 	}
+
+	return StateUpdate{
+		State: state.Clone(),
+	}
 }
 
-func healHandler(attackPokemon *game.Pokemon, move *game.Move) []string {
-	messages := make([]string, 0)
+func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move) StateUpdate {
+	healState := StateUpdate{}
 
 	healPercent := float32(move.Meta.Healing) / 100
 	healAmount := float32(attackPokemon.MaxHp) * healPercent
 
 	attackPokemon.Heal(uint(healAmount))
 
-	messages = append(messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
+	healState.State = state.Clone()
 
-	return messages
+	healState.Messages = append(healState.Messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
+
+	return healState
 }
 
-func statChangeHandler(pokemon *game.Pokemon, statChange game.StatChange, statChance int) []string {
-	statChangeMessages := make([]string, 0)
-
+func statChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateUpdate {
 	statCheck := rand.Intn(100)
 	if statChance == 0 {
 		statChance = 100
 	}
 
+	statChangeState := StateUpdate{}
+
 	if statCheck < statChance {
 		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did pass")
-		statChangeMessages = append(statChangeMessages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
+		statChangeState.Messages = append(statChangeState.Messages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
 	} else {
 		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did not pass")
 	}
 
-	return statChangeMessages
+	statChangeState.State = state.Clone()
+
+	return statChangeState
 }
 
 func changeStat(pokemon *game.Pokemon, statName string, change int) []string {
