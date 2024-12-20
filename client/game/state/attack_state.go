@@ -100,6 +100,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 			states = append(states, healHandler(&state, attackPokemon, move))
 		case "ohko":
 			states = append(states, ohkoHandler(&state, defPokemon))
+		case "force-switch":
+			states = append(states, forceSwitchHandler(&state, defender))
 		default:
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
 		}
@@ -284,6 +286,37 @@ func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move)
 	healState.Messages = append(healState.Messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
 
 	return healState
+}
+
+func forceSwitchHandler(state *GameState, defPlayer *Player) StateUpdate {
+	// since the active pokemon is determined by the position
+	// of the pokemon in the Player.Team slice, we have to store
+	// that position which makes this clunky
+	type enumPokemon struct {
+		Index   int
+		Pokemon game.Pokemon
+	}
+
+	enumeratedPkm := lo.Map(defPlayer.Team, func(pokemon game.Pokemon, i int) enumPokemon {
+		return enumPokemon{
+			Index:   i,
+			Pokemon: pokemon,
+		}
+	})
+
+	alivePokemon := lo.Filter(enumeratedPkm, func(e enumPokemon, _ int) bool {
+		return e.Pokemon.Alive() && e.Index != defPlayer.ActivePokeIndex
+	})
+
+	choiceIndex := rand.Intn(len(alivePokemon))
+
+	ogPokemonName := defPlayer.GetActivePokemon().Nickname
+	defPlayer.ActivePokeIndex = alivePokemon[choiceIndex].Index
+
+	return StateUpdate{
+		State:    state.Clone(),
+		Messages: []string{fmt.Sprintf("%s was forced to switch out", ogPokemonName)},
+	}
 }
 
 func statChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateUpdate {
