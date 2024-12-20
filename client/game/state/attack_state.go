@@ -133,12 +133,13 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	defPokemon.Damage(damage)
 	var drainedHealth uint = 0
 
-	// TODO: need to make this a separate "update" as well so it changes visually
 	if move.Meta.Drain > 0 {
 		drainState := StateUpdate{}
 
+		cappedDamage := math.Min(float64(defPokemon.Hp.Value), float64(damage))
+
 		drainPercent := float32(move.Meta.Drain) / float32(100)
-		drainedHealth = uint(float32(damage) * drainPercent)
+		drainedHealth = uint(float32(cappedDamage) * drainPercent)
 
 		attackPokemon.Heal(drainedHealth)
 
