@@ -1,6 +1,8 @@
 package gameview
 
 import (
+	"errors"
+	"io/fs"
 	"maps"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -59,7 +61,11 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
 	// TODO: Error handling
 	if err != nil {
-		log.Panic().Msgf("Could not load Teams: %s", err)
+		if errors.Is(err, fs.ErrNotExist) {
+			teamfs.NewTeamSave(global.TeamSaveLocation)
+		} else {
+			log.Panic().Msgf("Could not load Teams: %s", err)
+		}
 	}
 	items := make([]list.Item, 0)
 	for team := range maps.Keys(teams) {

@@ -74,6 +74,12 @@ func LoadTeam(dir string, name string) ([6]*game.Pokemon, error) {
 	return team, nil
 }
 
+func NewTeamSave(dir string) error {
+	_, err := os.Create(path.Join(dir, teamsFileName))
+
+	return err
+}
+
 func LoadTeamMap(dir string) (SavedTeams, error) {
 	savePath := path.Join(dir, teamsFileName)
 
