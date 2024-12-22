@@ -67,6 +67,7 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 			log.Panic().Msgf("Could not load Teams: %s", err)
 		}
 	}
+
 	items := make([]list.Item, 0)
 	for team := range maps.Keys(teams) {
 		items = append(items, teamItem{
@@ -79,11 +80,18 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 
 	list := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT/2)
 	list.DisableQuitKeybindings()
+
+	startingTeam := make([]game.Pokemon, 0)
+
+	if list.SelectedItem() != nil {
+		startingTeam = list.SelectedItem().(teamItem).Pokemon
+	}
+
 	return TeamSelectModel{
 		teamList:  list,
 		buttons:   buttons,
 		backtrack: backtrack,
-		teamView:  components.NewTeamView(list.SelectedItem().(teamItem).Pokemon),
+		teamView:  components.NewTeamView(startingTeam),
 	}
 }
 
@@ -118,7 +126,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return NewMainGameModel(gameState, state.HOST), nil
 		}
 
-		if m.focus == 0 && key.Matches(msg, selectKey) && !m.selectingStarter {
+		if m.focus == 0 && key.Matches(msg, selectKey) && !m.selectingStarter && m.teamList.SelectedItem() != nil {
 			m.selectingStarter = true
 			m.teamView.Focused = true
 		}
@@ -140,7 +148,11 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.teamList, cmd = m.teamList.Update(msg)
 
-			m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
+			if m.teamList.SelectedItem() != nil {
+				m.teamView.Team = m.teamList.SelectedItem().(teamItem).Pokemon
+			} else {
+				m.teamView.Team = make([]game.Pokemon, 0)
+			}
 
 			return m, cmd
 		case 1:
