@@ -62,7 +62,9 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	// TODO: Error handling
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			teamfs.NewTeamSave(global.TeamSaveLocation)
+			if err := teamfs.NewTeamSave(global.TeamSaveLocation); err != nil {
+				log.Panic().Msgf("Could not create new team save file: %s", err)
+			}
 		} else {
 			log.Panic().Msgf("Could not load Teams: %s", err)
 		}

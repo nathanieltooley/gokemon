@@ -75,6 +75,10 @@ func LoadTeam(dir string, name string) ([6]*game.Pokemon, error) {
 }
 
 func NewTeamSave(dir string) error {
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		return err
+	}
+
 	_, err := os.Create(path.Join(dir, teamsFileName))
 
 	return err
