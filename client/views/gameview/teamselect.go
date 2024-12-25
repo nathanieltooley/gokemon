@@ -59,13 +59,13 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	buttons := components.NewMenuButton([]components.ViewButton{button})
 
 	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
-	// TODO: Error handling
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			if err := teamfs.NewTeamSave(global.TeamSaveLocation); err != nil {
 				log.Panic().Msgf("Could not create new team save file: %s", err)
 			}
 		} else {
+			// TODO: Show error messages, and better handling (not crashing)
 			log.Panic().Msgf("Could not load Teams: %s", err)
 		}
 	}
