@@ -3,6 +3,8 @@ package teameditor
 import (
 	"fmt"
 	"io"
+	"math"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -54,6 +56,10 @@ var (
 
 	confirm = key.NewBinding(
 		key.WithKeys("y", tea.KeyEnter.String()),
+	)
+
+	deletePokemonKey = key.NewBinding(
+		key.WithKeys("d", tea.KeyDelete.String()),
 	)
 )
 
@@ -197,6 +203,13 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug().Msgf("len %d", len(m.ctx.team))
 				return newEditPokemonModel(m.ctx, currentPokemon), nil
 			}
+		}
+
+		if key.Matches(msg, deletePokemonKey) && !m.addingNewPokemon && len(m.ctx.team) > 0 {
+			m.ctx.team = slices.Delete(m.ctx.team, m.teamView.CurrentPokemonIndex, m.teamView.CurrentPokemonIndex+1)
+			newPkmIndex := int(math.Max(0, float64(m.teamView.CurrentPokemonIndex-1)))
+			m.teamView = components.NewTeamView(m.ctx.team)
+			m.teamView.CurrentPokemonIndex = newPkmIndex
 		}
 
 		if key.Matches(msg, toggleAddingPokemon) {

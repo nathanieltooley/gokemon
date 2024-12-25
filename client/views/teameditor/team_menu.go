@@ -2,6 +2,7 @@ package teameditor
 
 import (
 	"maps"
+	"slices"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -121,7 +122,7 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			teamItem := t.teamList.SelectedItem().(teamItem)
-			team := teamItem.Pokemon
+			team := slices.Clone(teamItem.Pokemon)
 			t.backtrace.Push(t)
 			editor := NewTeamEditorModel(t.backtrace, team)
 
