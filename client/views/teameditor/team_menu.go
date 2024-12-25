@@ -12,6 +12,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
+	"github.com/rs/zerolog/log"
 )
 
 // HACK: have to make this public for the gameview team editor
@@ -56,28 +57,7 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 		{
 			Name: "Edit Teams",
 			OnClick: func() tea.Model {
-				teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
-				if err != nil {
-					// TODO: Show error message
-					return nil
-				}
-				items := make([]list.Item, 0)
-				for team := range maps.Keys(teams) {
-					items = append(items, teamItem{
-						Name:    team,
-						Pokemon: teams[team],
-					})
-				}
-
-				teamList := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT)
-				teamList.DisableQuitKeybindings()
-
-				return teamSelectionMenu{
-					backtrace: backtrace,
-
-					teams:    teams,
-					teamList: teamList,
-				}
+				return newTeamSelectionMenu(backtrace)
 			},
 		},
 	}
@@ -87,6 +67,32 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 
 	return startMenu
 }
+
+func newTeamSelectionMenu(backtrace *components.Breadcrumbs) teamSelectionMenu {
+	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
+	if err != nil {
+		// TODO: Show error message
+		log.Panic().Msgf("Could not load team saves file: %s", err)
+	}
+	items := make([]list.Item, 0)
+	for team := range maps.Keys(teams) {
+		items = append(items, teamItem{
+			Name:    team,
+			Pokemon: teams[team],
+		})
+	}
+
+	teamList := list.New(items, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT)
+	teamList.DisableQuitKeybindings()
+
+	return teamSelectionMenu{
+		backtrace: backtrace,
+
+		teams:    teams,
+		teamList: teamList,
+	}
+}
+
 func (m startTeamMenu) Init() tea.Cmd { return nil }
 func (m startTeamMenu) View() string {
 	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.buttons.View()))
@@ -123,7 +129,11 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Type == tea.KeyEnter {
 			teamItem := t.teamList.SelectedItem().(teamItem)
 			team := slices.Clone(teamItem.Pokemon)
-			t.backtrace.Push(t)
+
+			t.backtrace.PushNew(func() tea.Model {
+				return newTeamSelectionMenu(t.backtrace)
+			})
+
 			editor := NewTeamEditorModel(t.backtrace, team)
 
 			return editor, nil
