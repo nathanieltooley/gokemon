@@ -312,7 +312,10 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateUpdate {
 	choiceIndex := rand.Intn(len(alivePokemon))
 
 	ogPokemonName := defPlayer.GetActivePokemon().Nickname
+
 	defPlayer.ActivePokeIndex = alivePokemon[choiceIndex].Index
+	defPlayer.GetActivePokemon().SwitchedInThisTurn = true
+	defPlayer.GetActivePokemon().CanAttackThisTurn = false
 
 	return StateUpdate{
 		State:    state.Clone(),
