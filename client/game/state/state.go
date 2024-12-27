@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"math/rand"
 	"slices"
 	"strings"
 
@@ -179,6 +180,11 @@ type StateUpdate struct {
 	State GameState
 	// The messages that communicate what happened
 	Messages []string
+	Empty    bool
+}
+
+func NewEmptyStateUpdate() StateUpdate {
+	return StateUpdate{Empty: true}
 }
 
 type Action interface {
@@ -218,6 +224,8 @@ func (a *SwitchAction) UpdateState(state GameState) []StateUpdate {
 	if newActivePkm.Status == game.STATUS_TOXIC {
 		newActivePkm.ToxicCount = 1
 	}
+
+	newActivePkm.SwitchedInThisTurn = true
 
 	messages := []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
 	return []StateUpdate{
@@ -274,14 +282,27 @@ func NewSleepAction(playerId int) *SleepAction {
 }
 
 func (a SleepAction) UpdateState(state GameState) []StateUpdate {
-	poke := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
+	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
-	poke.SleepCount--
+	message := ""
+
+	// Sleep is over
+	// TODO: Add message for waking up
+	if pokemon.SleepCount <= 0 {
+		pokemon.Status = game.STATUS_NONE
+		message = fmt.Sprintf("%s woke up!", pokemon.Nickname)
+		pokemon.CanAttackThisTurn = true
+	} else {
+		message = fmt.Sprintf("%s is asleep", pokemon.Nickname)
+		pokemon.CanAttackThisTurn = false
+	}
+
+	pokemon.SleepCount--
 
 	return []StateUpdate{
 		{
 			State:    state,
-			Messages: []string{fmt.Sprintf("%s is asleep", poke.Nickname)},
+			Messages: []string{message},
 		},
 	}
 }
@@ -297,6 +318,21 @@ func NewParaAction(playerId int) *ParaAction {
 }
 
 func (a ParaAction) UpdateState(state GameState) []StateUpdate {
+	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
+
+	paraChance := 0.5
+	paraCheck := rand.Float64()
+
+	if paraCheck > paraChance {
+		// don't get para'd
+		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check passed")
+		return []StateUpdate{NewEmptyStateUpdate()}
+	} else {
+		// do get para'd
+		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
+		pokemon.CanAttackThisTurn = false
+	}
+
 	return []StateUpdate{
 		{
 			State:    state,
@@ -399,31 +435,31 @@ func NewFrozenAction(playerId int) *FrozenAction {
 }
 
 func (a FrozenAction) UpdateState(state GameState) []StateUpdate {
-	pokemonName := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon().Nickname
+	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
+
+	thawChance := .20
+	thawCheck := rand.Float64()
+
+	message := ""
+
+	// pokemon stays frozen
+	if thawCheck > thawChance {
+		log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check failed")
+		message = fmt.Sprintf("%s is frozen and cannot move", pokemon.Nickname)
+
+		pokemon.CanAttackThisTurn = false
+	} else {
+		log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check succeeded!")
+		message = fmt.Sprintf("%s thawed out!", pokemon.Nickname)
+
+		pokemon.Status = game.STATUS_NONE
+		pokemon.CanAttackThisTurn = true
+	}
+
 	return []StateUpdate{
 		{
 			State:    state,
-			Messages: []string{fmt.Sprintf("%s is frozen and cannot move", pokemonName)},
-		},
-	}
-}
-
-type ThawAction struct {
-	ctx ActionCtx
-}
-
-func NewThawAction(playerId int) *ThawAction {
-	return &ThawAction{
-		ctx: NewActionCtx(playerId),
-	}
-}
-
-func (a ThawAction) UpdateState(state GameState) []StateUpdate {
-	pokemonName := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon().Nickname
-	return []StateUpdate{
-		{
-			State:    state,
-			Messages: []string{fmt.Sprintf("%s has thawed out!", pokemonName)},
+			Messages: []string{message},
 		},
 	}
 }
@@ -441,6 +477,17 @@ func NewConfusionAction(playerId int) *ConfusionAction {
 func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
 	confusedPokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
+	confusedPokemon.ConfusionCount--
+	log.Debug().Int("newConfCount", confusedPokemon.ConfusionCount).Msg("confusion lowered")
+
+	confChance := .33
+	confCheck := rand.Float64()
+
+	// Exit early
+	if confCheck > confChance {
+		return []StateUpdate{NewEmptyStateUpdate()}
+	}
+
 	confMove := game.Move{
 		Name:  "Confusion",
 		Power: 40,
@@ -457,13 +504,14 @@ func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
 
 	dmg := game.Damage(*confusedPokemon, *confusedPokemon, &confMove)
 	confusedPokemon.Damage(dmg)
+	confusedPokemon.CanAttackThisTurn = false
 
 	log.Info().Uint("damage", dmg).Msgf("%s hit itself in confusion", confusedPokemon.Nickname)
 
 	return []StateUpdate{
 		{
 			State:    state,
-			Messages: []string{"It hurt itself in confusion"},
+			Messages: []string{fmt.Sprintf("%s hurt itself in confusion", confusedPokemon.Nickname)},
 		},
 	}
 }

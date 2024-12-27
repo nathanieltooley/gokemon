@@ -102,6 +102,10 @@ func pokemonEffects(pokemon game.Pokemon) string {
 
 func (m playerPanel) Init() tea.Cmd { return nil }
 func (m playerPanel) View() string {
+	if m.player.ActivePokeIndex >= len(m.player.Team) {
+		return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, "ERROR: Invalid Active PokeIndex"))
+	}
+
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
 	statusText := ""
 	if currentPokemon.Status != game.STATUS_NONE {

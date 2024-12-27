@@ -2,7 +2,6 @@ package stateupdater
 
 import (
 	"cmp"
-	"math/rand"
 	"slices"
 	"time"
 
@@ -22,12 +21,26 @@ type StateUpdater interface {
 }
 
 func syncState(mainState *state.GameState, newStates []state.StateUpdate) []state.StateUpdate {
-	finalState := newStates[len(newStates)-1]
+	finalState := *mainState
+
+	// get first (from end) non-empty state
+	// we don't need to apply every state update, just the last one
+	// the UI is what's interested in the intermediate states
+	for i := len(newStates) - 1; i >= 0; i-- {
+		s := newStates[i]
+		if !s.Empty {
+			finalState = s.State
+			break
+		}
+	}
 
 	// Clone here because of slices
-	*mainState = finalState.State.Clone()
+	*mainState = finalState.Clone()
 
-	return newStates
+	// Ignore empty state updates
+	return lo.Filter(newStates, func(s state.StateUpdate, _ int) bool {
+		return !s.Empty
+	})
 }
 
 type LocalUpdater struct {
@@ -114,6 +127,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 	})
 
+	// Handle forced switches from pkm death
 	if u.playerNeedsToSwitch || u.aiNeedsToSwitch {
 		u.Actions = make([]state.Action, 0)
 
@@ -139,6 +153,14 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	} else {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 	}
+
+	// Reset turn flags
+	// eventually this will have to change for double battles
+	gameState.LocalPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.LocalPlayer.GetActivePokemon().SwitchedInThisTurn = false
+
+	gameState.OpposingPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.OpposingPlayer.GetActivePokemon().SwitchedInThisTurn = false
 
 	// Sort Other Actions
 	slices.SortFunc(otherActions, func(a, b state.Action) int {
@@ -188,65 +210,36 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				Msg("Attack state update")
 
 			pokemon := player.GetActivePokemon()
+			pokemon.CanAttackThisTurn = !pokemon.SwitchedInThisTurn
 
-			// TODO: Maybe move all of these checks into their respective actions?
 			// Skip attack with para
 			if pokemon.Status == game.STATUS_PARA {
-				paraChance := 0.5
-				paraCheck := rand.Float64()
-
-				if paraCheck <= paraChance {
-					a := state.NewParaAction(a.Ctx().PlayerId)
-					log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
-					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-					return
-				}
+				para := state.NewParaAction(a.Ctx().PlayerId)
+				states = append(states, syncState(gameState, para.UpdateState(*gameState))...)
 			}
 
 			// Skip attack with sleep
 			if pokemon.Status == game.STATUS_SLEEP {
-				// Sleep is over
-				// TODO: Add message for waking up
-				if pokemon.SleepCount <= 0 {
-					pokemon.Status = game.STATUS_NONE
-				} else {
-					a := state.NewSleepAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-					return
-				}
+				sleep := state.NewSleepAction(a.Ctx().PlayerId)
+				states = append(states, syncState(gameState, sleep.UpdateState(*gameState))...)
 			}
 
+			// Skip attack with frozen
 			if pokemon.Status == game.STATUS_FROZEN {
-				thawChance := .20
-				thawCheck := rand.Float64()
-
-				// pokemon stays frozen
-				if thawCheck > thawChance {
-					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check failed")
-					a := state.NewFrozenAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-					return
-				} else {
-					log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check succeeded!")
-					pokemon.Status = game.STATUS_NONE
-					a := state.NewThawAction(a.Ctx().PlayerId)
-					states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-				}
+				frozen := state.NewFrozenAction(a.Ctx().PlayerId)
+				states = append(states, syncState(gameState, frozen.UpdateState(*gameState))...)
 			}
 
+			// Skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
-				confChance := .33
-				confCheck := rand.Float64()
-
-				if confCheck < confChance {
-					a = state.NewConfusionAction(a.Ctx().PlayerId)
-				}
+				conf := state.NewConfusionAction(a.Ctx().PlayerId)
+				states = append(states, syncState(gameState, conf.UpdateState(*gameState))...)
 
 				pokemon.ConfusionCount--
 				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
-			if pokemon.Alive() {
+			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 			}
 		default:
