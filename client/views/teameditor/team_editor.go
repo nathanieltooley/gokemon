@@ -102,6 +102,8 @@ type (
 
 		saveNameInput textinput.Model
 		confirming    bool
+		erroring      bool
+		displayError  error
 	}
 )
 
@@ -438,6 +440,9 @@ func (m saveTeamModel) View() string {
 
 	if m.confirming {
 		prompt = promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "A team with this name already exists. Overwrite?", "Y / N"))
+	} else if m.erroring {
+		// TODO: Better styling
+		prompt = promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "An error has occured", m.displayError.Error(), "Press ESC to exit"))
 	}
 
 	return rendering.GlobalCenter(prompt)
@@ -452,12 +457,30 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			if key.Matches(msg, confirm) {
 				if err := teamfs.SaveTeam(global.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
-					log.Fatal().Msgf("Failed to save team: %s", err)
+					m.erroring = true
+					m.displayError = err
+					log.Error().Msgf("Failed to save team: %s", err)
+
+					m.confirming = false
+
+					return m, nil
 				}
 
 				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
 			} else {
 				m.confirming = false
+			}
+		}
+
+		return m, cmd
+	}
+
+	if m.erroring {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if key.Matches(msg, goToPreviousPage) {
+				m.erroring = false
+				m.displayError = nil
 			}
 		}
 
@@ -484,9 +507,14 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 
-				// TODO: Show error instead of crashing
 				if err := teamfs.SaveTeam(global.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
-					log.Fatal().Msgf("Failed to save team: %s", err)
+					m.erroring = true
+					m.displayError = err
+					log.Error().Msgf("Failed to save team: %s", err)
+
+					m.confirming = false
+
+					return m, nil
 				}
 
 				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
