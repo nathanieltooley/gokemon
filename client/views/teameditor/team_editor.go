@@ -441,7 +441,7 @@ func (m saveTeamModel) View() string {
 	if m.confirming {
 		prompt = promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "A team with this name already exists. Overwrite?", "Y / N"))
 	} else if m.erroring {
-		// TODO: Better styling
+		promptStyle := promptStyle.BorderBackground(lipgloss.Color("#ff0000"))
 		prompt = promptStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "An error has occured", m.displayError.Error(), "Press ESC to exit"))
 	}
 
