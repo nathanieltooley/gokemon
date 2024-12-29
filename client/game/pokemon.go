@@ -163,6 +163,7 @@ type Pokemon struct {
 	SleepCount         int  `json:"-"`
 	CanAttackThisTurn  bool `json:"-"`
 	SwitchedInThisTurn bool `json:"-"`
+	InGameMoveInfo     [4]BattleMove
 }
 
 func (p *Pokemon) ReCalcStats() {

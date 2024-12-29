@@ -78,7 +78,37 @@ func RandomTeam() []game.Pokemon {
 }
 
 func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
-	// For testing purposes only
+	// Make sure pokemon are inited correctly
+	for i, p := range localTeam {
+		p.CanAttackThisTurn = true
+
+		for i, m := range p.Moves {
+			if m != nil {
+				p.InGameMoveInfo[i] = game.BattleMove{
+					Info: m,
+					PP:   uint(m.PP),
+				}
+			}
+		}
+
+		localTeam[i] = p
+	}
+
+	for i, p := range opposingTeam {
+		p.CanAttackThisTurn = true
+
+		for i, m := range p.Moves {
+			if m != nil {
+				p.InGameMoveInfo[i] = game.BattleMove{
+					Info: m,
+					PP:   uint(m.PP),
+				}
+			}
+		}
+
+		opposingTeam[i] = p
+	}
+
 	localPlayer := Player{
 		Name: "Local",
 		Team: localTeam,

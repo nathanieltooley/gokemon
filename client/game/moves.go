@@ -94,3 +94,8 @@ type Move struct {
 	Target       Target
 	Type         string
 }
+
+type BattleMove struct {
+	Info *Move
+	PP   uint
+}

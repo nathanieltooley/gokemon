@@ -39,6 +39,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 
 	// TODO: Make sure a.AttackerMove is between 0 -> 3
 	move := attackPokemon.Moves[a.AttackerMove]
+	moveVars := attackPokemon.InGameMoveInfo[a.AttackerMove]
+	pp := moveVars.PP
 
 	states := make([]StateUpdate, 0)
 
@@ -55,7 +57,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 		accuracy = 100
 	}
 
-	if accuracyCheck < accuracy {
+	if accuracyCheck < accuracy && pp > 0 {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - swagger
@@ -104,6 +106,12 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 			states = append(states, forceSwitchHandler(&state, defender))
 		default:
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
+		}
+
+		if pp == 0 {
+			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = 0
+		} else {
+			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - 1
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")

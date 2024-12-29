@@ -174,7 +174,7 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0:
 				return movePanel{
 					ctx:   m.ctx,
-					moves: m.ctx.state.LocalPlayer.GetActivePokemon().Moves,
+					moves: m.ctx.state.LocalPlayer.GetActivePokemon().InGameMoveInfo,
 				}, nil
 			case 1:
 				return newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team), nil
@@ -205,7 +205,7 @@ type movePanel struct {
 	ctx           *gameContext
 	moveGridFocus int
 
-	moves [4]*game.Move
+	moves [4]game.BattleMove
 }
 
 func (m movePanel) Init() tea.Cmd { return nil }
@@ -224,10 +224,12 @@ func (m movePanel) View() string {
 				style = style.Background(rendering.HighlightedColor)
 			}
 
-			if m.moves[arrayIndex] == nil {
+			move := m.moves[arrayIndex]
+			if move.Info == nil {
 				row = append(row, style.Render("Empty"))
 			} else {
-				row = append(row, style.Render(m.moves[arrayIndex].Name))
+				ppInfo := fmt.Sprintf("%d / %d", move.PP, move.Info.PP)
+				row = append(row, style.Render(lipgloss.JoinVertical(lipgloss.Center, move.Info.Name, ppInfo)))
 			}
 		}
 
@@ -257,9 +259,11 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			move := m.ctx.state.LocalPlayer.GetActivePokemon().Moves[m.moveGridFocus]
+			poke := m.ctx.state.LocalPlayer.GetActivePokemon()
+			move := poke.Moves[m.moveGridFocus]
+			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
-			if move != nil {
+			if move != nil && pp > 0 {
 				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 			}
