@@ -93,7 +93,7 @@ func newDetailsEditor(pokeInfo game.Pokemon) detailsEditor {
 	levelInput.Blur()
 	levelInput.Placeholder = "Level"
 	levelInput.CharLimit = 3
-	levelInput.SetValue(string(pokeInfo.Level))
+	levelInput.SetValue(strconv.FormatUint(uint64(pokeInfo.Level), 10))
 
 	return detailsEditor{
 		newInputSelector([]textinput.Model{nameInput, levelInput}),
