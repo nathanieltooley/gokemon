@@ -173,55 +173,55 @@ func newEVIVEditor(pokeInfo game.Pokemon) evivEditor {
 	hpiv := textinput.New()
 	hpiv.Focus()
 	hpiv.CharLimit = 3
-	hpiv.SetValue(string(pokeInfo.Hp.Iv))
+	hpiv.SetValue(strconv.FormatUint(uint64(pokeInfo.Hp.Iv), 10))
 	hpev := textinput.New()
 	hpev.CharLimit = 3
-	hpev.SetValue(string(pokeInfo.Hp.Ev))
+	hpev.SetValue(strconv.FormatUint(uint64(pokeInfo.Hp.Ev), 10))
 	hpBar := progress.New()
 	hpBar.Width = barWidth
 
 	attackIv := textinput.New()
 	attackIv.CharLimit = 3
-	attackIv.SetValue(string(pokeInfo.Attack.Iv))
+	attackIv.SetValue(strconv.FormatUint(uint64(pokeInfo.Attack.Iv), 10))
 	attackEv := textinput.New()
 	attackEv.CharLimit = 3
-	attackEv.SetValue(string(pokeInfo.Attack.Ev))
+	attackEv.SetValue(strconv.FormatUint(uint64(pokeInfo.Attack.Ev), 10))
 	attackBar := progress.New()
 	attackBar.Width = barWidth
 
 	defIv := textinput.New()
 	defIv.CharLimit = 3
-	defIv.SetValue(string(pokeInfo.Def.Iv))
+	defIv.SetValue(strconv.FormatUint(uint64(pokeInfo.Def.Iv), 10))
 	defEv := textinput.New()
 	defEv.CharLimit = 3
-	defEv.SetValue(string(pokeInfo.Def.Ev))
+	defEv.SetValue(strconv.FormatUint(uint64(pokeInfo.Def.Ev), 10))
 	defBar := progress.New()
 	defBar.Width = barWidth
 
 	spAttackIv := textinput.New()
 	spAttackIv.CharLimit = 3
-	spAttackIv.SetValue(string(pokeInfo.SpAttack.Iv))
+	spAttackIv.SetValue(strconv.FormatUint(uint64(pokeInfo.SpAttack.Iv), 10))
 	spAttackEv := textinput.New()
 	spAttackEv.CharLimit = 3
-	spAttackEv.SetValue(string(pokeInfo.SpAttack.Ev))
+	spAttackEv.SetValue(strconv.FormatUint(uint64(pokeInfo.SpAttack.Ev), 10))
 	spAttackBar := progress.New()
 	spAttackBar.Width = barWidth
 
 	spDefIv := textinput.New()
 	spDefIv.CharLimit = 3
-	spDefIv.SetValue(string(pokeInfo.SpDef.Iv))
+	spDefIv.SetValue(strconv.FormatUint(uint64(pokeInfo.SpDef.Iv), 10))
 	spDefEv := textinput.New()
 	spDefEv.CharLimit = 3
-	spDefEv.SetValue(string(pokeInfo.SpDef.Ev))
+	spDefEv.SetValue(strconv.FormatUint(uint64(pokeInfo.SpDef.Ev), 10))
 	spDefBar := progress.New()
 	spDefBar.Width = barWidth
 
 	speedIv := textinput.New()
 	speedIv.CharLimit = 3
-	speedIv.SetValue(string(pokeInfo.RawSpeed.Iv))
+	speedIv.SetValue(strconv.FormatUint(uint64(pokeInfo.RawSpeed.Iv), 10))
 	speedEv := textinput.New()
 	speedEv.CharLimit = 3
-	speedEv.SetValue(string(pokeInfo.RawSpeed.Ev))
+	speedEv.SetValue(strconv.FormatUint(uint64(pokeInfo.RawSpeed.Ev), 10))
 	speedBar := progress.New()
 	speedBar.Width = barWidth
 
