@@ -212,11 +212,15 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newPkmIndex := int(math.Max(0, float64(m.teamView.CurrentPokemonIndex-1)))
 			m.teamView = components.NewTeamView(m.ctx.team)
 			m.teamView.CurrentPokemonIndex = newPkmIndex
+
+			if len(m.ctx.team) == 0 {
+				m.addingNewPokemon = true
+			}
 		}
 
 		if key.Matches(msg, toggleAddingPokemon) {
-			// Toggle adding pokemon
-			if len(m.ctx.team) > 0 {
+			// Toggle adding pokemon, can go back to adding pokemon if empty but not vice-versa
+			if len(m.ctx.team) > 0 || !m.addingNewPokemon {
 				m.addingNewPokemon = !m.addingNewPokemon
 			}
 		}
