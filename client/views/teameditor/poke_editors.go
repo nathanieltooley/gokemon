@@ -514,7 +514,7 @@ func (e moveEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 			}
 		case tea.KeyEnter:
 			currentList := e.lists[e.moveIndex]
-			choice := currentList.Items()[currentList.Index()].(moveItem)
+			choice := currentList.VisibleItems()[currentList.Index()].(moveItem)
 
 			e.selectedMoves[e.moveIndex] = choice.Move
 			// Update the actual pokemon as well
@@ -576,7 +576,7 @@ func (e abilityEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			ability := e.abilityListModel.Items()[e.abilityListModel.Index()].(abilityItem)
+			ability := e.abilityListModel.VisibleItems()[e.abilityListModel.Index()].(abilityItem)
 			rootModel.currentPokemon.Ability = string(ability)
 		}
 	}
@@ -617,7 +617,7 @@ func (e itemEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			item := e.itemListModel.Items()[e.itemListModel.Index()].(itemItem)
+			item := e.itemListModel.VisibleItems()[e.itemListModel.Index()].(itemItem)
 			rootModel.currentPokemon.Item = string(item)
 		}
 	}

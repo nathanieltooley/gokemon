@@ -173,7 +173,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.addingNewPokemon {
 		m.addPokemonList, cmd = m.addPokemonList.Update(msg)
-		choice, _ := m.addPokemonList.Items()[m.addPokemonList.Index()].(item)
+		choice, _ := m.addPokemonList.VisibleItems()[m.addPokemonList.Index()].(item)
 
 		m.choice = choice.BasePokemon
 	}
