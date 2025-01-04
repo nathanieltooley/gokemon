@@ -3,6 +3,7 @@ package gameview
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
@@ -277,6 +278,7 @@ type pokemonPanel struct {
 	pokemon []game.Pokemon
 
 	selectedPokemon int
+	currentSubtext  string
 }
 
 func newPokemonPanel(ctx *gameContext, pokemon []game.Pokemon) pokemonPanel {
@@ -306,19 +308,20 @@ func (m pokemonPanel) View() string {
 		panels = append(panels, style.Width(pokemonWidth).Render(pokemon.Nickname))
 	}
 
-	forcedSwitch := ""
-	if m.ctx.forcedSwitch {
-		forcedSwitch = "Your Pokemon fainted, please select a new one to switch in"
+	displayText := m.currentSubtext
+
+	if m.ctx.forcedSwitch && displayText != "" {
+		displayText = "Your Pokemon fainted, please select a new one to switch in"
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, forcedSwitch, lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...))
+	return lipgloss.JoinVertical(lipgloss.Center, displayText, lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...))
 }
 
 func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case clearTextMsg:
+		m.currentSubtext = ""
 	case tea.KeyMsg:
-		// TODO: Add backing out of the menu
-
 		if key.Matches(msg, global.MoveLeftKey) {
 			m.selectedPokemon--
 			if m.selectedPokemon < 0 {
@@ -337,6 +340,20 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, global.SelectKey) {
 			currentValidPokemon := m.pokemon[m.selectedPokemon]
 
+			if !currentValidPokemon.Alive() {
+				m.currentSubtext = "This pokemon is not alive"
+				return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+					return clearTextMsg{t}
+				})
+			}
+
+			if m.selectedPokemon == m.ctx.state.LocalPlayer.ActivePokeIndex {
+				m.currentSubtext = "This pokemon is already active!"
+				return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+					return clearTextMsg{t}
+				})
+			}
+
 			// Only allow switches to alive and existing pokemon
 			if currentValidPokemon.Alive() {
 				action := state.NewSwitchAction(m.ctx.state, state.HOST, m.selectedPokemon)
@@ -347,4 +364,8 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+type clearTextMsg struct {
+	time.Time
 }
