@@ -212,8 +212,6 @@ func (m movePanel) Init() tea.Cmd { return nil }
 func (m movePanel) View() string {
 	grid := make([]string, 0)
 
-	// Move grid
-	// TODO: Maybe refactor this into a separate component?
 	for i := 0; i < 2; i++ {
 		row := make([]string, 0)
 		for j := 0; j < 2; j++ {
@@ -228,6 +226,7 @@ func (m movePanel) View() string {
 			if move.Info == nil {
 				row = append(row, style.Render("Empty"))
 			} else {
+				// TODO: Fix centering issues with PP (lol)
 				ppInfo := fmt.Sprintf("%d / %d", move.PP, move.Info.PP)
 				row = append(row, style.Render(lipgloss.JoinVertical(lipgloss.Center, move.Info.Name, ppInfo)))
 			}
@@ -293,13 +292,18 @@ func (m pokemonPanel) Init() tea.Cmd { return nil }
 func (m pokemonPanel) View() string {
 	pokemonWidth := 15
 	panels := make([]string, 0)
-	// TODO: Gray out or get rid of dead pokemon
 	for i, pokemon := range m.pokemon {
+		style := panelStyle
+
 		if i == m.selectedPokemon {
-			panels = append(panels, highlightedPanelStyle.Width(pokemonWidth).Render(pokemon.Nickname))
-		} else {
-			panels = append(panels, panelStyle.Width(pokemonWidth).Render(pokemon.Nickname))
+			style = highlightedPanelStyle
 		}
+
+		if !pokemon.Alive() {
+			style = style.BorderForeground(lipgloss.Color("#ff2f2f"))
+		}
+
+		panels = append(panels, style.Width(pokemonWidth).Render(pokemon.Nickname))
 	}
 
 	forcedSwitch := ""
