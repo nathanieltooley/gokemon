@@ -214,6 +214,10 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			pokemon := player.GetActivePokemon()
 			pokemon.CanAttackThisTurn = !pokemon.SwitchedInThisTurn
 
+			if !pokemon.Alive() {
+				return
+			}
+
 			// Skip attack with para
 			if pokemon.Status == game.STATUS_PARA {
 				para := state.NewParaAction(a.Ctx().PlayerId)
