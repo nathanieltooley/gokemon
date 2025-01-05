@@ -191,12 +191,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tick())
 
 	case stateupdater.ForceSwitchMessage:
-		// TODO: Handle Force switch on player side
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
-			m.startedTurnResolving = false
+			// m.startedTurnResolving = false
 			m.ctx.forcedSwitch = true
-			m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
+			// m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
 
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 		} else {

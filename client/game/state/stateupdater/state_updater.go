@@ -148,7 +148,9 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
-			return TurnResolvedMessage{}
+			return TurnResolvedMessage{
+				StateUpdates: states,
+			}
 		}
 	} else {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
