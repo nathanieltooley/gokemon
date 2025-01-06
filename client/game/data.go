@@ -471,6 +471,16 @@ var TYPE_FAIRY = PokemonType{
 	},
 }
 
+var TYPE_TYPELESS = PokemonType{
+	"typeless",
+	map[string]float32{},
+}
+
 func GetAttackTypeMapping(t string) *PokemonType {
-	return TYPE_MAP[t]
+	mapped_type := TYPE_MAP[t]
+	if mapped_type == nil {
+		mapped_type = &TYPE_TYPELESS
+	}
+
+	return mapped_type
 }

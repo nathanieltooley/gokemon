@@ -267,6 +267,18 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 			}
+
+			outOfMoves := true
+			for _, move := range poke.Moves {
+				if move != nil && pp > 0 {
+					outOfMoves = false
+				}
+			}
+
+			if outOfMoves {
+				attack := state.NewAttackAction(state.HOST, -1)
+				m.ctx.chosenAction = attack
+			}
 		}
 	}
 

@@ -16,6 +16,23 @@ var attackActionLogger = func() *zerolog.Logger {
 	return &logger
 }
 
+var struggleMove = game.Move{
+	Accuracy:    100,
+	DamageClass: "physical",
+	Meta: &game.MoveMeta{
+		Category: struct {
+			Id   int
+			Name string
+		}{
+			Name: "damage",
+		},
+		Drain: -25,
+	},
+	Power: 50,
+	Type:  "typeless",
+	Name:  "struggle",
+}
+
 type AttackAction struct {
 	ctx ActionCtx
 
@@ -37,10 +54,19 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
-	// TODO: Make sure a.AttackerMove is between 0 -> 3
-	move := attackPokemon.Moves[a.AttackerMove]
-	moveVars := attackPokemon.InGameMoveInfo[a.AttackerMove]
-	pp := moveVars.PP
+	var move *game.Move
+	var moveVars game.BattleMove
+	var pp uint
+
+	if a.AttackerMove == -1 {
+		move = &struggleMove
+		pp = 1
+	} else {
+		// TODO: Make sure a.AttackerMove is between 0 -> 3
+		move = attackPokemon.Moves[a.AttackerMove]
+		moveVars = attackPokemon.InGameMoveInfo[a.AttackerMove]
+		pp = moveVars.PP
+	}
 
 	states := make([]StateUpdate, 0)
 
@@ -61,8 +87,6 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - swagger
-		// - ohko
-		// - force-switch
 		// - unique
 
 		switch move.Meta.Category.Name {
@@ -108,10 +132,12 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
 		}
 
-		if pp == 0 {
-			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = 0
-		} else {
-			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - 1
+		if a.AttackerMove != -1 {
+			if pp == 0 {
+				attackPokemon.InGameMoveInfo[a.AttackerMove].PP = 0
+			} else {
+				attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - 1
+			}
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
@@ -163,6 +189,23 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 
 		drainState.Messages = append(drainState.Messages, fmt.Sprintf("%s drained health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
 		states = append(states, drainState)
+	}
+
+	if move.Meta.Drain < 0 {
+		recoilState := StateUpdate{}
+		recoilPercent := (float32(move.Meta.Drain) / 100)
+		selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
+		attackPokemon.Damage(uint(selfDamage * -1))
+
+		log.Info().
+			Float32("recoilPercent", recoilPercent).
+			Uint("selfDamage", uint(selfDamage)).
+			Msg("Attack recoil")
+
+		recoilState.State = state.Clone()
+
+		recoilState.Messages = append(recoilState.Messages, fmt.Sprintf("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
+		states = append(states, recoilState)
 	}
 
 	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
