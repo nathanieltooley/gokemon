@@ -52,6 +52,30 @@ var statusTxt map[int]string = map[int]string{
 	game.STATUS_SLEEP:  "SLP",
 }
 
+var typeColors map[string]lipgloss.Color = map[string]lipgloss.Color{
+	game.TYPENAME_NORMAL:   lipgloss.Color("#99a2a5"),
+	game.TYPENAME_FIRE:     lipgloss.Color("#e31c1c"),
+	game.TYPENAME_WATER:    lipgloss.Color("#1461eb"),
+	game.TYPENAME_GRASS:    lipgloss.Color("#26bd45"),
+	game.TYPENAME_ELECTRIC: lipgloss.Color("#FFD400"),
+	game.TYPENAME_PSYCHIC:  lipgloss.Color("#dd228d"),
+	game.TYPENAME_ICE:      lipgloss.Color("#31BBCE"),
+	game.TYPENAME_DRAGON:   lipgloss.Color("#1d3be2"),
+	game.TYPENAME_DARK:     lipgloss.Color("#5c4733"),
+	game.TYPENAME_FAIRY:    lipgloss.Color("#e66fc3"),
+	game.TYPENAME_FIGHTING: lipgloss.Color("#cf8530"),
+	game.TYPENAME_FLYING:   lipgloss.Color("#51b2e8"),
+	game.TYPENAME_POISON:   lipgloss.Color("#A61AE5"),
+	game.TYPENAME_GROUND:   lipgloss.Color("#9a6b25"),
+	game.TYPENAME_ROCK:     lipgloss.Color("#d5c296"),
+	game.TYPENAME_BUG:      lipgloss.Color("#99e14b"),
+	game.TYPENAME_GHOST:    lipgloss.Color("#8606e6"),
+	// bulbapedia has this as a light blue
+	// it does look similar to normal, so maybe change?
+	// but ice and flying already have light blue
+	game.TYPENAME_STEEL: lipgloss.Color("#74868b"),
+}
+
 type playerPanel struct {
 	gameState state.GameState
 
@@ -220,7 +244,7 @@ func (m movePanel) View() string {
 			style := panelStyle.Width(20)
 
 			if arrayIndex == m.moveGridFocus {
-				style = style.Background(rendering.HighlightedColor)
+				style = style.BorderBackground(rendering.HighlightedColor)
 			}
 
 			move := m.moves[arrayIndex]
@@ -229,6 +253,12 @@ func (m movePanel) View() string {
 			} else {
 				// TODO: Fix centering issues with PP (lol)
 				ppInfo := fmt.Sprintf("%d / %d", move.PP, move.Info.PP)
+				moveColor, ok := typeColors[move.Info.Type]
+
+				if ok {
+					style = style.Background(moveColor).Foreground(rendering.BestTextColor(moveColor))
+				}
+
 				row = append(row, style.Render(lipgloss.JoinVertical(lipgloss.Center, move.Info.Name, ppInfo)))
 			}
 		}

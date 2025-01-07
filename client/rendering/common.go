@@ -28,3 +28,15 @@ func CenterBlock(block string, text string) string {
 	w, h := lipgloss.Size(block)
 	return Center(w, h, text)
 }
+
+func BestTextColor(backgroundColor lipgloss.Color) lipgloss.Color {
+	// thanks https://andrisignorell.github.io/DescTools/reference/TextContrastColor.html
+	r, g, b, _ := backgroundColor.RGBA()
+	mean := (r + g + b) / 3
+
+	if mean < 127 {
+		return lipgloss.Color("#FFFFFF")
+	} else {
+		return lipgloss.Color("#000000")
+	}
+}
