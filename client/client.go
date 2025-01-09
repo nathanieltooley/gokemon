@@ -47,6 +47,8 @@ func (m RootModel) View() string {
 }
 
 func main() {
+	global.GlobalInit()
+
 	m := RootModel{
 		// currentView: pokeselection.NewModel(basePokemon, &moves, abilities),
 		currentView: nil,

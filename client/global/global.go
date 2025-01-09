@@ -47,7 +47,7 @@ var (
 	initLogger zerolog.Logger
 )
 
-func init() {
+func GlobalInit() {
 	rollingWriter := rollingFileWriter{}
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
