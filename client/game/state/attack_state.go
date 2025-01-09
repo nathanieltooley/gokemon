@@ -105,13 +105,13 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 					affectedPokemon = defPokemon
 				}
 
-				states = append(states, statChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
+				states = append(states, StatChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
 			})
 		// Damages and then CHANGES the targets stats
 		case "damage+lower":
 			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				states = append(states, statChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
+				states = append(states, StatChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
 			})
 		// Damages and then CHANGES the user's stats
 		// this is different from what pokeapi says (raises instead of changes)
@@ -120,7 +120,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 		case "damage+raise":
 			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				states = append(states, statChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
+				states = append(states, StatChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
 			})
 		case "heal":
 			states = append(states, healHandler(&state, attackPokemon, move))
