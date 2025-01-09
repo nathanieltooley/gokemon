@@ -374,53 +374,6 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateUpdate {
 	}
 }
 
-func statChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateUpdate {
-	statCheck := rand.Intn(100)
-	if statChance == 0 {
-		statChance = 100
-	}
-
-	statChangeState := StateUpdate{}
-
-	if statCheck < statChance {
-		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did pass")
-		statChangeState.Messages = append(statChangeState.Messages, changeStat(pokemon, statChange.Stat.Name, statChange.Change)...)
-	} else {
-		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did not pass")
-	}
-
-	statChangeState.State = state.Clone()
-
-	return statChangeState
-}
-
-func changeStat(pokemon *game.Pokemon, statName string, change int) []string {
-	messages := make([]string, 0)
-
-	absChange := int(math.Abs(float64(change)))
-	if change > 0 {
-		messages = append(messages, fmt.Sprintf("%s's %s increased by %d stages!", pokemon.Nickname, statName, absChange))
-	} else {
-		messages = append(messages, fmt.Sprintf("%s's %s decreased by %d stages!", pokemon.Nickname, statName, absChange))
-	}
-
-	// sorry
-	switch statName {
-	case "attack":
-		pokemon.Attack.ChangeStat(change)
-	case "defense":
-		pokemon.Def.ChangeStat(change)
-	case "special-attack":
-		pokemon.SpAttack.ChangeStat(change)
-	case "special-defense":
-		pokemon.SpDef.ChangeStat(change)
-	case "speed":
-		pokemon.RawSpeed.ChangeStat(change)
-	}
-
-	return messages
-}
-
 func (a AttackAction) Ctx() ActionCtx {
 	return a.ctx
 }

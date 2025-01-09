@@ -356,6 +356,18 @@ func (u *LocalUpdater) SendAction(action state.Action) {
 	u.Actions = append(u.Actions, action)
 }
 
+func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateUpdate {
+	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
+
+	switch playerPokemon.Ability {
+	// TEST: no gen 1 pkm have this ability
+	case "speed-boost":
+		return []state.StateUpdate{state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100)}
+	}
+
+	return []state.StateUpdate{state.NewEmptyStateUpdate()}
+}
+
 type (
 	ForceSwitchMessage struct {
 		ForThisPlayer bool
