@@ -111,6 +111,13 @@ var StageMultipliers = map[int]float32{
 	6:  8.0 / 2.0,
 }
 
+var critStateMultipliers = map[int]float32{
+	1: 1.0 / 24.0,
+	2: 1.0 / 8.0,
+	3: 1.0 / 2.0,
+	4: 1.0,
+}
+
 func (s Stat) CalcValue() int {
 	return int(float32(s.RawValue) * StageMultipliers[s.stage])
 }
@@ -157,13 +164,14 @@ type Pokemon struct {
 	Nature             Nature
 	Ability            string
 	Item               string
-	Status             int  `json:"-"`
-	ConfusionCount     int  `json:"-"`
-	ToxicCount         int  `json:"-"`
-	SleepCount         int  `json:"-"`
-	CanAttackThisTurn  bool `json:"-"`
-	SwitchedInThisTurn bool `json:"-"`
-	InGameMoveInfo     [4]BattleMove
+	Status             int           `json:"-"`
+	ConfusionCount     int           `json:"-"`
+	ToxicCount         int           `json:"-"`
+	SleepCount         int           `json:"-"`
+	CanAttackThisTurn  bool          `json:"-"`
+	SwitchedInThisTurn bool          `json:"-"`
+	CritStage          int           `json:"-"`
+	InGameMoveInfo     [4]BattleMove `json:"-"`
 }
 
 func (p *Pokemon) ReCalcStats() {
@@ -206,6 +214,16 @@ func (p *Pokemon) Speed() int {
 		return p.RawSpeed.CalcValue() / 2
 	} else {
 		return p.RawSpeed.CalcValue()
+	}
+}
+
+func (p *Pokemon) CritChance() float32 {
+	mult, ok := critStateMultipliers[p.CritStage]
+
+	if ok {
+		return mult
+	} else {
+		return 1.0 / 24.0
 	}
 }
 

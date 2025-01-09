@@ -158,7 +158,14 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateUpdate {
 	states := make([]StateUpdate, 0)
 
-	damage := game.Damage(*attackPokemon, *defPokemon, move)
+	crit := false
+
+	if rand.Float32() < attackPokemon.CritChance() {
+		crit = true
+		log.Info().Msg("Attack crit!")
+	}
+
+	damage := game.Damage(*attackPokemon, *defPokemon, move, crit)
 	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
 
 	attackActionLogger().Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
