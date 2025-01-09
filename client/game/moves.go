@@ -17,11 +17,8 @@ type NamedApiResource struct {
 }
 
 type StatChange struct {
-	Change int
-	Stat   struct {
-		Name string
-		Url  string
-	}
+	Change   int
+	StatName string
 }
 
 // For values that are pointers, they are nullable

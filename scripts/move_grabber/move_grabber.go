@@ -10,6 +10,7 @@ import (
 
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/scripts"
+	"github.com/samber/lo"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -74,6 +75,14 @@ func (m *MoveMetaPre) ToFullMeta() (*game.MoveMeta, error) {
 	return meta, nil
 }
 
+type StatChangePre struct {
+	Change int
+	Stat   struct {
+		Name string
+		Url  string
+	}
+}
+
 // TODO: Follow all NamedApiResources and return their actual value
 type MoveFullPre struct {
 	Accuracy      int
@@ -90,7 +99,7 @@ type MoveFullPre struct {
 	Power            int
 	PP               int
 	Priority         int
-	StatChanges      []game.StatChange `json:"stat_changes"`
+	StatChanges      []StatChangePre `json:"stat_changes"`
 	Target           game.NamedApiResource
 	Type             game.NamedApiResource
 }
@@ -163,7 +172,12 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 		Power:            m.Power,
 		PP:               m.PP,
 		Priority:         m.Priority,
-		StatChanges:      m.StatChanges,
+		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) game.StatChange {
+			return game.StatChange{
+				Change:   statPre.Change,
+				StatName: statPre.Stat.Name,
+			}
+		}),
 	}
 
 	return move, nil
