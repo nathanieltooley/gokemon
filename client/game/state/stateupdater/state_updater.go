@@ -64,7 +64,8 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 				continue
 			}
 
-			moveDamage := game.Damage(*aiPokemon, *playerPokemon, move)
+			// assume no crits
+			moveDamage := game.Damage(*aiPokemon, *playerPokemon, move, false)
 			if moveDamage > bestMoveDamage {
 				bestMoveIndex = i
 				bestMove = move

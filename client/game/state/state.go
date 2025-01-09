@@ -532,7 +532,7 @@ func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
 		DamageClass: game.DAMAGETYPE_PHYSICAL,
 	}
 
-	dmg := game.Damage(*confusedPokemon, *confusedPokemon, &confMove)
+	dmg := game.Damage(*confusedPokemon, *confusedPokemon, &confMove, false)
 	confusedPokemon.Damage(dmg)
 	confusedPokemon.CanAttackThisTurn = false
 

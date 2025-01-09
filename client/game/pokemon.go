@@ -472,24 +472,29 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
+func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
-	var a, d uint                   // TODO: Add exception for Beat Up
+	var baseA, baseD uint
+	var a, d uint // TODO: Add exception for Beat Up
 	var aBoost, dBoost int
 
 	// Determine damage type
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
+		baseA = attacker.Attack.RawValue
 		a = uint(attacker.Attack.CalcValue())
 		aBoost = attacker.Attack.stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
+		baseA = attacker.SpAttack.RawValue
 		a = uint(attacker.SpAttack.CalcValue())
 		aBoost = attacker.SpAttack.stage
 	}
 
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
+		baseD = defendent.Def.RawValue
 		d = uint(defendent.Def.CalcValue())
 		dBoost = defendent.Def.stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
+		baseD = defendent.SpDef.RawValue
 		d = uint(defendent.SpDef.CalcValue())
 		dBoost = defendent.SpDef.stage
 	}
@@ -520,6 +525,15 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 		return 0
 	}
 
+	var critBoost float32 = 1
+	if crit && defendent.Ability != "battle-armor" && defendent.Ability != "shell-armor" {
+		critBoost = 1.5
+		a = baseA
+		d = baseD
+	} else if crit && (defendent.Ability == "battle-armor" || defendent.Ability == "shell-armor") {
+		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability)
+	}
+
 	// Calculate the part of the damage function in brackets
 	damageInner := ((((float32(2*attackerLevel) / 5) + 2) * float32(power) * (float32(a) / float32(d))) / 50) + 2
 	randomSpread := float32(rand.UintN(15)+85) / 100
@@ -529,7 +543,6 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 		stab = 1.5
 	}
 
-	// TODO: Add crits, exceptions for Battle Armor and Shell Armor
 	var burn float32 = 1
 	// TODO: Add exception for Guts and Facade
 	if attacker.Status == STATUS_BURN && move.DamageClass == DAMAGETYPE_PHYSICAL {
@@ -547,7 +560,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 	// and it seems that the lowest possible value in a damage range may not be able
 	// to show up as often because rounding is a bit different
 	// TODO: maybe make a custom rounding function that rounds DOWN at .5
-	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn)))
+	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn * critBoost)))
 
 	damageLogger().Debug().
 		Int("power", power).
@@ -561,6 +574,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move) uint {
 		Float32("randomSpread", randomSpread).
 		Float32("STAB", stab).
 		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
+		Float32("crit", critBoost).
 		Uint("damage", damage).
 		Msg("damage calc")
 
