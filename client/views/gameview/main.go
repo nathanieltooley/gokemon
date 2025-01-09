@@ -44,7 +44,7 @@ type MainGameModel struct {
 	startedTurnResolving bool
 
 	// Intermediate states (in between turns) that need to be displayed to the client
-	stateQueue []state.StateUpdate
+	stateQueue []state.StateSnapshot
 	// State that should be rendered when inbetween turns
 	currentRenderedState state.GameState
 	// Whether we started the state update rendering process

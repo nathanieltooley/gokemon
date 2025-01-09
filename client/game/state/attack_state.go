@@ -46,7 +46,7 @@ func NewAttackAction(attacker int, attackMove int) *AttackAction {
 	}
 }
 
-func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
+func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 	attacker := state.GetPlayer(a.ctx.PlayerId)
 	defenderInt := invertPlayerIndex(a.ctx.PlayerId)
 	defender := state.GetPlayer(defenderInt)
@@ -68,10 +68,10 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 		pp = moveVars.PP
 	}
 
-	states := make([]StateUpdate, 0)
+	states := make([]StateSnapshot, 0)
 
 	// "hack" to show this messages first
-	useMoveState := StateUpdate{}
+	useMoveState := StateSnapshot{}
 	useMoveState.State = state.Clone()
 	useMoveState.Messages = append(useMoveState.Messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
 
@@ -141,13 +141,13 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
-		states = append(states, StateUpdate{
+		states = append(states, StateSnapshot{
 			State:    state.Clone(),
 			Messages: []string{"It Missed!"},
 		})
 	}
 
-	finalState := StateUpdate{
+	finalState := StateSnapshot{
 		State: state.Clone(),
 	}
 	states = append(states, finalState)
@@ -155,8 +155,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateUpdate {
 	return states
 }
 
-func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateUpdate {
-	states := make([]StateUpdate, 0)
+func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateSnapshot {
+	states := make([]StateSnapshot, 0)
 
 	crit := false
 
@@ -175,7 +175,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	var drainedHealth uint = 0
 
 	if move.Meta.Drain > 0 {
-		drainState := StateUpdate{}
+		drainState := StateSnapshot{}
 
 		cappedDamage := math.Min(float64(defPokemon.Hp.Value), float64(damage))
 
@@ -199,7 +199,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	}
 
 	if move.Meta.Drain < 0 {
-		recoilState := StateUpdate{}
+		recoilState := StateSnapshot{}
 		recoilPercent := (float32(move.Meta.Drain) / 100)
 		selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
 		attackPokemon.Damage(uint(selfDamage * -1))
@@ -229,7 +229,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 		effectivenessText = "It had no effect"
 	}
 
-	damageState := StateUpdate{}
+	damageState := StateSnapshot{}
 	damageState.State = state.Clone()
 
 	damageState.Messages = append(damageState.Messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
@@ -243,8 +243,8 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	return states
 }
 
-func ohkoHandler(state *GameState, defPokemon *game.Pokemon) StateUpdate {
-	ohkoState := StateUpdate{}
+func ohkoHandler(state *GameState, defPokemon *game.Pokemon) StateSnapshot {
+	ohkoState := StateSnapshot{}
 	defPokemon.Damage(defPokemon.Hp.Value)
 
 	randCheck := rand.Float64()
@@ -259,7 +259,7 @@ func ohkoHandler(state *GameState, defPokemon *game.Pokemon) StateUpdate {
 	return ohkoState
 }
 
-func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move) StateUpdate {
+func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move) StateSnapshot {
 	ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	if ok && defPokemon.Status == game.STATUS_NONE {
 		ailmentCheck := rand.Intn(100)
@@ -327,13 +327,13 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move)
 		}
 	}
 
-	return StateUpdate{
+	return StateSnapshot{
 		State: state.Clone(),
 	}
 }
 
-func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move) StateUpdate {
-	healState := StateUpdate{}
+func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move) StateSnapshot {
+	healState := StateSnapshot{}
 
 	healPercent := float32(move.Meta.Healing) / 100
 	healAmount := float32(attackPokemon.MaxHp) * healPercent
@@ -347,7 +347,7 @@ func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move)
 	return healState
 }
 
-func forceSwitchHandler(state *GameState, defPlayer *Player) StateUpdate {
+func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 	// since the active pokemon is determined by the position
 	// of the pokemon in the Player.Team slice, we have to store
 	// that position which makes this clunky
@@ -375,7 +375,7 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateUpdate {
 	defPlayer.GetActivePokemon().SwitchedInThisTurn = true
 	defPlayer.GetActivePokemon().CanAttackThisTurn = false
 
-	return StateUpdate{
+	return StateSnapshot{
 		State:    state.Clone(),
 		Messages: []string{fmt.Sprintf("%s was forced to switch out", ogPokemonName)},
 	}

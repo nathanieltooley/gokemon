@@ -20,7 +20,7 @@ type StateUpdater interface {
 	SendAction(state.Action)
 }
 
-func syncState(mainState *state.GameState, newStates []state.StateUpdate) []state.StateUpdate {
+func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []state.StateSnapshot {
 	finalState := *mainState
 
 	// get first (from end) non-empty state
@@ -28,7 +28,7 @@ func syncState(mainState *state.GameState, newStates []state.StateUpdate) []stat
 	// the UI is what's interested in the intermediate states
 	for i := len(newStates) - 1; i >= 0; i-- {
 		s := newStates[i]
-		if !s.Empty {
+		if !s.Empty && !s.MessagesOnly {
 			finalState = s.State
 			break
 		}
@@ -37,9 +37,33 @@ func syncState(mainState *state.GameState, newStates []state.StateUpdate) []stat
 	// Clone here because of slices
 	*mainState = finalState.Clone()
 
+	return newStates
+}
+
+func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 	// Ignore empty state updates
-	return lo.Filter(newStates, func(s state.StateUpdate, _ int) bool {
+	snaps = lo.Filter(snaps, func(s state.StateSnapshot, _ int) bool {
 		return !s.Empty
+	})
+
+	if len(snaps) <= 1 {
+		return snaps
+	}
+
+	// if a snapshot only contains messages, append them to the last real snapshot
+	previousSnap := &snaps[0]
+	for i := 1; i < len(snaps); i++ {
+		currentSnap := snaps[i]
+		if currentSnap.MessagesOnly {
+			previousSnap.Messages = append(previousSnap.Messages, currentSnap.Messages...)
+		} else {
+			previousSnap = &snaps[i]
+		}
+	}
+
+	// Get rid of message only snapshots
+	return lo.Filter(snaps, func(s state.StateSnapshot, _ int) bool {
+		return !s.MessagesOnly
 	})
 }
 
@@ -102,7 +126,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	switches := make([]state.SwitchAction, 0)
 	otherActions := make([]state.Action, 0)
 
-	states := make([]state.StateUpdate, 0)
+	states := make([]state.StateSnapshot, 0)
 
 	for _, a := range u.Actions {
 		switch a := a.(type) {
@@ -140,7 +164,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		return func() tea.Msg {
 			time.Sleep(time.Second * 1)
 
-			messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {
+			messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
 				return item.Messages
 			})
 
@@ -150,7 +174,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
 			return TurnResolvedMessage{
-				StateUpdates: states,
+				StateUpdates: cleanStateSnapshots(states),
 			}
 		}
 	} else {
@@ -332,7 +356,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		applyToxic(state.AI)
 	}
 
-	messages := lo.FlatMap(states, func(item state.StateUpdate, i int) []string {
+	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
 		return item.Messages
 	})
 
@@ -348,7 +372,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		gameState.Turn++
 
 		return TurnResolvedMessage{
-			StateUpdates: states,
+			StateUpdates: cleanStateSnapshots(states),
 		}
 	}
 }
@@ -357,25 +381,25 @@ func (u *LocalUpdater) SendAction(action state.Action) {
 	u.Actions = append(u.Actions, action)
 }
 
-func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateUpdate {
+func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSnapshot {
 	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
 
 	switch playerPokemon.Ability {
 	// TEST: no gen 1 pkm have this ability
 	case "speed-boost":
-		return []state.StateUpdate{state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100)}
+		return []state.StateSnapshot{state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100)}
 	}
 
-	return []state.StateUpdate{state.NewEmptyStateUpdate()}
+	return []state.StateSnapshot{state.NewEmptyStateSnapshot()}
 }
 
 type (
 	ForceSwitchMessage struct {
 		ForThisPlayer bool
-		StateUpdates  []state.StateUpdate
+		StateUpdates  []state.StateSnapshot
 	}
 	TurnResolvedMessage struct {
-		StateUpdates []state.StateUpdate
+		StateUpdates []state.StateSnapshot
 	}
 	GameOverMessage struct {
 		ForThisPlayer bool

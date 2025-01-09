@@ -9,13 +9,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func StatChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateUpdate {
+func StatChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateSnapshot {
 	statCheck := rand.Intn(100)
 	if statChance == 0 {
 		statChance = 100
 	}
 
-	statChangeState := StateUpdate{}
+	statChangeState := StateSnapshot{}
 
 	if statCheck < statChance {
 		log.Info().Int("statChance", statChance).Int("statCheck", statCheck).Msg("Stat change did pass")

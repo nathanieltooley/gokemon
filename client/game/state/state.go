@@ -205,21 +205,31 @@ func NewActionCtx(playerId int) ActionCtx {
 	return ActionCtx{PlayerId: playerId}
 }
 
-type StateUpdate struct {
+type StateSnapshot struct {
 	// The resulting state from a given action
 	State GameState
 	// The messages that communicate what happened
 	Messages []string
-	Empty    bool
+	// hack for an optional value without using pointers
+	Empty bool
+	// hack for messages that don't have any direct state changes
+	MessagesOnly bool
 }
 
-func NewEmptyStateUpdate() StateUpdate {
-	return StateUpdate{Empty: true}
+func NewEmptyStateSnapshot() StateSnapshot {
+	return StateSnapshot{Empty: true}
+}
+
+func NewMessageOnlySnapshot(messages []string) StateSnapshot {
+	return StateSnapshot{
+		Messages:     messages,
+		MessagesOnly: true,
+	}
 }
 
 type Action interface {
 	// Takes in a state and returns a new state and messages that communicate what happened
-	UpdateState(GameState) []StateUpdate
+	UpdateState(GameState) []StateSnapshot
 
 	Ctx() ActionCtx
 }
@@ -241,7 +251,7 @@ func NewSwitchAction(state *GameState, playerId int, switchIndex int) *SwitchAct
 	}
 }
 
-func (a *SwitchAction) UpdateState(state GameState) []StateUpdate {
+func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), a.SwitchIndex)
 	// TODO: OOB Check
@@ -258,7 +268,7 @@ func (a *SwitchAction) UpdateState(state GameState) []StateUpdate {
 	newActivePkm.SwitchedInThisTurn = true
 
 	messages := []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: messages,
@@ -288,8 +298,8 @@ func NewSkipAction(playerId int) *SkipAction {
 	}
 }
 
-func (a *SkipAction) UpdateState(state GameState) []StateUpdate {
-	return []StateUpdate{
+func (a *SkipAction) UpdateState(state GameState) []StateSnapshot {
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("Player %d skipped their turn", a.ctx.PlayerId)},
@@ -311,7 +321,7 @@ func NewSleepAction(playerId int) *SleepAction {
 	}
 }
 
-func (a SleepAction) UpdateState(state GameState) []StateUpdate {
+func (a SleepAction) UpdateState(state GameState) []StateSnapshot {
 	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
 	message := ""
@@ -329,7 +339,7 @@ func (a SleepAction) UpdateState(state GameState) []StateUpdate {
 
 	pokemon.SleepCount--
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{message},
@@ -347,7 +357,7 @@ func NewParaAction(playerId int) *ParaAction {
 	}
 }
 
-func (a ParaAction) UpdateState(state GameState) []StateUpdate {
+func (a ParaAction) UpdateState(state GameState) []StateSnapshot {
 	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
 	paraChance := 0.5
@@ -356,14 +366,14 @@ func (a ParaAction) UpdateState(state GameState) []StateUpdate {
 	if paraCheck > paraChance {
 		// don't get para'd
 		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check passed")
-		return []StateUpdate{NewEmptyStateUpdate()}
+		return []StateSnapshot{NewEmptyStateSnapshot()}
 	} else {
 		// do get para'd
 		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
 		pokemon.CanAttackThisTurn = false
 	}
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("Player %d's pokemon is paralyzed and cannot move", a.ctx.PlayerId)},
@@ -381,7 +391,7 @@ func NewBurnAction(playerId int) *BurnAction {
 	}
 }
 
-func (a BurnAction) UpdateState(state GameState) []StateUpdate {
+func (a BurnAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	pokemon := player.GetActivePokemon()
 
@@ -389,7 +399,7 @@ func (a BurnAction) UpdateState(state GameState) []StateUpdate {
 	pokemon.Damage(damage)
 	damagePercent := uint((float32(damage) / float32(pokemon.MaxHp)) * 100)
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("%s pokemon is burned", pokemon.Nickname), fmt.Sprintf("Burn did %d%% damage", damagePercent)},
@@ -407,7 +417,7 @@ func NewPoisonAction(playerId int) *PoisonAction {
 	}
 }
 
-func (a PoisonAction) UpdateState(state GameState) []StateUpdate {
+func (a PoisonAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	pokemon := player.GetActivePokemon()
 
@@ -416,7 +426,7 @@ func (a PoisonAction) UpdateState(state GameState) []StateUpdate {
 	pokemon.Damage(damage)
 	damagePercent := uint((float32(damage) / float32(pokemon.MaxHp)) * 100)
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("%s is poisoned", pokemon.Nickname), fmt.Sprintf("Poison did %d%% damage", damagePercent)},
@@ -434,7 +444,7 @@ func NewToxicAction(playerId int) *ToxicAction {
 	}
 }
 
-func (a ToxicAction) UpdateState(state GameState) []StateUpdate {
+func (a ToxicAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	pokemon := player.GetActivePokemon()
 
@@ -446,7 +456,7 @@ func (a ToxicAction) UpdateState(state GameState) []StateUpdate {
 
 	pokemon.ToxicCount++
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("%s is badly poisoned", pokemon.Nickname), fmt.Sprintf("Toxic did %d%% damage", damagePercent)},
@@ -464,7 +474,7 @@ func NewFrozenAction(playerId int) *FrozenAction {
 	}
 }
 
-func (a FrozenAction) UpdateState(state GameState) []StateUpdate {
+func (a FrozenAction) UpdateState(state GameState) []StateSnapshot {
 	pokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
 	thawChance := .20
@@ -486,7 +496,7 @@ func (a FrozenAction) UpdateState(state GameState) []StateUpdate {
 		pokemon.CanAttackThisTurn = true
 	}
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{message},
@@ -504,7 +514,7 @@ func NewConfusionAction(playerId int) *ConfusionAction {
 	}
 }
 
-func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
+func (a ConfusionAction) UpdateState(state GameState) []StateSnapshot {
 	confusedPokemon := state.GetPlayer(a.ctx.PlayerId).GetActivePokemon()
 
 	confusedPokemon.ConfusionCount--
@@ -515,7 +525,7 @@ func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
 
 	// Exit early
 	if confCheck > confChance {
-		return []StateUpdate{NewEmptyStateUpdate()}
+		return []StateSnapshot{NewEmptyStateSnapshot()}
 	}
 
 	confMove := game.Move{
@@ -538,7 +548,7 @@ func (a ConfusionAction) UpdateState(state GameState) []StateUpdate {
 
 	log.Info().Uint("damage", dmg).Msgf("%s hit itself in confusion", confusedPokemon.Nickname)
 
-	return []StateUpdate{
+	return []StateSnapshot{
 		{
 			State:    state,
 			Messages: []string{fmt.Sprintf("%s hurt itself in confusion", confusedPokemon.Nickname)},
