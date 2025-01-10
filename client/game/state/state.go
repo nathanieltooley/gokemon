@@ -220,7 +220,7 @@ func NewEmptyStateSnapshot() StateSnapshot {
 	return StateSnapshot{Empty: true}
 }
 
-func NewMessageOnlySnapshot(messages []string) StateSnapshot {
+func NewMessageOnlySnapshot(messages ...string) StateSnapshot {
 	return StateSnapshot{
 		Messages:     messages,
 		MessagesOnly: true,
