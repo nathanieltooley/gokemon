@@ -162,7 +162,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 
 	if rand.Float32() < attackPokemon.CritChance() {
 		crit = true
-		log.Info().Msg("Attack crit!")
+		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
 	}
 
 	damage := game.Damage(*attackPokemon, *defPokemon, move, crit)
