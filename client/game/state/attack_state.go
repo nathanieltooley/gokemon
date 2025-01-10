@@ -172,7 +172,6 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	attackPercent := uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
 
 	damageState := StateSnapshot{}
-	damageState.State = state.Clone()
 
 	if crit {
 		damageState.Messages = append(damageState.Messages, fmt.Sprintf("%s critically hit!", attackPokemon.Nickname))
@@ -181,6 +180,8 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 
 	defPokemon.Damage(damage)
 	var drainedHealth uint = 0
+
+	damageState.State = state.Clone()
 
 	states = append(states, damageState)
 
@@ -231,16 +232,16 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 
 	effectivenessText := ""
 
-	if effectivenessText != "" {
-		states = append(states, NewMessageOnlySnapshot(effectivenessText))
-	}
-
 	if effectiveness >= 2 {
 		effectivenessText = "It was super effective!"
 	} else if effectiveness <= 0.5 {
 		effectivenessText = "It was not very effective"
 	} else if effectiveness == 0 {
 		effectivenessText = "It had no effect"
+	}
+
+	if effectivenessText != "" {
+		states = append(states, NewMessageOnlySnapshot(effectivenessText))
 	}
 
 	return states
