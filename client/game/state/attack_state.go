@@ -232,6 +232,9 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	damageState := StateSnapshot{}
 	damageState.State = state.Clone()
 
+	if crit {
+		damageState.Messages = append(damageState.Messages, fmt.Sprintf("%s critically hit!", attackPokemon.Nickname))
+	}
 	damageState.Messages = append(damageState.Messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
 
 	if effectivenessText != "" {
