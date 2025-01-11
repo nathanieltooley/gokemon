@@ -259,7 +259,9 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				Msg("Attack state update")
 
 			pokemon := player.GetActivePokemon()
-			pokemon.CanAttackThisTurn = !pokemon.SwitchedInThisTurn
+			if pokemon.CanAttackThisTurn {
+				pokemon.CanAttackThisTurn = !pokemon.SwitchedInThisTurn
+			}
 
 			if !pokemon.Alive() {
 				return
