@@ -269,28 +269,24 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			// Skip attack with para
 			if pokemon.Status == game.STATUS_PARA {
-				para := state.NewParaAction(a.Ctx().PlayerId)
-				states = append(states, syncState(gameState, para.UpdateState(*gameState))...)
+				states = append(states, state.ParaHandler(gameState, pokemon))
 			}
 
 			// Skip attack with sleep
 			if pokemon.Status == game.STATUS_SLEEP {
-				sleep := state.NewSleepAction(a.Ctx().PlayerId)
-				states = append(states, syncState(gameState, sleep.UpdateState(*gameState))...)
+				states = append(states, state.SleepHandler(gameState, pokemon))
 			}
 
 			// Skip attack with frozen
 			if pokemon.Status == game.STATUS_FROZEN {
-				frozen := state.NewFrozenAction(a.Ctx().PlayerId)
-				states = append(states, syncState(gameState, frozen.UpdateState(*gameState))...)
+				states = append(states, state.FreezeHandler(gameState, pokemon))
 			}
 
 			// Skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
-				conf := state.NewConfusionAction(a.Ctx().PlayerId)
-				states = append(states, syncState(gameState, conf.UpdateState(*gameState))...)
-
+				states = append(states, state.ConfuseHandler(gameState, pokemon))
 				pokemon.ConfusionCount--
+
 				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
@@ -347,37 +343,36 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 	}
 
-	applyBurn := func(playerId int) {
-		burn := state.NewBurnAction(playerId)
-		states = append(states, syncState(gameState, burn.UpdateState(*gameState))...)
+	applyBurn := func(pokemon *game.Pokemon) {
+		states = append(states, state.BurnHandler(gameState, pokemon))
 	}
 
-	applyPoison := func(playerId int) {
-		poison := state.NewPoisonAction(playerId)
-		states = append(states, syncState(gameState, poison.UpdateState(*gameState))...)
+	applyPoison := func(pokemon *game.Pokemon) {
+		states = append(states, state.PoisonHandler(gameState, pokemon))
 	}
 
-	applyToxic := func(playerId int) {
-		poison := state.NewToxicAction(playerId)
-		states = append(states, syncState(gameState, poison.UpdateState(*gameState))...)
+	applyToxic := func(pokemon *game.Pokemon) {
+		states = append(states, state.ToxicHandler(gameState, pokemon))
 	}
 
-	switch gameState.LocalPlayer.GetActivePokemon().Status {
+	localPokemon := gameState.LocalPlayer.GetActivePokemon()
+	switch localPokemon.Status {
 	case game.STATUS_BURN:
-		applyBurn(state.PLAYER)
+		applyBurn(localPokemon)
 	case game.STATUS_POISON:
-		applyPoison(state.PLAYER)
+		applyPoison(localPokemon)
 	case game.STATUS_TOXIC:
-		applyToxic(state.PLAYER)
+		applyToxic(localPokemon)
 	}
 
-	switch gameState.OpposingPlayer.GetActivePokemon().Status {
+	opPokemon := gameState.OpposingPlayer.GetActivePokemon()
+	switch opPokemon.Status {
 	case game.STATUS_BURN:
-		applyBurn(state.AI)
+		applyBurn(opPokemon)
 	case game.STATUS_POISON:
-		applyPoison(state.AI)
+		applyPoison(opPokemon)
 	case game.STATUS_TOXIC:
-		applyToxic(state.AI)
+		applyToxic(opPokemon)
 	}
 
 	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
