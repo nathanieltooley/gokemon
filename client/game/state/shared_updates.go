@@ -9,6 +9,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	STAT_ATTACK   = "attack"
+	STAT_DEFENSE  = "defense"
+	STAT_SPATTACK = "special-attack"
+	STAT_SPDEF    = "special-defense"
+	STAT_SPEED    = "speed"
+)
+
 func StatChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateSnapshot {
 	statCheck := rand.Intn(100)
 	if statChance == 0 {
@@ -56,10 +64,10 @@ func ChangeStat(pokemon *game.Pokemon, statName string, change int) []string {
 	return messages
 }
 
-const (
-	STAT_ATTACK   = "attack"
-	STAT_DEFENSE  = "defense"
-	STAT_SPATTACK = "special-attack"
-	STAT_SPDEF    = "special-defense"
-	STAT_SPEED    = "speed"
-)
+func FlinchHandler(state *GameState, pokemon *game.Pokemon) StateSnapshot {
+	pokemon.CanAttackThisTurn = false
+	return StateSnapshot{
+		State:    state.Clone(),
+		Messages: []string{fmt.Sprintf("%s flinched!", pokemon.Nickname)},
+	}
+}
