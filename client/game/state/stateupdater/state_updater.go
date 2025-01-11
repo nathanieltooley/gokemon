@@ -193,19 +193,31 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	slices.SortFunc(otherActions, func(a, b state.Action) int {
 		var aSpeed int
 		var bSpeed int
+		var aPriority int
+		var bPriority int
+
+		activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
+		aSpeed = activePokemon.Speed()
 
 		switch a := a.(type) {
-		case *state.AttackAction, *state.SkipAction:
-			activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
-			aSpeed = activePokemon.Speed()
+		case *state.AttackAction:
+			move := activePokemon.Moves[a.AttackerMove]
+			aPriority = move.Priority
+		case *state.SkipAction:
+			aPriority = -100
 		default:
 			return 0
 		}
 
+		activePokemon = gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
+		bSpeed = activePokemon.Speed()
+
 		switch b := b.(type) {
-		case *state.AttackAction, *state.SkipAction:
-			activePokemon := gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
-			bSpeed = activePokemon.Speed()
+		case *state.AttackAction:
+			move := activePokemon.Moves[b.AttackerMove]
+			bPriority = move.Priority
+		case *state.SkipAction:
+			bPriority = -100
 		default:
 			return 0
 		}
@@ -215,10 +227,20 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 			Int("bPlayer", b.Ctx().PlayerId).
 			Int("aSpeed", aSpeed).
 			Int("bSpeed", bSpeed).
+			Int("aPriority", aPriority).
+			Int("bPriority", bPriority).
 			Int("comp", cmp.Compare(aSpeed, bSpeed)).
+			Int("compPriority", cmp.Compare(aPriority, bPriority)).
 			Msg("sort debug")
 
-		return cmp.Compare(aSpeed, bSpeed)
+		priorComp := cmp.Compare(aPriority, bPriority)
+		speedComp := cmp.Compare(aSpeed, bSpeed)
+
+		if priorComp == 0 {
+			return speedComp
+		} else {
+			return priorComp
+		}
 	})
 
 	// Reverse for desc order
