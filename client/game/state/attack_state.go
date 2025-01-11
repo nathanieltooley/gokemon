@@ -70,7 +70,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	states := make([]StateSnapshot, 0)
 
-	// "hack" to show this messages first
+	// "hack" to show this message first
 	useMoveState := StateSnapshot{}
 	useMoveState.State = state.Clone()
 	useMoveState.Messages = append(useMoveState.Messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
@@ -130,6 +130,10 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 			states = append(states, forceSwitchHandler(&state, defender))
 		default:
 			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
+		}
+
+		if rand.Intn(100) < move.Meta.FlinchChance {
+			states = append(states, FlinchHandler(&state, defPokemon))
 		}
 
 		if a.AttackerMove != -1 {
