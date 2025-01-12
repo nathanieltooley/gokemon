@@ -125,7 +125,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 		case "heal":
 			states = append(states, healHandler(&state, attackPokemon, move))
 		case "ohko":
-			states = append(states, ohkoHandler(&state, defPokemon))
+			states = append(states, ohkoHandler(&state, attackPokemon, defPokemon))
 		case "force-switch":
 			states = append(states, forceSwitchHandler(&state, defender))
 		default:
@@ -251,8 +251,15 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	return states
 }
 
-func ohkoHandler(state *GameState, defPokemon *game.Pokemon) StateSnapshot {
+func ohkoHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon) StateSnapshot {
 	ohkoState := StateSnapshot{}
+
+	if defPokemon.Level > attackPokemon.Level {
+		ohkoState.Messages = append(ohkoState.Messages, "It failed!. Opponent's level is too high!")
+		ohkoState.MessagesOnly = true
+		return ohkoState
+	}
+
 	defPokemon.Damage(defPokemon.Hp.Value)
 
 	randCheck := rand.Float64()
