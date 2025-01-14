@@ -120,6 +120,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	artificalDelay := time.Second * 2
 
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
+	// probably a better expression for this
 	if !u.playerNeedsToSwitch && !u.aiNeedsToSwitch || !u.playerNeedsToSwitch && u.aiNeedsToSwitch {
 		u.Actions = append(u.Actions, u.BestAiAction(gameState))
 	}
@@ -153,7 +154,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 	})
 
-	// Handle forced switches from pkm death
+	// Properly end turn after force switches are dealt with
 	if u.playerNeedsToSwitch || u.aiNeedsToSwitch {
 		u.Actions = make([]state.Action, 0)
 
@@ -331,7 +332,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			return ForceSwitchMessage{
 				ForThisPlayer: true,
-				StateUpdates:  states,
+				StateUpdates:  cleanStateSnapshots(states),
 			}
 		}
 	}
@@ -343,7 +344,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 			return ForceSwitchMessage{
 				ForThisPlayer: false,
-				StateUpdates:  states,
+				StateUpdates:  cleanStateSnapshots(states),
 			}
 		}
 	}
