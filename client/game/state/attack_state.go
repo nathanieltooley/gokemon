@@ -170,6 +170,15 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	}
 
 	damage := game.Damage(*attackPokemon, *defPokemon, move, crit)
+
+	if defPokemon.Ability == "sturdy" {
+		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {
+			// set the defending pokemon's hp to 1
+			damage = defPokemon.MaxHp - 1
+			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s activated sturdy and held on!", defPokemon.Nickname)))
+		}
+	}
+
 	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
 
 	attackActionLogger().Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
