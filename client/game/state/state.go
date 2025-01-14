@@ -266,7 +266,7 @@ func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 
 	newActivePkm.SwitchedInThisTurn = true
 
-	messages := []string{fmt.Sprintf("Player %d switched to pokemon %d", a.ctx.PlayerId, a.SwitchIndex)}
+	messages := []string{fmt.Sprintf("Player %d switched to %s", a.ctx.PlayerId, newActivePkm.Nickname)}
 	return []StateSnapshot{
 		{
 			State:    state,
