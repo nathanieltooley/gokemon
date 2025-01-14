@@ -215,6 +215,10 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 		switch b := b.(type) {
 		case *state.AttackAction:
+			if b.AttackerMove < 0 || b.AttackerMove >= len(activePokemon.Moves) {
+				return 0
+			}
+
 			move := activePokemon.Moves[b.AttackerMove]
 			bPriority = move.Priority
 		case *state.SkipAction:
