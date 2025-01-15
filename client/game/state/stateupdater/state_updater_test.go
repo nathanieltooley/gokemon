@@ -14,7 +14,7 @@ func TestSnapClean(t *testing.T) {
 			State: state.NewState(make([]game.Pokemon, 0), make([]game.Pokemon, 0)),
 		},
 		state.NewEmptyStateSnapshot(),
-		state.NewMessageOnlySnapshot([]string{"Hello World!"}),
+		state.NewMessageOnlySnapshot("Hello World!"),
 	}
 
 	newSnaps := cleanStateSnapshots(snaps)
