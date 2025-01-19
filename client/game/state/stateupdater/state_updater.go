@@ -296,6 +296,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
+			endOfTurnAbilities(gameState, a.Ctx().PlayerId)
+
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 			}
