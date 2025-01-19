@@ -549,12 +549,12 @@ type abilityEditor struct {
 	abilityListModel list.Model
 }
 
-type abilityItem string
+type abilityItem game.Ability
 
-func (a abilityItem) FilterValue() string { return string(a) }
-func (a abilityItem) Value() string       { return string(a) }
+func (a abilityItem) FilterValue() string { return a.Name }
+func (a abilityItem) Value() string       { return a.Name }
 
-func newAbilityEditor(validAbilities []string) abilityEditor {
+func newAbilityEditor(validAbilities []game.Ability) abilityEditor {
 	items := make([]list.Item, len(validAbilities))
 	for i, ability := range validAbilities {
 		items[i] = abilityItem(ability)
@@ -577,7 +577,7 @@ func (e abilityEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			ability := e.abilityListModel.VisibleItems()[e.abilityListModel.Index()].(abilityItem)
-			rootModel.currentPokemon.Ability = string(ability)
+			rootModel.currentPokemon.Ability = game.Ability(ability)
 		}
 	}
 

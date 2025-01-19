@@ -22,7 +22,7 @@ var (
 
 	POKEMON   reg.PokemonRegistry
 	MOVES     *reg.MoveRegistry
-	ABILITIES map[string][]string
+	ABILITIES map[string][]game.Ability
 	ITEMS     []string
 
 	SelectKey = key.NewBinding(
@@ -189,7 +189,7 @@ func loadMoves() *reg.MoveRegistry {
 	return moveRegistry
 }
 
-func loadAbilities() map[string][]string {
+func loadAbilities() map[string][]game.Ability {
 	abilityFile := "./data/abilities.json"
 	file, err := os.Open(abilityFile)
 	if err != nil {
@@ -203,7 +203,7 @@ func loadAbilities() map[string][]string {
 		initLogger.Fatal().Err(err).Msg("Couldn't read abilities file")
 	}
 
-	abilityMap := make(map[string][]string)
+	abilityMap := make(map[string][]game.Ability)
 	if err := json.Unmarshal(fileData, &abilityMap); err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't unmarshal ability data")
 	}

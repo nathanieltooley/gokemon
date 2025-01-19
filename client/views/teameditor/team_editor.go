@@ -13,7 +13,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/reg"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
@@ -92,8 +91,6 @@ type (
 		ctx *teamEditorCtx
 
 		editorModels       [len(editors)]editor
-		moveRegistry       *reg.MoveRegistry
-		abilities          map[string][]string
 		currentPokemon     *game.Pokemon
 		currentEditorIndex int
 	}
@@ -260,8 +257,6 @@ func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editP
 	return editPokemonModel{
 		ctx: ctx,
 
-		moveRegistry:   global.MOVES,
-		abilities:      global.ABILITIES,
 		currentPokemon: currentPokemon,
 		editorModels:   editorModels,
 	}
@@ -337,7 +332,7 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.RawSpeed.Ev,
 
 		typeString,
-		m.currentPokemon.Ability,
+		m.currentPokemon.Ability.Name,
 		m.currentPokemon.Item,
 		m.currentPokemon.Nature.Name,
 

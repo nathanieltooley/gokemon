@@ -411,9 +411,9 @@ func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSna
 
 	states := make([]state.StateSnapshot, 0)
 
-	abilityText := fmt.Sprintf("%s activated their ability: %s", playerPokemon.Nickname, playerPokemon.Ability)
+	abilityText := fmt.Sprintf("%s activated their ability: %s", playerPokemon.Nickname, playerPokemon.Ability.Name)
 
-	switch playerPokemon.Ability {
+	switch playerPokemon.Ability.Name {
 	// TEST: no gen 1 pkm have this ability
 	case "speed-boost":
 		states = append(states, state.NewMessageOnlySnapshot(abilityText))

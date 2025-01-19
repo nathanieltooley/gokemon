@@ -166,7 +166,7 @@ type Pokemon struct {
 	RawSpeed           Stat
 	Moves              [4]*Move
 	Nature             Nature
-	Ability            string
+	Ability            Ability
 	Item               string
 	Status             int           `json:"-"`
 	ConfusionCount     int           `json:"-"`
@@ -402,7 +402,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 	return pb
 }
 
-func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []string) *PokemonBuilder {
+func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *PokemonBuilder {
 	if len(possibleAbilities) == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available abilities to randomize with!")
 		return pb
@@ -553,12 +553,12 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool) uint {
 	}
 
 	var critBoost float32 = 1
-	if crit && defendent.Ability != "battle-armor" && defendent.Ability != "shell-armor" {
+	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5
 		a = baseA
 		d = baseD
-	} else if crit && (defendent.Ability == "battle-armor" || defendent.Ability == "shell-armor") {
-		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability)
+	} else if crit && (defendent.Ability.Name == "battle-armor" || defendent.Ability.Name == "shell-armor") {
+		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability.Name)
 	}
 
 	// Calculate the part of the damage function in brackets

@@ -18,9 +18,10 @@ type Response struct {
 	Results  []game.NamedApiResource
 }
 
-type Ability struct {
-	Name    string
-	Pokemon []struct {
+type PreAbility struct {
+	Name     string
+	IsHidden bool `json:"is_hidden"`
+	Pokemon  []struct {
 		Pokemon struct {
 			Name string
 		}
@@ -58,11 +59,11 @@ func main() {
 		}
 	}
 
-	abilites := make([]Ability, len(abilitiesNR))
+	abilites := make([]PreAbility, len(abilitiesNR))
 
 	for i, nrAbility := range abilitiesNR {
 		log.Printf("Getting Pokemon who have ability: %s\n", nrAbility.Name)
-		ability, err := scripts.FollowNamedResource[Ability](nrAbility)
+		ability, err := scripts.FollowNamedResource[PreAbility](nrAbility)
 		if err != nil {
 			panic(err)
 		}
@@ -70,16 +71,21 @@ func main() {
 		abilites[i] = ability
 	}
 
-	abilityMap := make(map[string][]string)
+	abilityMap := make(map[string][]game.Ability)
 
 	for _, ability := range abilites {
 		for _, pokemon := range ability.Pokemon {
 			pokemonAbilities, ok := abilityMap[pokemon.Pokemon.Name]
 
+			finalAbility := game.Ability{
+				Name:     ability.Name,
+				IsHidden: ability.IsHidden,
+			}
+
 			if ok {
-				abilityMap[pokemon.Pokemon.Name] = append(pokemonAbilities, ability.Name)
+				abilityMap[pokemon.Pokemon.Name] = append(pokemonAbilities, finalAbility)
 			} else {
-				abilityMap[pokemon.Pokemon.Name] = []string{ability.Name}
+				abilityMap[pokemon.Pokemon.Name] = []game.Ability{finalAbility}
 			}
 		}
 	}

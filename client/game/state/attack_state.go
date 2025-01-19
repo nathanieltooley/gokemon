@@ -92,7 +92,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 		defImmune := false
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == game.TYPENAME_ELECTRIC && defPokemon.Ability == "volt-absorb" {
+		if move.Type == game.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
 			states = append(states, NewMessageOnlySnapshot(
 				fmt.Sprintf("%s activated volt absorb!", defPokemon.Nickname),
 				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
@@ -103,7 +103,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 		}
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == game.TYPENAME_WATER && defPokemon.Ability == "water-absorb" {
+		if move.Type == game.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
 			states = append(states, NewMessageOnlySnapshot(
 				fmt.Sprintf("%s activated Water Absorb!", defPokemon.Nickname),
 				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
@@ -197,7 +197,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 
 	damage := game.Damage(*attackPokemon, *defPokemon, move, crit)
 
-	if defPokemon.Ability == "sturdy" {
+	if defPokemon.Ability.Name == "sturdy" {
 		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {
 			// set the defending pokemon's hp to 1
 			damage = defPokemon.MaxHp - 1
