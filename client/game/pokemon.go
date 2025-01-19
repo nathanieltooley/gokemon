@@ -455,7 +455,7 @@ func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	evTotal := hp + attack + def + spAttack + spDef + speed
 
 	if evTotal > MAX_TOTAL_EV {
-		return evs, err.New(fmt.Sprintf("stat total (%d) is greater than the max allowed: %d\n", evTotal, MAX_TOTAL_EV))
+		return evs, fmt.Errorf("stat total (%d) is greater than the max allowed: %d", evTotal, MAX_TOTAL_EV)
 	}
 
 	evs[0] = uint8(hp)
