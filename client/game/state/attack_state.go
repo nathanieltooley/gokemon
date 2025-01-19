@@ -89,47 +89,73 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 		// - swagger
 		// - unique
 
-		switch move.Meta.Category.Name {
-		case "damage", "damage+heal":
-			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-		case "ailment":
-			ailmentHandler(&state, defPokemon, move)
-		case "damage+ailment":
-			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-			ailmentHandler(&state, defPokemon, move)
-		case "net-good-stats":
-			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				// since its "net-good-stats", the stat change always has to benefit the user
-				affectedPokemon := attackPokemon
-				if statChange.Change < 0 {
-					affectedPokemon = defPokemon
-				}
+		defImmune := false
 
-				states = append(states, StatChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
-			})
-		// Damages and then CHANGES the targets stats
-		case "damage+lower":
-			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				states = append(states, StatChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
-			})
-		// Damages and then CHANGES the user's stats
-		// this is different from what pokeapi says (raises instead of changes)
-		// and this is important because moves like draco-meteor and overheat
-		// lower the user's stats but are in this category
-		case "damage+raise":
-			states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-			lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
-				states = append(states, StatChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
-			})
-		case "heal":
-			states = append(states, healHandler(&state, attackPokemon, move))
-		case "ohko":
-			states = append(states, ohkoHandler(&state, attackPokemon, defPokemon))
-		case "force-switch":
-			states = append(states, forceSwitchHandler(&state, defender))
-		default:
-			attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
+		// TODO: This doesn't activate through protect!
+		if move.Type == game.TYPENAME_ELECTRIC && defPokemon.Ability == "volt-absorb" {
+			states = append(states, NewMessageOnlySnapshot(
+				fmt.Sprintf("%s activated volt absorb!", defPokemon.Nickname),
+				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
+			)
+
+			defPokemon.HealPerc(.25)
+			defImmune = true
+		}
+
+		// TODO: This doesn't activate through protect!
+		if move.Type == game.TYPENAME_WATER && defPokemon.Ability == "water-absorb" {
+			states = append(states, NewMessageOnlySnapshot(
+				fmt.Sprintf("%s activated Water Absorb!", defPokemon.Nickname),
+				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
+			)
+
+			defPokemon.HealPerc(.25)
+			defImmune = true
+		}
+
+		if !defImmune {
+			switch move.Meta.Category.Name {
+			case "damage", "damage+heal":
+				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
+			case "ailment":
+				ailmentHandler(&state, defPokemon, move)
+			case "damage+ailment":
+				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
+				ailmentHandler(&state, defPokemon, move)
+			case "net-good-stats":
+				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+					// since its "net-good-stats", the stat change always has to benefit the user
+					affectedPokemon := attackPokemon
+					if statChange.Change < 0 {
+						affectedPokemon = defPokemon
+					}
+
+					states = append(states, StatChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
+				})
+			// Damages and then CHANGES the targets stats
+			case "damage+lower":
+				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
+				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+					states = append(states, StatChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
+				})
+			// Damages and then CHANGES the user's stats
+			// this is different from what pokeapi says (raises instead of changes)
+			// and this is important because moves like draco-meteor and overheat
+			// lower the user's stats but are in this category
+			case "damage+raise":
+				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
+				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+					states = append(states, StatChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
+				})
+			case "heal":
+				states = append(states, healHandler(&state, attackPokemon, move))
+			case "ohko":
+				states = append(states, ohkoHandler(&state, attackPokemon, defPokemon))
+			case "force-switch":
+				states = append(states, forceSwitchHandler(&state, defender))
+			default:
+				attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
+			}
 		}
 
 		if rand.Intn(100) < move.Meta.FlinchChance {

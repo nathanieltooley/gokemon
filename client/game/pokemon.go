@@ -82,6 +82,10 @@ func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
 	return effectiveness1 * effectiveness2
 }
 
+func (b BasePokemon) HasType(t *PokemonType) bool {
+	return b.Type1 == t || b.Type2 == t
+}
+
 type Stat struct {
 	RawValue uint
 	Ev       uint
@@ -206,6 +210,11 @@ func (p *Pokemon) Heal(heal uint) {
 	cappedNewHealth := uint(math.Min(float64(p.MaxHp), float64(p.Hp.Value+heal)))
 
 	p.Hp.Value = cappedNewHealth
+}
+
+func (p *Pokemon) HealPerc(heal float64) {
+	healAmount := float64(p.MaxHp) * heal
+	p.Heal(uint(healAmount))
 }
 
 // Get the speed of the Pokemon, accounting for effects like paralysis
