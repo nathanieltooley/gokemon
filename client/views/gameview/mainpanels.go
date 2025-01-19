@@ -13,6 +13,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/rs/zerolog/log"
 )
 
 const playerPanelWidth = 40
@@ -299,8 +300,9 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			outOfMoves := true
-			for _, move := range poke.Moves {
-				if move != nil && pp > 0 {
+			for _, m := range poke.Moves {
+				if m != nil && pp > 0 {
+					log.Debug().Msgf("Pokemon not out of moves, has: %s", m.Name)
 					outOfMoves = false
 				}
 			}
