@@ -186,7 +186,7 @@ func ConfuseHandler(state *GameState, pokemon *game.Pokemon) StateSnapshot {
 
 	// Exit early
 	if confCheck > confChance {
-		NewEmptyStateSnapshot()
+		return NewEmptyStateSnapshot()
 	}
 
 	confMove := game.Move{
