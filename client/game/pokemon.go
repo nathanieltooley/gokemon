@@ -38,6 +38,13 @@ const (
 )
 
 const (
+	WEATHER_NONE = iota
+	WEATHER_RAIN
+	WEATHER_SUN
+	WEATHER_SANDSTORM
+)
+
+const (
 	EFFECT_CONFUSION = iota
 )
 
@@ -499,7 +506,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool) uint {
+func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather int) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var baseA, baseD uint
 	var a, d uint // TODO: Add exception for Beat Up
@@ -578,6 +585,14 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool) uint {
 	}
 
 	// TODO: Maybe add weather
+	var weatherBonus float32 = 1.0
+	if (weather == WEATHER_RAIN && move.Type == TYPENAME_WATER) || (weather == WEATHER_SUN && move.Type == TYPENAME_FIRE) {
+		weatherBonus = 1.5
+	}
+	if (weather == WEATHER_RAIN && move.Type == TYPENAME_FIRE) || (weather == WEATHER_SUN && move.Type == TYPENAME_WATER) {
+		weatherBonus = 0.5
+	}
+
 	// TODO: Maybe check for parental bond, glaive rush, targets in DBs, ZMoves
 
 	// TODO: There are about 20 different moves, abilities, and items that have some sort of
@@ -587,7 +602,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool) uint {
 	// and it seems that the lowest possible value in a damage range may not be able
 	// to show up as often because rounding is a bit different
 	// TODO: maybe make a custom rounding function that rounds DOWN at .5
-	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn * critBoost)))
+	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn * critBoost * weatherBonus)))
 
 	damageLogger().Debug().
 		Int("power", power).

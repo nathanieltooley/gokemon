@@ -25,6 +25,7 @@ type GameState struct {
 	LocalPlayer    Player
 	OpposingPlayer Player
 	Turn           int
+	Weather        int
 
 	MessageHistory []string
 

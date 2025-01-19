@@ -203,7 +203,7 @@ func ConfuseHandler(state *GameState, pokemon *game.Pokemon) StateSnapshot {
 		DamageClass: game.DAMAGETYPE_PHYSICAL,
 	}
 
-	dmg := game.Damage(*pokemon, *pokemon, &confMove, false)
+	dmg := game.Damage(*pokemon, *pokemon, &confMove, false, game.WEATHER_NONE)
 	pokemon.Damage(dmg)
 	pokemon.CanAttackThisTurn = false
 
