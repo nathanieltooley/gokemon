@@ -243,6 +243,11 @@ func (p *Pokemon) CritChance() float32 {
 	}
 }
 
+// Return text that should show when a pokemon's ability is activated
+func (p *Pokemon) AbilityText() string {
+	return fmt.Sprintf("%s activated %s!", p.Nickname, p.Ability.Name)
+}
+
 type PokemonBuilder struct {
 	poke Pokemon
 }
