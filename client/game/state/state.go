@@ -216,6 +216,14 @@ type StateSnapshot struct {
 	MessagesOnly bool
 }
 
+// Create a new StateSnapshot. Takes in a pointer to avoid a second copy
+func NewStateSnapshot(state *GameState, messages ...string) StateSnapshot {
+	return StateSnapshot{
+		State:    state.Clone(),
+		Messages: messages,
+	}
+}
+
 func NewEmptyStateSnapshot() StateSnapshot {
 	return StateSnapshot{Empty: true}
 }
@@ -257,23 +265,33 @@ func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	// TODO: OOB Check
 	player.ActivePokeIndex = a.SwitchIndex
 
+	states := make([]StateSnapshot, 0)
+
 	newActivePkm := player.GetActivePokemon()
 
 	// --- On Switch-In Updates ---
 	// Reset toxic count
 	if newActivePkm.Status == game.STATUS_TOXIC {
 		newActivePkm.ToxicCount = 1
+		log.Info().Msgf("%s had their toxic count reset to 1", newActivePkm.Nickname)
+	}
+
+	// --- Activate Abilities
+	switch newActivePkm.Ability.Name {
+	case "drizzle":
+		state.Weather = game.WEATHER_RAIN
+		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
+	case "intimidate":
+		opPokemon := state.GetPlayer(invertPlayerIndex(a.ctx.PlayerId)).GetActivePokemon()
+		opPokemon.Attack.DecreaseStage(1)
+		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
 
 	messages := []string{fmt.Sprintf("Player %d switched to %s", a.ctx.PlayerId, newActivePkm.Nickname)}
-	return []StateSnapshot{
-		{
-			State:    state,
-			Messages: messages,
-		},
-	}
+	states = append(states, StateSnapshot{State: state, Messages: messages})
+	return states
 }
 
 func (a SwitchAction) Ctx() ActionCtx {
