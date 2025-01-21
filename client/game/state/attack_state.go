@@ -372,18 +372,10 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move)
 }
 
 func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move) StateSnapshot {
-	healState := StateSnapshot{}
+	healPercent := float64(move.Meta.Healing) / 100
+	attackPokemon.HealPerc(healPercent)
 
-	healPercent := float32(move.Meta.Healing) / 100
-	healAmount := float32(attackPokemon.MaxHp) * healPercent
-
-	attackPokemon.Heal(uint(healAmount))
-
-	healState.State = state.Clone()
-
-	healState.Messages = append(healState.Messages, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
-
-	return healState
+	return NewStateSnapshot(state, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
 }
 
 func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
