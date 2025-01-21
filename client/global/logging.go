@@ -23,10 +23,12 @@ const (
 
 func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	mainLogFile, err := os.OpenFile("client.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	defer mainLogFile.Close()
+
 	if err != nil {
 		return 0, err
 	}
+
+	defer mainLogFile.Close()
 
 	stats, err := mainLogFile.Stat()
 	if err != nil {

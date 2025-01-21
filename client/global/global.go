@@ -86,11 +86,12 @@ func GlobalInit() {
 func loadPokemon() PokemonRegistry {
 	dataFile := "./data/gen1-data.csv"
 	fileReader, err := os.Open(dataFile)
-	defer fileReader.Close()
 
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
 	}
+
+	defer fileReader.Close()
 
 	csvReader := csv.NewReader(fileReader)
 	csvReader.Read()
@@ -277,7 +278,7 @@ func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *game.BasePokemon {
 
 func (p PokemonRegistry) GetPokemonByName(pkmName string) *game.BasePokemon {
 	for _, pkm := range p {
-		if strings.ToLower(pkm.Name) == strings.ToLower(pkmName) {
+		if strings.EqualFold(pkm.Name, pkmName) {
 			return &pkm
 		}
 	}
