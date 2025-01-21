@@ -232,6 +232,11 @@ func ApplyAilment(state *GameState, pokemon *game.Pokemon, ailment int) StateSna
 		}
 	// Set how many turns the pokemon is asleep for
 	case game.STATUS_SLEEP:
+		if pokemon.Ability.Name == "insomnia" {
+			pokemon.Status = game.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Insomnia and can not fall asleep!", pokemon.Nickname))
+		}
+
 		randTime := rand.Intn(2) + 1
 		pokemon.SleepCount = randTime
 		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
