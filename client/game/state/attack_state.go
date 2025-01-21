@@ -328,22 +328,11 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move)
 				Int("AilmentChance", ailmentChance).
 				Msg("Check succeeded")
 
-			defPokemon.Status = ailment
-
 			// Manual override of toxic so that it applies toxic and not poison
 			if move.Name == "toxic" {
 				defPokemon.Status = game.STATUS_TOXIC
-			}
-
-			// Post-Ailment initialization
-			switch defPokemon.Status {
-			// Set how many turns the pokemon is asleep for
-			case game.STATUS_SLEEP:
-				randTime := rand.Intn(2) + 1
-				defPokemon.SleepCount = randTime
-				attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", defPokemon.Nickname, defPokemon.SleepCount)
-			case game.STATUS_TOXIC:
-				defPokemon.ToxicCount = 1
+			} else {
+				ApplyAilment(state, defPokemon, ailment)
 			}
 
 			attackActionLogger().Info().

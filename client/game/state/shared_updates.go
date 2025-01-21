@@ -214,3 +214,30 @@ func ConfuseHandler(state *GameState, pokemon *game.Pokemon) StateSnapshot {
 		Messages: []string{fmt.Sprintf("%s hurt itself in confusion", pokemon.Nickname)},
 	}
 }
+
+// Single place to apply ailment so that all abilities can be checked
+func ApplyAilment(state *GameState, pokemon *game.Pokemon, ailment int) StateSnapshot {
+	if pokemon.Status != game.STATUS_NONE {
+		return NewEmptyStateSnapshot()
+	}
+
+	pokemon.Status = ailment
+
+	// Post-Ailment initialization
+	switch pokemon.Status {
+	case game.STATUS_PARA:
+		if pokemon.Ability.Name == "limber" {
+			pokemon.Status = game.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s is Limber and can not be paralyzed!", pokemon.Nickname))
+		}
+	// Set how many turns the pokemon is asleep for
+	case game.STATUS_SLEEP:
+		randTime := rand.Intn(2) + 1
+		pokemon.SleepCount = randTime
+		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
+	case game.STATUS_TOXIC:
+		pokemon.ToxicCount = 1
+	}
+
+	return NewStateSnapshot(state)
+}
