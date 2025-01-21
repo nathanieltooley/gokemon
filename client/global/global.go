@@ -4,14 +4,15 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"io"
+	"math/rand/v2"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/nathanieltooley/gokemon/client/errors"
 	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/reg"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
@@ -20,8 +21,8 @@ import (
 var (
 	TERM_WIDTH, TERM_HEIGHT, _ = term.GetSize(int(os.Stdout.Fd()))
 
-	POKEMON   reg.PokemonRegistry
-	MOVES     *reg.MoveRegistry
+	POKEMON   PokemonRegistry
+	MOVES     *MoveRegistry
 	ABILITIES map[string][]game.Ability
 	ITEMS     []string
 
@@ -82,7 +83,7 @@ func GlobalInit() {
 	wg.Wait()
 }
 
-func loadPokemon() reg.PokemonRegistry {
+func loadPokemon() PokemonRegistry {
 	dataFile := "./data/gen1-data.csv"
 	fileReader, err := os.Open(dataFile)
 	defer fileReader.Close()
@@ -146,13 +147,13 @@ func loadPokemon() reg.PokemonRegistry {
 		initLogger.Fatal().Err(err).Msg("Failed to load pokemon data")
 	}
 
-	return reg.PokemonRegistry(pokemonList)
+	return PokemonRegistry(pokemonList)
 }
 
-func loadMoves() *reg.MoveRegistry {
+func loadMoves() *MoveRegistry {
 	initLogger.Info().Msg("Loading Move Data")
 
-	moveRegistry := new(reg.MoveRegistry)
+	moveRegistry := new(MoveRegistry)
 	movesPath := "./data/moves.json"
 	movesMapPath := "./data/movesMap.json"
 
@@ -232,4 +233,60 @@ func loadItems() []string {
 
 	initLogger.Info().Msgf("Loaded %d items", len(items))
 	return items
+}
+
+type MoveRegistry struct {
+	// TODO: Maybe make this a map
+	MoveList []game.Move
+	MoveMap  map[string][]string
+}
+
+func (m *MoveRegistry) GetMove(name string) *game.Move {
+	for _, move := range m.MoveList {
+		if move.Name == name {
+			return &move
+		}
+	}
+
+	return nil
+}
+
+func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*game.Move {
+	pokemonLowerName := strings.ToLower(pokemonName)
+	moves := m.MoveMap[pokemonLowerName]
+	movesFull := make([]*game.Move, 0, len(moves))
+
+	for _, moveName := range moves {
+		movesFull = append(movesFull, m.GetMove(moveName))
+	}
+
+	return movesFull
+}
+
+type PokemonRegistry []game.BasePokemon
+
+func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *game.BasePokemon {
+	for _, pkm := range p {
+		if pkm.PokedexNumber == uint(pkdNumber) {
+			return &pkm
+		}
+	}
+
+	return nil
+}
+
+func (p PokemonRegistry) GetPokemonByName(pkmName string) *game.BasePokemon {
+	for _, pkm := range p {
+		if strings.ToLower(pkm.Name) == strings.ToLower(pkmName) {
+			return &pkm
+		}
+	}
+
+	return nil
+}
+
+func (p PokemonRegistry) GetRandomPokemon() *game.BasePokemon {
+	pkmIndex := rand.IntN(len(p))
+
+	return &p[pkmIndex]
 }

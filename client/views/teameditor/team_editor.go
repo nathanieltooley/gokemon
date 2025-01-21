@@ -244,12 +244,11 @@ func (m editTeamModel) GetCurrentPokemon() game.Pokemon {
 }
 
 func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editPokemonModel {
-	moveRegistry := global.MOVES
 	abilities := global.ABILITIES
 
 	var editorModels [len(editors)]editor
 	editorModels[0] = newDetailsEditor(*currentPokemon)
-	editorModels[1] = newMoveEditor(*currentPokemon, moveRegistry.GetFullMovesForPokemon(currentPokemon.Base.Name))
+	editorModels[1] = newMoveEditor(*currentPokemon, global.MOVES.GetFullMovesForPokemon(currentPokemon.Base.Name))
 	editorModels[2] = newItemEditor()
 	editorModels[3] = newAbilityEditor(abilities[strings.ToLower(currentPokemon.Base.Name)])
 	editorModels[4] = newEVIVEditor(*currentPokemon)
