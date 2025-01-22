@@ -526,7 +526,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 type item struct {

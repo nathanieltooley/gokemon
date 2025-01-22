@@ -260,7 +260,9 @@ func (e evivEditor) View() string {
 		evSum := lo.Sum(e.evValues)
 		percent := float64(evValue) / float64(evSum)
 
-		if percent == math.NaN() {
+		if percent > 1 {
+			percent = 1
+		} else if percent < 0 {
 			percent = 0
 		}
 

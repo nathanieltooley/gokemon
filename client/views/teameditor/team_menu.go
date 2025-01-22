@@ -31,13 +31,6 @@ type teamSelectionMenu struct {
 	teams    teamfs.SavedTeams
 }
 
-type menuItem struct {
-	string
-}
-
-func (m menuItem) FilterValue() string { return m.string }
-func (m menuItem) Value() string       { return m.string }
-
 type teamItem struct {
 	Name    string
 	Pokemon []game.Pokemon
