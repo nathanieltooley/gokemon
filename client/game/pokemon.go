@@ -70,6 +70,7 @@ type BasePokemon struct {
 	Name          string
 	Type1         *PokemonType
 	Type2         *PokemonType
+	Abilities     []Ability
 	Hp            uint
 	Attack        uint
 	Def           uint
@@ -415,12 +416,28 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 }
 
 func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *PokemonBuilder {
-	if len(possibleAbilities) == 0 {
+	abilityCount := len(possibleAbilities)
+	if abilityCount == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available abilities to randomize with!")
 		return pb
 	}
 
-	pb.poke.Ability = possibleAbilities[rand.IntN(len(possibleAbilities))]
+	hiddenAbility, found := lo.Find(possibleAbilities, func(a Ability) bool {
+		return a.IsHidden
+	})
+	normalAbilities := lo.Filter(possibleAbilities, func(a Ability, _ int) bool {
+		return !a.IsHidden
+	})
+
+	choseHidden := rand.Float64()
+
+	// 1% chance to get a hidden ability randomly
+	if found && choseHidden < 0.01 {
+		pb.poke.Ability = hiddenAbility
+	} else {
+		pb.poke.Ability = normalAbilities[rand.IntN(len(normalAbilities))]
+	}
+
 	return pb
 }
 
