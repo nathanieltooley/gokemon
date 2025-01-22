@@ -19,13 +19,13 @@ type Response struct {
 }
 
 type PreAbility struct {
-	Name     string
-	IsHidden bool `json:"is_hidden"`
-	Pokemon  []struct {
+	Name       string
+	ForPokemon []struct {
 		Pokemon struct {
 			Name string
 		}
-	}
+		IsHidden bool `json:"is_hidden"`
+	} `json:"pokemon"`
 }
 
 func main() {
@@ -59,27 +59,22 @@ func main() {
 		}
 	}
 
-	abilites := make([]PreAbility, len(abilitiesNR))
+	abilityMap := make(map[string][]game.Ability)
 
-	for i, nrAbility := range abilitiesNR {
-		log.Printf("Getting Pokemon who have ability: %s\n", nrAbility.Name)
+	for _, nrAbility := range abilitiesNR {
+		log.Printf("Getting pokemon who have ability: %s\n", nrAbility.Name)
 		ability, err := scripts.FollowNamedResource[PreAbility](nrAbility)
 		if err != nil {
 			panic(err)
 		}
 
-		abilites[i] = ability
-	}
-
-	abilityMap := make(map[string][]game.Ability)
-
-	for _, ability := range abilites {
-		for _, pokemon := range ability.Pokemon {
+		for _, pokemon := range ability.ForPokemon {
+			log.Printf("--- %s : Is Hidden %v", pokemon.Pokemon.Name, pokemon.IsHidden)
 			pokemonAbilities, ok := abilityMap[pokemon.Pokemon.Name]
 
 			finalAbility := game.Ability{
 				Name:     ability.Name,
-				IsHidden: ability.IsHidden,
+				IsHidden: pokemon.IsHidden,
 			}
 
 			if ok {
