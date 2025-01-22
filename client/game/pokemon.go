@@ -337,6 +337,7 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 
 // Returns an array of EV spreads whose total == 510
 // and follow the order of HP, ATTACK, DEF, SPATTACK, SPDEF, SPEED
+// TODO: pretty sure this doesn't work
 func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 	evPool := MAX_TOTAL_EV
 	var evs [6]uint
@@ -581,11 +582,20 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 		return 0
 	}
 
+	// There needs to be messages for this
+	// probably need to move these checks outside this func
+	if defendent.Ability.Name == "wonder_guard" {
+		if type1Effectiveness <= 1 && type2Effectiveness <= 1 {
+			return 0
+		}
+	}
+
 	var critBoost float32 = 1
 	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5
 		a = baseA
 		d = baseD
+
 	} else if crit && (defendent.Ability.Name == "battle-armor" || defendent.Ability.Name == "shell-armor") {
 		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability.Name)
 	}
