@@ -291,3 +291,9 @@ func (p PokemonRegistry) GetRandomPokemon() *game.BasePokemon {
 
 	return &p[pkmIndex]
 }
+
+func GetAbilitiesForPokemon(name string) []game.Ability {
+	pokemonLowerName := strings.ToLower(name)
+
+	return ABILITIES[pokemonLowerName]
+}

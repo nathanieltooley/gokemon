@@ -180,7 +180,11 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, enterPokeEditor) {
 			if m.addingNewPokemon {
 				if m.choice != nil && len(m.ctx.team) < 6 {
-					newPokemon := game.NewPokeBuilder(m.choice).SetLevel(100).Build()
+					newPokemon := game.NewPokeBuilder(m.choice).
+						SetLevel(100).
+						SetRandomAbility(global.GetAbilitiesForPokemon(m.choice.Name)).
+						SetPerfectIvs().
+						Build()
 					m.ctx.team = append(m.ctx.team, newPokemon)
 				}
 
