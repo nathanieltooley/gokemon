@@ -130,6 +130,48 @@ var critStateMultipliers = map[int]float32{
 	4: 1.0,
 }
 
+var evasivenessStageMult = map[int]float32{
+	-6: 9.0 / 3.0,
+	-5: 8.0 / 3.0,
+	-4: 7.0 / 3.0,
+	-3: 6.0 / 3.0,
+	-2: 5.0 / 3.0,
+	-1: 4.0 / 3.0,
+	0:  1,
+	1:  3.0 / 4.0,
+	2:  3.0 / 5.0,
+	3:  3.0 / 6.0,
+	4:  3.0 / 7.0,
+	5:  3.0 / 8.0,
+	6:  3.0 / 9.0,
+}
+
+var accuracyStageMult = map[int]float32{
+	6:  9.0 / 3.0,
+	5:  8.0 / 3.0,
+	4:  7.0 / 3.0,
+	3:  6.0 / 3.0,
+	2:  5.0 / 3.0,
+	1:  4.0 / 3.0,
+	0:  1,
+	-1: 3.0 / 4.0,
+	-2: 3.0 / 5.0,
+	-3: 3.0 / 6.0,
+	-4: 3.0 / 7.0,
+	-5: 3.0 / 8.0,
+	-6: 3.0 / 9.0,
+}
+
+func StageIncrease(inc int, currentStage int, maxStage int) int {
+	inc = int(math.Abs(float64(inc)))
+	return int(math.Min(float64(maxStage), float64(currentStage+inc)))
+}
+
+func StageDecrease(dec int, currentStage int, minStage int) int {
+	dec = int(math.Abs(float64(dec)))
+	return int(math.Max(float64(minStage), float64(currentStage-dec)))
+}
+
 func (s Stat) CalcValue() int {
 	return int(float32(s.RawValue) * StageMultipliers[s.stage])
 }
@@ -143,13 +185,11 @@ func (s *Stat) ChangeStat(change int) {
 }
 
 func (s *Stat) IncreaseStage(inc int) {
-	inc = int(math.Abs(float64(inc)))
-	s.stage = int(math.Min(6, float64(s.stage+inc)))
+	s.stage = StageIncrease(inc, s.stage, 6)
 }
 
 func (s *Stat) DecreaseStage(dec int) {
-	dec = int(math.Abs(float64(dec)))
-	s.stage = int(math.Max(-6, float64(s.stage-dec)))
+	s.stage = StageDecrease(dec, s.stage, -6)
 }
 
 func (s Stat) GetStage() int {
@@ -183,6 +223,8 @@ type Pokemon struct {
 	CanAttackThisTurn  bool          `json:"-"`
 	SwitchedInThisTurn bool          `json:"-"`
 	CritStage          int           `json:"-"`
+	AccuracyStage      int           `json:"-"`
+	EvasionStage       int           `json:"-"`
 	InGameMoveInfo     [4]BattleMove `json:"-"`
 }
 
@@ -242,6 +284,30 @@ func (p *Pokemon) CritChance() float32 {
 	} else {
 		return 1.0 / 24.0
 	}
+}
+
+func (p *Pokemon) ChangeEvasion(change int) {
+	if change < 0 {
+		p.EvasionStage = StageDecrease(change, p.EvasionStage, -6)
+	} else {
+		p.EvasionStage = StageIncrease(change, p.EvasionStage, 6)
+	}
+}
+
+func (p Pokemon) Evasion() float32 {
+	return evasivenessStageMult[p.EvasionStage]
+}
+
+func (p *Pokemon) ChangeAccuracy(change int) {
+	if change < 0 {
+		p.AccuracyStage = StageDecrease(change, p.AccuracyStage, -6)
+	} else {
+		p.AccuracyStage = StageIncrease(change, p.AccuracyStage, 6)
+	}
+}
+
+func (p Pokemon) Accuracy() float32 {
+	return accuracyStageMult[p.AccuracyStage]
 }
 
 // Return text that should show when a pokemon's ability is activated

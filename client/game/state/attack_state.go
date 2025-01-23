@@ -78,13 +78,16 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 	states = append(states, useMoveState)
 
 	accuracyCheck := rand.Intn(100)
-	accuracy := move.Accuracy
-	if accuracy == 0 {
-		accuracy = 100
+
+	moveAccuracy := move.Accuracy
+	if moveAccuracy == 0 {
+		moveAccuracy = 100
 	}
 
+	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * defPokemon.Evasion()))
+
 	if accuracyCheck < accuracy && pp > 0 {
-		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check passed")
+		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check passed")
 		// TODO: handle these categories
 		// - swagger
 		// - unique
@@ -170,7 +173,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 			}
 		}
 	} else {
-		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", move.Accuracy).Msg("Check failed")
+		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")
 		states = append(states, StateSnapshot{
 			State:    state.Clone(),
 			Messages: []string{"It Missed!"},

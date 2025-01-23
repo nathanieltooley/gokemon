@@ -123,6 +123,22 @@ func pokemonEffects(pokemon game.Pokemon) string {
 	writeStat("SpDef", pokemon.SpDef.GetStage())
 	writeStat("Speed", pokemon.RawSpeed.GetStage())
 
+	acc := pokemon.Accuracy()
+	evasion := pokemon.Evasion()
+
+	if acc > 1 {
+		panels = append(panels, positivePanel.Render(fmt.Sprintf("Accuracy: x%.2f", acc)))
+	} else if acc < 1 {
+		panels = append(panels, negativePanel.Render(fmt.Sprintf("Accuracy: x%.2f", acc)))
+	}
+
+	// if evasion is greater than 1, thats bad
+	if evasion > 1 {
+		panels = append(panels, negativePanel.Render(fmt.Sprintf("Evasion: x%.2f", evasion)))
+	} else if evasion < 1 {
+		panels = append(panels, positivePanel.Render(fmt.Sprintf("Evasion: x%.2f", evasion)))
+	}
+
 	return lipgloss.JoinVertical(lipgloss.Center, panels...)
 }
 

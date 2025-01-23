@@ -15,6 +15,8 @@ const (
 	STAT_SPATTACK = "special-attack"
 	STAT_SPDEF    = "special-defense"
 	STAT_SPEED    = "speed"
+	STAT_ACCURACY = "accuracy"
+	STAT_EVASION  = "evasion"
 )
 
 func StatChangeHandler(state *GameState, pokemon *game.Pokemon, statChange game.StatChange, statChance int) StateSnapshot {
@@ -59,6 +61,10 @@ func ChangeStat(pokemon *game.Pokemon, statName string, change int) []string {
 		pokemon.SpDef.ChangeStat(change)
 	case STAT_SPEED:
 		pokemon.RawSpeed.ChangeStat(change)
+	case STAT_ACCURACY:
+		pokemon.ChangeAccuracy(change)
+	case STAT_EVASION:
+		pokemon.ChangeEvasion(change)
 	}
 
 	return messages
