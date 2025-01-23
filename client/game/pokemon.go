@@ -648,8 +648,6 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 		return 0
 	}
 
-	// There needs to be messages for this
-	// probably need to move these checks outside this func
 	if defendent.Ability.Name == "wonder_guard" {
 		if type1Effectiveness <= 1 && type2Effectiveness <= 1 {
 			return 0

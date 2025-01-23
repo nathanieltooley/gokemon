@@ -190,12 +190,18 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateSnapshot {
 	states := make([]StateSnapshot, 0)
-
 	crit := false
 
 	if rand.Float32() < attackPokemon.CritChance() {
 		crit = true
 		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
+	}
+
+	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
+
+	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
+		states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s cannot be crit!", defPokemon.Nickname)))
+		crit = false
 	}
 
 	damage := game.Damage(*attackPokemon, *defPokemon, move, crit, state.Weather)
@@ -207,6 +213,15 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s activated sturdy and held on!", defPokemon.Nickname)))
 		}
 	}
+
+	if defPokemon.Ability.Name == "wonder-guard" {
+		if effectiveness < 2 {
+			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s is protected by Wonder Guard!", defPokemon.Nickname)))
+			return states
+		}
+	}
+
+	defPokemon.Damage(damage)
 
 	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
 
@@ -220,15 +235,13 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	}
 	damageState.Messages = append(damageState.Messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
 
-	defPokemon.Damage(damage)
-	var drainedHealth uint = 0
-
 	damageState.State = state.Clone()
 
 	states = append(states, damageState)
 
 	if move.Meta.Drain > 0 {
 		drainState := StateSnapshot{}
+		var drainedHealth uint = 0
 
 		cappedDamage := math.Min(float64(defPokemon.Hp.Value), float64(damage))
 
@@ -267,8 +280,6 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 		recoilState.Messages = append(recoilState.Messages, fmt.Sprintf("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
 		states = append(states, recoilState)
 	}
-
-	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
 
 	attackActionLogger().Debug().Float32("effectiveness", effectiveness).Msg("")
 
