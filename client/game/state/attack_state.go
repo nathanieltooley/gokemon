@@ -169,7 +169,12 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 			}
 		}
 
-		if rand.Intn(100) < move.Meta.FlinchChance {
+		flinchChance := move.Meta.FlinchChance
+		if flinchChance == 0 && attackPokemon.Ability.Name == "stench" {
+			flinchChance = 10
+		}
+
+		if rand.Intn(100) < flinchChance {
 			states = append(states, FlinchHandler(&state, defPokemon))
 		}
 
