@@ -61,6 +61,13 @@ var EFFECT_NAME_MAP = map[string]int{
 	"confusion": EFFECT_CONFUSION,
 }
 
+var EXPLOSIVE_MOVES = []string{
+	"self-destruct",
+	"explosion",
+	"mind-blown",
+	"misty-explosion",
+}
+
 type MoveFull struct {
 	Accuracy         int
 	DamageClass      string `json:"damage_class"`

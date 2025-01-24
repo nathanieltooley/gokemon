@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog"
@@ -114,6 +115,13 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 			defPokemon.HealPerc(.25)
 			defImmune = true
+		}
+
+		if defPokemon.Ability.Name == "damp" {
+			if slices.Contains(game.EXPLOSIVE_MOVES, move.Name) {
+				states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s prevented %s with their ability: Damp", defPokemon.Nickname, move.Name)))
+				defImmune = true
+			}
 		}
 
 		if !defImmune {
