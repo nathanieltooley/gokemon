@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog/log"
@@ -251,4 +252,23 @@ func ApplyAilment(state *GameState, pokemon *game.Pokemon, ailment int) StateSna
 	}
 
 	return NewStateSnapshot(state)
+}
+
+func SandstormDamage(state *GameState, pokemon *game.Pokemon) StateSnapshot {
+	non_damage_types := []*game.PokemonType{&game.TYPE_ROCK, &game.TYPE_STEEL, &game.TYPE_GROUND}
+	non_damage_abilities := []string{"sand-force", "sand-rush", "sand-veil", "magic-guard", "overcoat"}
+	if slices.Contains(non_damage_types, pokemon.Base.Type1) || slices.Contains(non_damage_types, pokemon.Base.Type2) {
+		return NewEmptyStateSnapshot()
+	}
+
+	if slices.Contains(non_damage_abilities, pokemon.Ability.Name) {
+		return NewEmptyStateSnapshot()
+	}
+
+	if pokemon.Item == "safety-goggles" {
+		return NewEmptyStateSnapshot()
+	}
+
+	pokemon.DamagePerc(1.0 / 16.0)
+	return NewStateSnapshot(state, fmt.Sprintf("%s was damaged by the sandstorm!", pokemon.Nickname))
 }

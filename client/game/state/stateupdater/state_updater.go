@@ -383,6 +383,11 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		applyToxic(opPokemon)
 	}
 
+	if gameState.Weather == game.WEATHER_SANDSTORM {
+		states = append(states, state.SandstormDamage(gameState, localPokemon))
+		states = append(states, state.SandstormDamage(gameState, opPokemon))
+	}
+
 	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
 		return item.Messages
 	})

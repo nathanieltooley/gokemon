@@ -256,6 +256,11 @@ func (p *Pokemon) Damage(dmg uint) {
 	p.Hp.Value = cappedNewHealth
 }
 
+func (p *Pokemon) DamagePerc(dmg float64) {
+	dmgAmount := float64(p.MaxHp) * dmg
+	p.Damage(uint(dmgAmount))
+}
+
 func (p *Pokemon) Heal(heal uint) {
 	cappedNewHealth := uint(math.Min(float64(p.MaxHp), float64(p.Hp.Value+heal)))
 
