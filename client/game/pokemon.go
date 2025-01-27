@@ -669,6 +669,18 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability.Name)
 	}
 
+	var lowHealthBonus float32 = 1.0
+	if float32(attacker.Hp.Value) <= float32(attacker.MaxHp)*0.33 {
+		if (attacker.Ability.Name == "overgrow" && move.Type == TYPENAME_GRASS) ||
+			(attacker.Ability.Name == "blaze" && move.Type == TYPENAME_FIRE) ||
+			(attacker.Ability.Name == "torrent" && move.Type == TYPENAME_WATER) ||
+			(attacker.Ability.Name == "swarm" && move.Type == TYPENAME_BUG) {
+			lowHealthBonus = 1.5
+		}
+	}
+
+	a = uint(float32(a) * lowHealthBonus)
+
 	// Calculate the part of the damage function in brackets
 	damageInner := ((((float32(2*attackerLevel) / 5) + 2) * float32(power) * (float32(a) / float32(d))) / 50) + 2
 	randomSpread := float32(rand.UintN(15)+85) / 100
@@ -713,11 +725,13 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 		Uint("defValue", d).
 		Int("defenseChange", dBoost).
 		Str("attackType", move.Type).
+		Float32("lowHealthBonus", lowHealthBonus).
 		Float32("damageInner", damageInner).
 		Float32("randomSpread", randomSpread).
 		Float32("STAB", stab).
 		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
 		Float32("crit", critBoost).
+		Float32("weatherBonus", weatherBonus).
 		Uint("damage", damage).
 		Msg("damage calc")
 
