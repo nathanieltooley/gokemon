@@ -89,6 +89,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	if state.Weather == game.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
 		accuracy = int(float32(accuracy) * 0.8)
+	} else if attackPokemon.Ability.Name == "compound-eyes" && move.Meta.Category.Name != "ohko" {
+		accuracy = int(float32(accuracy) * 1.3)
 	}
 
 	if accuracyCheck < accuracy && pp > 0 {
