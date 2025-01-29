@@ -86,7 +86,8 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 	}
 
 	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * defPokemon.Evasion()))
-	if state.Weather == game.WEATHER_SANDSTORM && attackPokemon.Ability.Name == "sand-veil" {
+
+	if state.Weather == game.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
 		accuracy = int(float32(accuracy) * 0.8)
 	}
 
