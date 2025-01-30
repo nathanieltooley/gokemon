@@ -247,6 +247,11 @@ func ApplyAilment(state *GameState, pokemon *game.Pokemon, ailment int) StateSna
 		randTime := rand.Intn(2) + 1
 		pokemon.SleepCount = randTime
 		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
+	case game.STATUS_POISON:
+		if pokemon.Ability.Name == "immunity" {
+			pokemon.Status = game.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Immunity to poison!", pokemon.Nickname))
+		}
 	case game.STATUS_TOXIC:
 		pokemon.ToxicCount = 1
 	}
