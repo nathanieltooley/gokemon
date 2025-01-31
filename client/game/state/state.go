@@ -283,7 +283,7 @@ func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
 	case "intimidate":
 		opPokemon := state.GetPlayer(invertPlayerIndex(a.ctx.PlayerId)).GetActivePokemon()
-		if opPokemon.Ability.Name != "oblivious" {
+		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" {
 			opPokemon.Attack.DecreaseStage(1)
 		}
 

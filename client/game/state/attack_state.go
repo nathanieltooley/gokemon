@@ -390,11 +390,14 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move)
 		if effectCheck < effectChance {
 			switch effect {
 			case game.EFFECT_CONFUSION:
-				log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
+				// TODO: add message
+				if defPokemon.Ability.Name != "own-tempo" {
+					log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
 
-				confusionDuration := rand.Intn(3) + 2
-				defPokemon.ConfusionCount = confusionDuration
-				log.Info().Int("confusionCount", defPokemon.ConfusionCount).Msg("confusion applied")
+					confusionDuration := rand.Intn(3) + 2
+					defPokemon.ConfusionCount = confusionDuration
+					log.Info().Int("confusionCount", defPokemon.ConfusionCount).Msg("confusion applied")
+				}
 			}
 		}
 	}
