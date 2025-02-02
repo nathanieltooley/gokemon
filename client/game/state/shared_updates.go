@@ -252,6 +252,11 @@ func ApplyAilment(state *GameState, pokemon *game.Pokemon, ailment int) StateSna
 			pokemon.Status = game.STATUS_NONE
 			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Immunity to poison!", pokemon.Nickname))
 		}
+	case game.STATUS_FROZEN:
+		if pokemon.Ability.Name == "magma-armor" {
+			pokemon.Status = game.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Magma Armor and cannot be frozen!", pokemon.Nickname))
+		}
 	case game.STATUS_TOXIC:
 		pokemon.ToxicCount = 1
 	}
