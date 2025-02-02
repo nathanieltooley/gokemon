@@ -606,6 +606,10 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 	var a, d uint // TODO: Add exception for Beat Up
 	var aBoost, dBoost int
 
+	if attacker.Ability.Name == "huge-power" {
+		attacker.Attack.RawValue *= 2
+	}
+
 	// Determine damage type
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		baseA = attacker.Attack.RawValue
