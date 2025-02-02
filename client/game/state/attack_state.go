@@ -180,6 +180,11 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 			flinchChance = 10
 		}
 
+		if defPokemon.Ability.Name == "inner-focus" {
+			flinchChance = 0
+			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s can not be flinched", defPokemon.Nickname)))
+		}
+
 		if rand.Intn(100) < flinchChance {
 			states = append(states, FlinchHandler(&state, defPokemon))
 		}
