@@ -288,6 +288,9 @@ func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 		}
 
 		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
+	case "natural-cure":
+		newActivePkm.Status = game.STATUS_NONE
+		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
