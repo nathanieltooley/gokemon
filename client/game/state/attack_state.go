@@ -189,12 +189,16 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 			states = append(states, FlinchHandler(&state, defPokemon))
 		}
 
+		ppModifier := 1
+
+		// -1 is struggle
 		if a.AttackerMove != -1 {
-			if pp == 0 {
-				attackPokemon.InGameMoveInfo[a.AttackerMove].PP = 0
-			} else {
-				attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - 1
+			// TODO: this check will have to change for double battles (any opposing pokemon not the defending)
+			if defPokemon.Ability.Name == "pressure" {
+				ppModifier = 2
 			}
+
+			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - uint(ppModifier)
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")

@@ -291,6 +291,8 @@ func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	case "natural-cure":
 		newActivePkm.Status = game.STATUS_NONE
 		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
+	case "pressure":
+		states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s is exerting pressure!", newActivePkm.Nickname)))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
