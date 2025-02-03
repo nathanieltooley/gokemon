@@ -292,21 +292,25 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 		states = append(states, drainState)
 	}
 
+	// Recoil
 	if move.Meta.Drain < 0 {
-		recoilState := StateSnapshot{}
-		recoilPercent := (float32(move.Meta.Drain) / 100)
-		selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
-		attackPokemon.Damage(uint(selfDamage * -1))
+		// Recoil will only be blocked by Rock Head (except for struggle)
+		if move.Name == "struggle" || attackPokemon.Ability.Name != "rock-head" {
+			recoilState := StateSnapshot{}
+			recoilPercent := (float32(move.Meta.Drain) / 100)
+			selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
+			attackPokemon.Damage(uint(selfDamage * -1))
 
-		log.Info().
-			Float32("recoilPercent", recoilPercent).
-			Uint("selfDamage", uint(selfDamage)).
-			Msg("Attack recoil")
+			log.Info().
+				Float32("recoilPercent", recoilPercent).
+				Uint("selfDamage", uint(selfDamage)).
+				Msg("Attack recoil")
 
-		recoilState.State = state.Clone()
+			recoilState.State = state.Clone()
 
-		recoilState.Messages = append(recoilState.Messages, fmt.Sprintf("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
-		states = append(states, recoilState)
+			recoilState.Messages = append(recoilState.Messages, fmt.Sprintf("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
+			states = append(states, recoilState)
+		}
 	}
 
 	attackActionLogger().Debug().Float32("effectiveness", effectiveness).Msg("")
