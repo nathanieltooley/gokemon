@@ -32,6 +32,7 @@ func NewMenuButton(buttons []ViewButton) MenuButtons {
 	}
 }
 
+// MenuButtons only return a non nil value when a button is selected
 func (m *MenuButtons) Update(msg tea.Msg) tea.Model {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
