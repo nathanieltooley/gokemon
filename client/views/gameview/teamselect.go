@@ -48,11 +48,11 @@ func (t teamItem) Value() string       { return t.Name }
 func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
-		OnClick: func() tea.Model {
+		OnClick: func() (tea.Model, tea.Cmd) {
 			backtrack.PushNew(func() tea.Model {
 				return NewTeamSelectModel(backtrack)
 			})
-			return teameditor.NewTeamEditorModel(backtrack, make([]game.Pokemon, 0))
+			return teameditor.NewTeamEditorModel(backtrack, make([]game.Pokemon, 0)), nil
 		},
 	}
 
@@ -160,9 +160,9 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case 1:
 			m.buttons.Focus()
 
-			newModel := m.buttons.Update(msg)
+			newModel, startCmd := m.buttons.Update(msg)
 			if newModel != nil {
-				return newModel, nil
+				return newModel, startCmd
 			}
 		}
 	}

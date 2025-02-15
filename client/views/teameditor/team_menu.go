@@ -44,15 +44,15 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 	buttons := []components.ViewButton{
 		{
 			Name: "Create New Team",
-			OnClick: func() tea.Model {
+			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrace.Push(startMenu)
-				return NewTeamEditorModel(backtrace, make([]game.Pokemon, 0))
+				return NewTeamEditorModel(backtrace, make([]game.Pokemon, 0)), nil
 			},
 		},
 		{
 			Name: "Edit Teams",
-			OnClick: func() tea.Model {
-				return newTeamSelectionMenu(backtrace)
+			OnClick: func() (tea.Model, tea.Cmd) {
+				return newTeamSelectionMenu(backtrace), nil
 			},
 		},
 	}
@@ -100,7 +100,7 @@ func (m startTeamMenu) View() string {
 }
 
 func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	newModel := m.buttons.Update(msg)
+	newModel, startCmd := m.buttons.Update(msg)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -110,7 +110,7 @@ func (m startTeamMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if newModel != nil {
-		return newModel, nil
+		return newModel, startCmd
 	}
 
 	return m, nil

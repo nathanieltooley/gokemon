@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
-	"github.com/nathanieltooley/gokemon/client/views/gameview"
 	"github.com/nathanieltooley/gokemon/client/views/teameditor"
 )
 
@@ -17,26 +16,27 @@ func NewModel() MainMenuModel {
 	buttons := []components.ViewButton{
 		{
 			Name: "Play Game",
-			OnClick: func() tea.Model {
+			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrack := components.NewBreadcrumb()
 				backtrack.PushNew(func() tea.Model { return NewModel() })
-				return gameview.NewTeamSelectModel(&backtrack)
+				return NewPlaySelection(&backtrack), nil
 			},
 		},
 		{
 			Name: "Edit Teams",
-			OnClick: func() tea.Model {
+			OnClick: func() (tea.Model, tea.Cmd) {
+				// lol at not using breadcrumbs for this
 				return teameditor.NewTeamMenu(func() tea.Model {
 					return NewModel()
-				})
+				}), nil
 			},
 		},
 		{
 			Name: "Options",
-			OnClick: func() tea.Model {
+			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrack := components.NewBreadcrumb()
 				backtrack.PushNew(func() tea.Model { return NewModel() })
-				return newOptionsMenu(backtrack)
+				return newOptionsMenu(backtrack), nil
 			},
 		},
 	}
@@ -56,9 +56,9 @@ func (m MainMenuModel) View() string {
 }
 
 func (m MainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	newModel := m.buttons.Update(msg)
+	newModel, startCmd := m.buttons.Update(msg)
 	if newModel != nil {
-		return newModel, nil
+		return newModel, startCmd
 	}
 
 	return m, nil

@@ -18,7 +18,7 @@ var (
 
 type ViewButton struct {
 	Name    string
-	OnClick func() tea.Model
+	OnClick func() (tea.Model, tea.Cmd)
 }
 
 type MenuButtons struct {
@@ -33,7 +33,7 @@ func NewMenuButton(buttons []ViewButton) MenuButtons {
 }
 
 // MenuButtons only return a non nil value when a button is selected
-func (m *MenuButtons) Update(msg tea.Msg) tea.Model {
+func (m *MenuButtons) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, moveDownKey) {
@@ -57,7 +57,7 @@ func (m *MenuButtons) Update(msg tea.Msg) tea.Model {
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (m MenuButtons) View() string {
