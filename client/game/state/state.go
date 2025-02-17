@@ -28,11 +28,6 @@ type GameState struct {
 	Weather        int
 
 	MessageHistory []string
-
-	// HOST or PEER
-	// The HOST state is the arbiter of truth
-	// and the PEER state is the replicated state of the HOST
-	stateType int
 }
 
 func playerIntToString(player int) string {
@@ -122,8 +117,6 @@ func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
 		LocalPlayer:    localPlayer,
 		OpposingPlayer: opposingPlayer,
 		Turn:           0,
-
-		stateType: HOST,
 	}
 }
 
