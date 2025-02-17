@@ -98,7 +98,7 @@ type Stat struct {
 	RawValue uint
 	Ev       uint
 	Iv       uint
-	stage    int
+	Stage    int
 }
 
 type HpStat struct {
@@ -173,7 +173,7 @@ func StageDecrease(dec int, currentStage int, minStage int) int {
 }
 
 func (s Stat) CalcValue() int {
-	return int(float32(s.RawValue) * StageMultipliers[s.stage])
+	return int(float32(s.RawValue) * StageMultipliers[s.Stage])
 }
 
 func (s *Stat) ChangeStat(change int) {
@@ -185,15 +185,15 @@ func (s *Stat) ChangeStat(change int) {
 }
 
 func (s *Stat) IncreaseStage(inc int) {
-	s.stage = StageIncrease(inc, s.stage, 6)
+	s.Stage = StageIncrease(inc, s.Stage, 6)
 }
 
 func (s *Stat) DecreaseStage(dec int) {
-	s.stage = StageDecrease(dec, s.stage, -6)
+	s.Stage = StageDecrease(dec, s.Stage, -6)
 }
 
 func (s Stat) GetStage() int {
-	return s.stage
+	return s.Stage
 }
 
 type Nature struct {
@@ -614,21 +614,21 @@ func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather 
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		baseA = attacker.Attack.RawValue
 		a = uint(attacker.Attack.CalcValue())
-		aBoost = attacker.Attack.stage
+		aBoost = attacker.Attack.Stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
 		baseA = attacker.SpAttack.RawValue
 		a = uint(attacker.SpAttack.CalcValue())
-		aBoost = attacker.SpAttack.stage
+		aBoost = attacker.SpAttack.Stage
 	}
 
 	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		baseD = defendent.Def.RawValue
 		d = uint(defendent.Def.CalcValue())
-		dBoost = defendent.Def.stage
+		dBoost = defendent.Def.Stage
 	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
 		baseD = defendent.SpDef.RawValue
 		d = uint(defendent.SpDef.CalcValue())
-		dBoost = defendent.SpDef.stage
+		dBoost = defendent.SpDef.Stage
 	}
 
 	power := move.Power
