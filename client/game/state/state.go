@@ -48,7 +48,7 @@ func DefaultTeam() []game.Pokemon {
 	defaultTeam = append(defaultTeam, game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build())
 	defaultTeam = append(defaultTeam, game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build())
 
-	defaultTeam[0].Moves[0] = defaultMove
+	defaultTeam[0].Moves[0] = *defaultMove
 
 	return defaultTeam
 }
@@ -78,7 +78,7 @@ func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
 		p.CanAttackThisTurn = true
 
 		for i, m := range p.Moves {
-			if m != nil {
+			if !m.IsNil() {
 				p.InGameMoveInfo[i] = game.BattleMove{
 					Info: m,
 					PP:   uint(m.PP),
@@ -93,7 +93,7 @@ func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
 		p.CanAttackThisTurn = true
 
 		for i, m := range p.Moves {
-			if m != nil {
+			if !m.IsNil() {
 				p.InGameMoveInfo[i] = game.BattleMove{
 					Info: m,
 					PP:   uint(m.PP),

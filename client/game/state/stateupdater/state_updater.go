@@ -81,11 +81,11 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 		aiPokemon := gameState.OpposingPlayer.GetActivePokemon()
 
 		bestMoveIndex := 0
-		var bestMove *game.Move
+		var bestMove game.Move
 		var bestMoveDamage uint = 0
 
 		for i, move := range aiPokemon.Moves {
-			if move == nil {
+			if move.IsNil() {
 				continue
 			}
 
@@ -98,7 +98,7 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 			}
 		}
 
-		if bestMove == nil {
+		if bestMove.IsNil() {
 			return &state.SkipAction{}
 		} else {
 			return state.NewAttackAction(state.AI, bestMoveIndex)

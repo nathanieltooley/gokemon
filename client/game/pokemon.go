@@ -212,7 +212,7 @@ type Pokemon struct {
 	SpAttack           Stat
 	SpDef              Stat
 	RawSpeed           Stat
-	Moves              [4]*Move
+	Moves              [4]Move
 	Nature             Nature
 	Ability            Ability
 	Item               string
@@ -463,8 +463,10 @@ func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
 	return pb
 }
 
+// NOTE: takes in pointers rather than values even though pokemon struct no longer holds pointers (issues with gob)
+// mainly so i have to change less stuff
 func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder {
-	var moves [4]*Move
+	var moves [4]Move
 
 	if len(possibleMoves) == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available moves to randomize with!")
@@ -473,10 +475,10 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 
 	for i := 0; i < 4; i++ {
 		move := possibleMoves[rand.IntN(len(possibleMoves))]
-		moves[i] = move
+		moves[i] = *move
 	}
 
-	moveNames := lo.Map(moves[:], func(move *Move, _ int) string {
+	moveNames := lo.Map(moves[:], func(move Move, _ int) string {
 		return move.Name
 	})
 
@@ -600,7 +602,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	return ivs, nil
 }
 
-func Damage(attacker Pokemon, defendent Pokemon, move *Move, crit bool, weather int) uint {
+func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather int) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var baseA, baseD uint
 	var a, d uint // TODO: Add exception for Beat Up

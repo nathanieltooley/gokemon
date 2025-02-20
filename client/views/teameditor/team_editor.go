@@ -339,10 +339,10 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.Item,
 		m.currentPokemon.Nature.Name,
 
-		getMoveName(m.currentPokemon.Moves[0]),
-		getMoveName(m.currentPokemon.Moves[1]),
-		getMoveName(m.currentPokemon.Moves[2]),
-		getMoveName(m.currentPokemon.Moves[3]),
+		m.currentPokemon.Moves[0].Name,
+		m.currentPokemon.Moves[1].Name,
+		m.currentPokemon.Moves[2].Name,
+		m.currentPokemon.Moves[3].Name,
 		game.MAX_TOTAL_EV-m.currentPokemon.GetCurrentEvTotal(),
 	)
 
@@ -552,12 +552,4 @@ func (i itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	fmt.Fprint(w, renderStr)
-}
-
-func getMoveName(move *game.Move) string {
-	if move != nil {
-		return move.Name
-	} else {
-		return ""
-	}
 }

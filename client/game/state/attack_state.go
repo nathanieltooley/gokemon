@@ -55,12 +55,12 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
-	var move *game.Move
+	var move game.Move
 	var moveVars game.BattleMove
 	var pp uint
 
 	if a.AttackerMove == -1 {
-		move = &struggleMove
+		move = struggleMove
 		pp = 1
 	} else {
 		// TODO: Make sure a.AttackerMove is between 0 -> 3
@@ -216,7 +216,7 @@ func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
 	return states
 }
 
-func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move *game.Move) []StateSnapshot {
+func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move game.Move) []StateSnapshot {
 	states := make([]StateSnapshot, 0)
 	crit := false
 
@@ -355,7 +355,7 @@ func ohkoHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game
 	return ohkoState
 }
 
-func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move) StateSnapshot {
+func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) StateSnapshot {
 	ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	if ok && defPokemon.Status == game.STATUS_NONE {
 		ailmentCheck := rand.Intn(100)
@@ -420,7 +420,7 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move *game.Move)
 	}
 }
 
-func healHandler(state *GameState, attackPokemon *game.Pokemon, move *game.Move) StateSnapshot {
+func healHandler(state *GameState, attackPokemon *game.Pokemon, move game.Move) StateSnapshot {
 	healPercent := float64(move.Meta.Healing) / 100
 	attackPokemon.HealPerc(healPercent)
 

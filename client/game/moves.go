@@ -90,16 +90,21 @@ type Move struct {
 	EffectChance int
 	EffectEntry  EffectEntry
 	Meta         *MoveMeta
-	Name         string
-	Power        int
-	PP           int
-	Priority     int
-	StatChanges  []StatChange `json:"stat_changes"`
-	Target       Target
-	Type         string
+	// What is checked for nil-ness
+	Name        string
+	Power       int
+	PP          int
+	Priority    int
+	StatChanges []StatChange `json:"stat_changes"`
+	Target      Target
+	Type        string
+}
+
+func (m Move) IsNil() bool {
+	return m.Name == ""
 }
 
 type BattleMove struct {
-	Info *Move
+	Info Move
 	PP   uint
 }

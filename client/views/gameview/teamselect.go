@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"maps"
+	"net"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -12,6 +13,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
@@ -26,6 +28,11 @@ type TeamSelectModel struct {
 	focus            int
 	backtrack        *components.Breadcrumbs
 	selectingStarter bool
+
+	networked        bool
+	conn             net.Conn
+	connId           int
+	waitingOnNetwork bool
 }
 
 type teamItem struct {
@@ -45,12 +52,12 @@ var (
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
+func NewTeamSelectModel(backtrack *components.Breadcrumbs, networked bool, conn net.Conn, connId int) TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
 		OnClick: func() (tea.Model, tea.Cmd) {
 			backtrack.PushNew(func() tea.Model {
-				return NewTeamSelectModel(backtrack)
+				return NewTeamSelectModel(backtrack, networked, conn, connId)
 			})
 			return teameditor.NewTeamEditorModel(backtrack, make([]game.Pokemon, 0)), nil
 		},
@@ -94,6 +101,9 @@ func NewTeamSelectModel(backtrack *components.Breadcrumbs) TeamSelectModel {
 		buttons:   buttons,
 		backtrack: backtrack,
 		teamView:  components.NewTeamView(startingTeam),
+		networked: networked,
+		conn:      conn,
+		connId:    connId,
 	}
 }
 
@@ -110,6 +120,10 @@ func (m TeamSelectModel) View() string {
 func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.waitingOnNetwork {
+			return m, nil
+		}
+
 		if key.Matches(msg, switchFocusKey) {
 			m.focus++
 			if m.focus > 1 {
@@ -119,13 +133,48 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.selectingStarter && key.Matches(msg, selectKey) {
 			selectedTeam := m.teamList.SelectedItem().(teamItem)
-			defaultEnemyTeam := state.RandomTeam()
 
-			gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
-			// update the starter to what the player selects in this screen
-			gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+			// TODO: Check for HOST/PEER
+			if m.networked {
+				if m.connId == state.HOST {
+					// Wait for opponent to send team over
+					return m, func() tea.Msg {
+						peerTeam, err := networking.AcceptData[networking.TeamSelectionPacket](m.conn)
+						if err != nil {
+							// TODO: Change all log.Fatal() to something that doesn't crash
+							log.Fatal().Err(err).Msg("Error trying to get team from opponent")
+						}
 
-			return NewMainGameModel(gameState, state.HOST), nil
+						return peerTeam
+					}
+				}
+
+				return m, func() tea.Msg {
+					// Send team to host
+					log.Debug().Msgf("Sent team: %+v", selectedTeam.Pokemon)
+
+					err := networking.SendData(m.conn, networking.TeamSelectionPacket{Team: selectedTeam.Pokemon, StartingIndex: m.teamView.CurrentPokemonIndex})
+					if err != nil {
+						log.Fatal().Err(err).Msg("Error trying to send team to host")
+					}
+
+					// Wait for starting state
+					state, err := networking.AcceptData[state.GameState](m.conn)
+					if err != nil {
+						log.Fatal().Err(err).Msg("Error trying to get gamestate from host")
+					}
+
+					return state
+				}
+			} else {
+				defaultEnemyTeam := state.RandomTeam()
+
+				gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
+				// update the starter to what the player selects in this screen
+				gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+
+				return NewMainGameModel(gameState, state.HOST), nil
+			}
 		}
 
 		if m.focus == 0 && key.Matches(msg, selectKey) && !m.selectingStarter && m.teamList.SelectedItem() != nil {
@@ -133,15 +182,29 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.teamView.Focused = true
 		}
 
-		if msg.Type == tea.KeyEsc {
+		// TODO: Allow backtracking but close connection for multiplayer games
+		if msg.Type == tea.KeyEsc && !m.networked {
 			if m.selectingStarter {
 				m.selectingStarter = false
 			} else {
 				return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 			}
 		}
+	case state.GameState: // PEER CASE
+		return NewMainGameModel(msg, state.PEER), nil
+
+	case networking.TeamSelectionPacket: // HOST CASE
+		selectedTeam := m.teamList.SelectedItem().(teamItem)
+
+		gameState := state.NewState(selectedTeam.Pokemon, msg.Team)
+
+		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
+
+		return NewMainGameModel(gameState, state.HOST), nil
 	}
 
+	// Update team selection view
 	if !m.selectingStarter {
 		switch m.focus {
 		case 0:
