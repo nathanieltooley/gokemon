@@ -21,6 +21,8 @@ type StateUpdater interface {
 	SendAction(state.Action)
 }
 
+// Takes a list of state snapshots and applies the final state to the main copy of state,
+// syncing all intermediate changes with the main state and returning the snapshots
 func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []state.StateSnapshot {
 	finalState := *mainState
 
@@ -70,9 +72,6 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 
 type LocalUpdater struct {
 	Actions []state.Action
-
-	aiNeedsToSwitch     bool
-	playerNeedsToSwitch bool
 }
 
 func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
@@ -119,9 +118,11 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	artificalDelay := time.Second * 2
 
+	host := &gameState.LocalPlayer
+	ai := &gameState.OpposingPlayer
+
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
-	// probably a better expression for this
-	if !u.playerNeedsToSwitch && !u.aiNeedsToSwitch || !u.playerNeedsToSwitch && u.aiNeedsToSwitch {
+	if !host.ActiveKOed || ai.ActiveKOed {
 		u.Actions = append(u.Actions, u.BestAiAction(gameState))
 	}
 
@@ -155,11 +156,12 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	})
 
 	// Properly end turn after force switches are dealt with
-	if u.playerNeedsToSwitch || u.aiNeedsToSwitch {
+	if host.ActiveKOed || ai.ActiveKOed {
 		u.Actions = make([]state.Action, 0)
 
-		u.playerNeedsToSwitch = false
-		u.aiNeedsToSwitch = false
+		// wish i didn't have to deal with cleaning up state here
+		host.ActiveKOed = false
+		ai.ActiveKOed = false
 
 		gameState.Turn++
 
@@ -328,7 +330,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	// Seems weird but should make sense if or when multiplayer is added
 	// also these checks will have to change if double battles are added
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
-		u.playerNeedsToSwitch = true
+		host.ActiveKOed = true
 		return func() tea.Msg {
 			time.Sleep(artificalDelay)
 
@@ -340,7 +342,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	}
 
 	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
-		u.aiNeedsToSwitch = true
+		ai.ActiveKOed = true
 		return func() tea.Msg {
 			time.Sleep(artificalDelay)
 

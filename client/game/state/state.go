@@ -178,6 +178,12 @@ type Player struct {
 	Name            string
 	Team            []game.Pokemon
 	ActivePokeIndex int
+
+	// Whether the player's active pokemon was ko'ed this turn.
+	// This is separate from ActivePokemon.IsAlive() since this should
+	// be persistent across the turn and not go away after switch in.
+	// That does mean that this needs to be reset every turn
+	ActiveKOed bool
 }
 
 // TODO: OOB Error handling
