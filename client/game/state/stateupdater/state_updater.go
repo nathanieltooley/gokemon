@@ -1,9 +1,7 @@
 package stateupdater
 
 import (
-	"cmp"
 	"fmt"
-	"slices"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,13 +11,10 @@ import (
 	"github.com/samber/lo"
 )
 
-type StateUpdater interface {
-	// Updates the state of the game
-	Update(*state.GameState) tea.Cmd
-
-	// Sets the Host's action for this turn
-	SendAction(state.Action)
-}
+// Abstraction of state changes (pokemon taking dmg, statuses changing, weather updates, etc).
+// The reason for this abstraction is to hide away any network dependent stuff from the main UI code.
+// Singleplayer games return artifically delayed cmds after updates while networked games will have actual latency
+type StateUpdater func(*state.GameState, []state.Action) tea.Cmd
 
 // Takes a list of state snapshots and applies the final state to the main copy of state,
 // syncing all intermediate changes with the main state and returning the snapshots
@@ -43,6 +38,7 @@ func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []st
 	return newStates
 }
 
+// Removes empty state snapshots and combines message only state updates with the previous full state update
 func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 	// Ignore empty state updates
 	snaps = lo.Filter(snaps, func(s state.StateSnapshot, _ int) bool {
@@ -70,11 +66,8 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 	})
 }
 
-type LocalUpdater struct {
-	Actions []state.Action
-}
-
-func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
+// Determines the best AI Action. Failsafes to skip actions
+func bestAiAction(gameState *state.GameState) state.Action {
 	if gameState.OpposingPlayer.GetActivePokemon().Alive() {
 		playerPokemon := gameState.LocalPlayer.GetActivePokemon()
 		aiPokemon := gameState.OpposingPlayer.GetActivePokemon()
@@ -115,7 +108,9 @@ func (u *LocalUpdater) BestAiAction(gameState *state.GameState) state.Action {
 	return &state.SkipAction{}
 }
 
-func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
+// The updater for singleplayer games.
+// Introduces artifical delay so theres some space in between human actions
+func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 	artificalDelay := time.Second * 2
 
 	host := &gameState.LocalPlayer
@@ -123,7 +118,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
 	if !host.ActiveKOed || ai.ActiveKOed {
-		u.Actions = append(u.Actions, u.BestAiAction(gameState))
+		actions = append(actions, bestAiAction(gameState))
 	}
 
 	switches := make([]state.SwitchAction, 0)
@@ -131,7 +126,8 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 
 	states := make([]state.StateSnapshot, 0)
 
-	for _, a := range u.Actions {
+	// Sort different actions
+	for _, a := range actions {
 		switch a := a.(type) {
 		case *state.SwitchAction:
 			switches = append(switches, *a)
@@ -140,25 +136,10 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		}
 	}
 
-	u.Actions = make([]state.Action, 0)
-
-	// Sort switching order by speed
-	slices.SortFunc(switches, func(a, b state.SwitchAction) int {
-		return cmp.Compare(a.Poke.Speed(), b.Poke.Speed())
-	})
-
-	// Reverse for desc order
-	slices.Reverse(switches)
-
-	// Process switches first
-	lo.ForEach(switches, func(a state.SwitchAction, i int) {
-		states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-	})
+	states = append(states, commonSwitching(gameState, switches)...)
 
 	// Properly end turn after force switches are dealt with
 	if host.ActiveKOed || ai.ActiveKOed {
-		u.Actions = make([]state.Action, 0)
-
 		// wish i didn't have to deal with cleaning up state here
 		host.ActiveKOed = false
 		ai.ActiveKOed = false
@@ -185,128 +166,7 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 	}
 
-	// Reset turn flags
-	// eventually this will have to change for double battles
-	gameState.LocalPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.LocalPlayer.GetActivePokemon().SwitchedInThisTurn = false
-
-	gameState.OpposingPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.OpposingPlayer.GetActivePokemon().SwitchedInThisTurn = false
-
-	// Sort Other Actions
-	slices.SortFunc(otherActions, func(a, b state.Action) int {
-		var aSpeed int
-		var bSpeed int
-		var aPriority int
-		var bPriority int
-
-		activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
-		aSpeed = activePokemon.Speed()
-
-		switch a := a.(type) {
-		case *state.AttackAction:
-			move := activePokemon.Moves[a.AttackerMove]
-			aPriority = move.Priority
-		case *state.SkipAction:
-			aPriority = -100
-		default:
-			return 0
-		}
-
-		activePokemon = gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
-		bSpeed = activePokemon.Speed()
-
-		switch b := b.(type) {
-		case *state.AttackAction:
-			if b.AttackerMove < 0 || b.AttackerMove >= len(activePokemon.Moves) {
-				return 0
-			}
-
-			move := activePokemon.Moves[b.AttackerMove]
-			bPriority = move.Priority
-		case *state.SkipAction:
-			bPriority = -100
-		default:
-			return 0
-		}
-
-		log.Debug().
-			Int("aPlayer", a.Ctx().PlayerId).
-			Int("bPlayer", b.Ctx().PlayerId).
-			Int("aSpeed", aSpeed).
-			Int("bSpeed", bSpeed).
-			Int("aPriority", aPriority).
-			Int("bPriority", bPriority).
-			Int("comp", cmp.Compare(aSpeed, bSpeed)).
-			Int("compPriority", cmp.Compare(aPriority, bPriority)).
-			Msg("sort debug")
-
-		priorComp := cmp.Compare(aPriority, bPriority)
-		speedComp := cmp.Compare(aSpeed, bSpeed)
-
-		if priorComp == 0 {
-			return speedComp
-		} else {
-			return priorComp
-		}
-	})
-
-	// Reverse for desc order
-	slices.Reverse(otherActions)
-
-	// Process otherActions next
-	lo.ForEach(otherActions, func(a state.Action, i int) {
-		switch a.(type) {
-		case *state.AttackAction, *state.SkipAction:
-			player := gameState.GetPlayer(a.Ctx().PlayerId)
-
-			log.Info().Int("attackIndex", i).
-				Int("attackerSpeed", player.GetActivePokemon().Speed()).
-				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
-				Int("attackerConfCount", player.GetActivePokemon().ConfusionCount).
-				Msg("Attack state update")
-
-			pokemon := player.GetActivePokemon()
-			if pokemon.CanAttackThisTurn {
-				pokemon.CanAttackThisTurn = !pokemon.SwitchedInThisTurn
-			}
-
-			if !pokemon.Alive() {
-				return
-			}
-
-			// Skip attack with para
-			if pokemon.Status == game.STATUS_PARA {
-				states = append(states, state.ParaHandler(gameState, pokemon))
-			}
-
-			// Skip attack with sleep
-			if pokemon.Status == game.STATUS_SLEEP {
-				states = append(states, state.SleepHandler(gameState, pokemon))
-			}
-
-			// Skip attack with frozen
-			if pokemon.Status == game.STATUS_FROZEN {
-				states = append(states, state.FreezeHandler(gameState, pokemon))
-			}
-
-			// Skip attack with confusion
-			if pokemon.ConfusionCount > 0 {
-				states = append(states, state.ConfuseHandler(gameState, pokemon))
-				pokemon.ConfusionCount--
-
-				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
-			}
-
-			endOfTurnAbilities(gameState, a.Ctx().PlayerId)
-
-			if pokemon.Alive() && pokemon.CanAttackThisTurn {
-				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-			}
-		default:
-			states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
-		}
-	})
+	states = append(states, commonOtherActionHandling(gameState, otherActions)...)
 
 	gameOverValue := gameState.GameOver()
 	if gameOverValue == state.PLAYER {
@@ -411,10 +271,11 @@ func (u *LocalUpdater) Update(gameState *state.GameState) tea.Cmd {
 	}
 }
 
-func (u *LocalUpdater) SendAction(action state.Action) {
-	u.Actions = append(u.Actions, action)
+func NetHostUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
+	return nil
 }
 
+// Activates certain end of turn abilities
 func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSnapshot {
 	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
 

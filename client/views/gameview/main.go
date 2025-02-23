@@ -2,6 +2,7 @@ package gameview
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,6 +27,7 @@ const (
 	_TICK_TIME        = 1000 / _TICKS_PER_SECOND
 )
 
+// Used to send info around different game UI components
 type gameContext struct {
 	// This state is "The One True State", the actual state that dictates how the game is going
 	// If / When multiplayer is added, this will only be true for the host, but it will true be the
@@ -57,9 +59,11 @@ type MainGameModel struct {
 	insidePanel bool
 
 	panel tea.Model
+
+	conn net.Conn
 }
 
-func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
+func NewMainGameModel(state state.GameState, playerSide int, conn net.Conn) MainGameModel {
 	ctx := &gameContext{
 		state:        &state,
 		chosenAction: nil,
@@ -68,9 +72,10 @@ func NewMainGameModel(state state.GameState, playerSide int) MainGameModel {
 	return MainGameModel{
 		ctx:                  ctx,
 		playerSide:           playerSide,
-		stateUpdater:         &stateupdater.LocalUpdater{},
+		stateUpdater:         stateupdater.LocalUpdater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),
+		conn:                 conn,
 	}
 }
 
@@ -159,7 +164,6 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.insidePanel = true
 	}
 
-	// Debug switch action
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEsc {
@@ -176,6 +180,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			// Go to the next state once we run out of messages
 			if m.nextState() {
+				// TODO: Add case for if there is no msg here
 				m.nextStateMsg()
 				cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
 					return nextNotifMsg{}
@@ -200,7 +205,8 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 		} else {
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
-			cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
+			// Do nothing, it's not our turn to move
+			cmds = append(cmds, m.stateUpdater(m.ctx.state, nil))
 		}
 	case stateupdater.TurnResolvedMessage:
 		m.panel = newActionPanel(m.ctx)
@@ -228,17 +234,18 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// User has submitted an action
 	if m.ctx.chosenAction != nil && !m.startedTurnResolving {
-		m.stateUpdater.SendAction(m.ctx.chosenAction)
 		// Freezes the state while updates are being made
 		m.startedTurnResolving = true
 		m.currentRenderedState = m.ctx.state.Clone()
 
-		cmds = append(cmds, m.stateUpdater.Update(m.ctx.state))
+		cmds = append(cmds, m.stateUpdater(m.ctx.state, []state.Action{m.ctx.chosenAction}))
 	} else {
 		m.panel, _ = m.panel.Update(msg)
 	}
 
+	// Start notification loop when the current message is empty
 	if m.currentStateMessage == "" {
 		// If there was a new message, send a cmd to go to the next one
 		if m.nextStateMsg() {
