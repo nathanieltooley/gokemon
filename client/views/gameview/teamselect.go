@@ -173,7 +173,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// update the starter to what the player selects in this screen
 				gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 
-				return NewMainGameModel(gameState, state.HOST), nil
+				return NewMainGameModel(gameState, state.HOST, nil), nil
 			}
 		}
 
@@ -191,7 +191,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case state.GameState: // PEER CASE
-		return NewMainGameModel(msg, state.PEER), nil
+		return NewMainGameModel(msg, state.PEER, m.conn), nil
 
 	case networking.TeamSelectionPacket: // HOST CASE
 		selectedTeam := m.teamList.SelectedItem().(teamItem)
@@ -201,7 +201,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
 
-		return NewMainGameModel(gameState, state.HOST), nil
+		return NewMainGameModel(gameState, state.HOST, m.conn), nil
 	}
 
 	// Update team selection view
