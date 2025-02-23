@@ -13,21 +13,29 @@ func NewBreadcrumb() Breadcrumbs {
 	return Breadcrumbs{}
 }
 
-func (b *Breadcrumbs) Push(model tea.Model) {
+// Push a model onto the breadcrumb stack.
+// Returns the modified copy.
+func (b Breadcrumbs) Push(model tea.Model) Breadcrumbs {
 	l := len(b.backtrace)
 	log.Debug().Msgf("Push, Len: %d", l)
 
-	b.PushNew(func() tea.Model {
+	return b.PushNew(func() tea.Model {
 		return model
 	})
 }
 
-func (b *Breadcrumbs) PushNew(modelFunc func() tea.Model) {
+// Push a function that creates a new model onto the stack.
+// Returns the modified copy.
+func (b Breadcrumbs) PushNew(modelFunc func() tea.Model) Breadcrumbs {
 	b.backtrace = append(b.backtrace, modelFunc)
+
+	return b
 }
 
 // Returns a pointer for an optional nil value
-func (b *Breadcrumbs) Pop() *tea.Model {
+// Does not return the modified version since the primary use case does not use it,
+// it uses an older copy of the struct from a previous push
+func (b Breadcrumbs) Pop() *tea.Model {
 	l := len(b.backtrace)
 
 	if l == 0 {
@@ -43,7 +51,7 @@ func (b *Breadcrumbs) Pop() *tea.Model {
 	return &model
 }
 
-func (b *Breadcrumbs) PopDefault(def func() tea.Model) tea.Model {
+func (b Breadcrumbs) PopDefault(def func() tea.Model) tea.Model {
 	poppedModel := b.Pop()
 
 	if poppedModel == nil {

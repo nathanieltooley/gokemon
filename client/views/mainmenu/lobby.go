@@ -26,12 +26,12 @@ var lobbyLogger = func() *zerolog.Logger {
 
 type (
 	LobbyModel struct {
-		backtrack *components.Breadcrumbs
+		backtrack components.Breadcrumbs
 
 		conn net.Conn
 	}
 	JoinLobbyModel struct {
-		backtrack *components.Breadcrumbs
+		backtrack components.Breadcrumbs
 
 		conn        net.Conn
 		ipTextInput textinput.Model
@@ -70,7 +70,7 @@ func connect(address string) tea.Msg {
 	return conn
 }
 
-func NewLobbyHost(backtrack *components.Breadcrumbs) LobbyModel {
+func NewLobbyHost(backtrack components.Breadcrumbs) LobbyModel {
 	return LobbyModel{backtrack: backtrack}
 }
 
@@ -96,13 +96,15 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.conn = msg
 
 		// Send to team selection
-		return gameview.NewTeamSelectModel(m.backtrack, true, m.conn, state.HOST), nil
+		return gameview.NewTeamSelectModel(m.backtrack.PushNew(func() tea.Model {
+			return NewLobbyHost(m.backtrack)
+		}), true, m.conn, state.HOST), nil
 	}
 
 	return m, nil
 }
 
-func NewLobbyJoiner(backtrack *components.Breadcrumbs) JoinLobbyModel {
+func NewLobbyJoiner(backtrack components.Breadcrumbs) JoinLobbyModel {
 	textInput := textinput.New()
 	textInput.Focus()
 
@@ -134,7 +136,9 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case connectionAcceptedMsg:
 		m.conn = msg
 
-		return gameview.NewTeamSelectModel(m.backtrack, true, m.conn, state.PEER), nil
+		return gameview.NewTeamSelectModel(m.backtrack.PushNew(func() tea.Model {
+			return NewLobbyJoiner(m.backtrack)
+		}), true, m.conn, state.PEER), nil
 	}
 
 	return m, tea.Batch(cmds...)

@@ -75,7 +75,7 @@ type teamEditorCtx struct {
 	team               []game.Pokemon
 	listeningForEscape bool
 	// HACK: needed to probably back out into team selection
-	backtrack *components.Breadcrumbs
+	backtrack components.Breadcrumbs
 }
 
 type (
@@ -104,7 +104,7 @@ type (
 	}
 )
 
-func NewTeamEditorModel(backtrack *components.Breadcrumbs, team []game.Pokemon) editTeamModel {
+func NewTeamEditorModel(backtrack components.Breadcrumbs, team []game.Pokemon) editTeamModel {
 	ctx := teamEditorCtx{
 		team:               team,
 		listeningForEscape: true,
@@ -199,7 +199,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if currentPokemon != nil {
 				m.addingNewPokemon = true
-				m.ctx.backtrack.PushNew(func() tea.Model {
+				m.ctx.backtrack = m.ctx.backtrack.PushNew(func() tea.Model {
 					return newEditTeamModelCtx(m.ctx)
 				})
 
@@ -227,7 +227,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, openSaveTeam) {
-			m.ctx.backtrack.Push(m)
+			m.ctx.backtrack = m.ctx.backtrack.Push(m)
 			return newSaveTeamModel(m.ctx), nil
 		}
 

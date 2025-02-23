@@ -26,7 +26,7 @@ type TeamSelectModel struct {
 	teamView         components.TeamView
 	buttons          components.MenuButtons
 	focus            int
-	backtrack        *components.Breadcrumbs
+	backtrack        components.Breadcrumbs
 	selectingStarter bool
 
 	networked        bool
@@ -52,14 +52,13 @@ var (
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func NewTeamSelectModel(backtrack *components.Breadcrumbs, networked bool, conn net.Conn, connId int) TeamSelectModel {
+func NewTeamSelectModel(backtrack components.Breadcrumbs, networked bool, conn net.Conn, connId int) TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
 		OnClick: func() (tea.Model, tea.Cmd) {
-			backtrack.PushNew(func() tea.Model {
+			return teameditor.NewTeamEditorModel(backtrack.PushNew(func() tea.Model {
 				return NewTeamSelectModel(backtrack, networked, conn, connId)
-			})
-			return teameditor.NewTeamEditorModel(backtrack, make([]game.Pokemon, 0)), nil
+			}), make([]game.Pokemon, 0)), nil
 		},
 	}
 

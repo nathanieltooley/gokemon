@@ -18,8 +18,7 @@ func NewModel() MainMenuModel {
 			Name: "Play Game",
 			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrack := components.NewBreadcrumb()
-				backtrack.PushNew(func() tea.Model { return NewModel() })
-				return NewPlaySelection(&backtrack), nil
+				return NewPlaySelection(backtrack.PushNew(func() tea.Model { return NewModel() })), nil
 			},
 		},
 		{
@@ -35,8 +34,7 @@ func NewModel() MainMenuModel {
 			Name: "Options",
 			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrack := components.NewBreadcrumb()
-				backtrack.PushNew(func() tea.Model { return NewModel() })
-				return newOptionsMenu(backtrack), nil
+				return newOptionsMenu(backtrack.PushNew(func() tea.Model { return NewModel() })), nil
 			},
 		},
 	}

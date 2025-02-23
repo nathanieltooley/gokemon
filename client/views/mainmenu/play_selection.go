@@ -10,20 +10,18 @@ type PlaySelection struct {
 	buttons components.MenuButtons
 }
 
-func NewPlaySelection(backtrack *components.Breadcrumbs) PlaySelection {
+func NewPlaySelection(backtrack components.Breadcrumbs) PlaySelection {
 	buttons := []components.ViewButton{
 		{
 			Name: "Singleplayer",
 			OnClick: func() (tea.Model, tea.Cmd) {
-				backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) })
-				return gameview.NewTeamSelectModel(backtrack, false, nil, 0), nil
+				return gameview.NewTeamSelectModel(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }), false, nil, 0), nil
 			},
 		},
 		{
 			Name: "Host Lobby",
 			OnClick: func() (tea.Model, tea.Cmd) {
-				backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) })
-				lh := NewLobbyHost(backtrack)
+				lh := NewLobbyHost(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }))
 				return lh, lh.Init()
 			},
 		},
