@@ -310,14 +310,14 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			move := poke.Moves[m.moveGridFocus]
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
-			if move.IsNil() && pp > 0 {
+			if !move.IsNil() && pp > 0 {
 				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 			}
 
 			outOfMoves := true
 			for _, m := range poke.Moves {
-				if m.IsNil() && pp > 0 {
+				if !m.IsNil() && pp > 0 {
 					log.Debug().Msgf("Pokemon not out of moves, has: %s", m.Name)
 					outOfMoves = false
 				}
