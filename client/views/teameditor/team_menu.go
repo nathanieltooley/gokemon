@@ -17,15 +17,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// HACK: have to make this public for the gameview team editor
 type startTeamMenu struct {
-	backtrace *components.Breadcrumbs
+	backtrace components.Breadcrumbs
 	buttons   components.MenuButtons
 }
 
 // Allows the user to select an already existing team for editing
 type teamSelectionMenu struct {
-	backtrace *components.Breadcrumbs
+	backtrace components.Breadcrumbs
 
 	teamList list.Model
 	teams    teamfs.SavedTeams
@@ -39,7 +38,7 @@ type teamItem struct {
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
+func newTeamMainMenu(backtrace components.Breadcrumbs) startTeamMenu {
 	startMenu := startTeamMenu{}
 	buttons := []components.ViewButton{
 		{
@@ -63,7 +62,7 @@ func newTeamMainMenu(backtrace *components.Breadcrumbs) startTeamMenu {
 	return startMenu
 }
 
-func newTeamSelectionMenu(backtrace *components.Breadcrumbs) teamSelectionMenu {
+func newTeamSelectionMenu(backtrace components.Breadcrumbs) teamSelectionMenu {
 	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -150,7 +149,6 @@ func (t teamSelectionMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func NewTeamMenu(mainMenuFunction func() tea.Model) startTeamMenu {
 	backtrack := components.NewBreadcrumb()
-	backtrack.PushNew(mainMenuFunction)
 
-	return newTeamMainMenu(&backtrack)
+	return newTeamMainMenu(backtrack.PushNew(mainMenuFunction))
 }
