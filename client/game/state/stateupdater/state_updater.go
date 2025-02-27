@@ -2,11 +2,13 @@ package stateupdater
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
@@ -271,7 +273,59 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 	}
 }
 
-func NetHostUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
+func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net.Conn) tea.Cmd {
+	host := &gameState.LocalPlayer
+	op := &gameState.OpposingPlayer
+
+	// We need to get an action from the opposing player
+	if !host.ActiveKOed || op.ActiveKOed {
+		// TODO: Have this return a tea.Cmd. gameState will have to keep track of when the players have submitted actions
+
+		// GET ACTION
+		opAction, err := networking.AcceptAction(conn)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to get opposing action")
+		}
+
+		log.Info().Msgf("Host got action: %+v", opAction)
+
+		actions = append(actions, opAction)
+	}
+
+	switches := make([]state.SwitchAction, 0)
+	otherActions := make([]state.Action, 0)
+
+	// states := make([]state.StateSnapshot, 0)
+
+	for _, a := range actions {
+		switch a := a.(type) {
+		case *state.SwitchAction:
+			switches = append(switches, *a)
+		default:
+			otherActions = append(otherActions, a)
+		}
+	}
+
+	return nil
+}
+
+func NetClientUpdater(gameState *state.GameState, actions []state.Action, conn net.Conn) tea.Cmd {
+	// the client is only going to have action,
+	// send that to the host, and then get all of the state updates
+	if len(actions) != 1 {
+		log.Fatal().Msg("client tried to update with the incorrect amount of actions")
+	}
+
+	if err := networking.SendAction(conn, actions[0]); err != nil {
+		log.Fatal().Err(err).Msg("client failed to send action")
+	}
+
+	_, err := networking.AcceptData[[]state.StateSnapshot](conn)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("client failed to receive state updates")
+	}
+
 	return nil
 }
 
@@ -303,5 +357,8 @@ type (
 	}
 	GameOverMessage struct {
 		ForThisPlayer bool
+	}
+	ContinueUpdaterMessage struct {
+		Actions []state.Action
 	}
 )

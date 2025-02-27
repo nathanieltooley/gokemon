@@ -63,16 +63,31 @@ type MainGameModel struct {
 	conn net.Conn
 }
 
-func NewMainGameModel(state state.GameState, playerSide int, conn net.Conn) MainGameModel {
+func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) MainGameModel {
 	ctx := &gameContext{
-		state:        &state,
+		state:        &gameState,
 		chosenAction: nil,
+	}
+
+	var updater stateupdater.StateUpdater = stateupdater.LocalUpdater
+
+	if conn != nil {
+		if playerSide == state.HOST {
+			// maybe changing these from interfaces wasn't the best idea
+			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
+				return stateupdater.NetHostUpdater(gs, a, conn)
+			}
+		} else if playerSide == state.PEER {
+			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
+				return stateupdater.NetClientUpdater(gs, a, conn)
+			}
+		}
 	}
 
 	return MainGameModel{
 		ctx:                  ctx,
 		playerSide:           playerSide,
-		stateUpdater:         stateupdater.LocalUpdater,
+		stateUpdater:         updater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),
 		conn:                 conn,
