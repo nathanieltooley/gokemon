@@ -146,25 +146,26 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 						return peerTeam
 					}
+				} else if m.connId == state.PEER {
+					return m, func() tea.Msg {
+						// Send team to host
+						log.Debug().Msgf("Sent team: %+v", selectedTeam.Pokemon)
+
+						err := networking.SendData(m.conn, networking.TeamSelectionPacket{Team: selectedTeam.Pokemon, StartingIndex: m.teamView.CurrentPokemonIndex})
+						if err != nil {
+							log.Fatal().Err(err).Msg("Error trying to send team to host")
+						}
+
+						// Wait for starting state
+						state, err := networking.AcceptData[state.GameState](m.conn)
+						if err != nil {
+							log.Fatal().Err(err).Msg("Error trying to get gamestate from host")
+						}
+
+						return state
+					}
 				}
 
-				return m, func() tea.Msg {
-					// Send team to host
-					log.Debug().Msgf("Sent team: %+v", selectedTeam.Pokemon)
-
-					err := networking.SendData(m.conn, networking.TeamSelectionPacket{Team: selectedTeam.Pokemon, StartingIndex: m.teamView.CurrentPokemonIndex})
-					if err != nil {
-						log.Fatal().Err(err).Msg("Error trying to send team to host")
-					}
-
-					// Wait for starting state
-					state, err := networking.AcceptData[state.GameState](m.conn)
-					if err != nil {
-						log.Fatal().Err(err).Msg("Error trying to get gamestate from host")
-					}
-
-					return state
-				}
 			} else {
 				defaultEnemyTeam := state.RandomTeam()
 
@@ -199,6 +200,9 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
+
+		// TODO: Make this a cmd so that it doesn't block
+		networking.SendData(m.conn, gameState)
 
 		return NewMainGameModel(gameState, state.HOST, m.conn), nil
 	}
