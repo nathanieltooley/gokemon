@@ -35,12 +35,12 @@ type gameContext struct {
 	state        *state.GameState
 	chosenAction state.Action
 	forcedSwitch bool
+	playerSide   int
 }
 
 type MainGameModel struct {
 	ctx          *gameContext
 	stateUpdater stateupdater.StateUpdater
-	playerSide   int
 	// Player has submitted their action and starts waiting for the opponent to submit their's
 	// and for both of their actions to be processed
 	startedTurnResolving bool
@@ -67,6 +67,7 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 	ctx := &gameContext{
 		state:        &gameState,
 		chosenAction: nil,
+		playerSide:   playerSide,
 	}
 
 	var updater stateupdater.StateUpdater = stateupdater.LocalUpdater
@@ -86,7 +87,6 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 
 	return MainGameModel{
 		ctx:                  ctx,
-		playerSide:           playerSide,
 		stateUpdater:         updater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),

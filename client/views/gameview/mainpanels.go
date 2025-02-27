@@ -311,7 +311,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
 			if !move.IsNil() && pp > 0 {
-				attack := state.NewAttackAction(state.HOST, m.moveGridFocus)
+				attack := state.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 			}
 
