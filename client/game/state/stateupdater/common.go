@@ -157,3 +157,55 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 
 	return states
 }
+
+func commonEndOfTurn(gameState *state.GameState) []state.StateSnapshot {
+	states := make([]state.StateSnapshot, 0)
+
+	applyBurn := func(pokemon *game.Pokemon) {
+		states = append(states, state.BurnHandler(gameState, pokemon))
+	}
+
+	applyPoison := func(pokemon *game.Pokemon) {
+		states = append(states, state.PoisonHandler(gameState, pokemon))
+	}
+
+	applyToxic := func(pokemon *game.Pokemon) {
+		states = append(states, state.ToxicHandler(gameState, pokemon))
+	}
+
+	localPokemon := gameState.LocalPlayer.GetActivePokemon()
+	switch localPokemon.Status {
+	case game.STATUS_BURN:
+		applyBurn(localPokemon)
+	case game.STATUS_POISON:
+		applyPoison(localPokemon)
+	case game.STATUS_TOXIC:
+		applyToxic(localPokemon)
+	}
+
+	opPokemon := gameState.OpposingPlayer.GetActivePokemon()
+	switch opPokemon.Status {
+	case game.STATUS_BURN:
+		applyBurn(opPokemon)
+	case game.STATUS_POISON:
+		applyPoison(opPokemon)
+	case game.STATUS_TOXIC:
+		applyToxic(opPokemon)
+	}
+
+	if gameState.Weather == game.WEATHER_SANDSTORM {
+		states = append(states, state.SandstormDamage(gameState, localPokemon))
+		states = append(states, state.SandstormDamage(gameState, opPokemon))
+	}
+
+	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
+		return item.Messages
+	})
+
+	log.Info().Msgf("States: %d", len(states))
+	log.Info().Strs("Queued Messages", messages).Msg("")
+
+	gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+
+	return states
+}

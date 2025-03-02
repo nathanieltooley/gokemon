@@ -215,51 +215,7 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 		}
 	}
 
-	applyBurn := func(pokemon *game.Pokemon) {
-		states = append(states, state.BurnHandler(gameState, pokemon))
-	}
-
-	applyPoison := func(pokemon *game.Pokemon) {
-		states = append(states, state.PoisonHandler(gameState, pokemon))
-	}
-
-	applyToxic := func(pokemon *game.Pokemon) {
-		states = append(states, state.ToxicHandler(gameState, pokemon))
-	}
-
-	localPokemon := gameState.LocalPlayer.GetActivePokemon()
-	switch localPokemon.Status {
-	case game.STATUS_BURN:
-		applyBurn(localPokemon)
-	case game.STATUS_POISON:
-		applyPoison(localPokemon)
-	case game.STATUS_TOXIC:
-		applyToxic(localPokemon)
-	}
-
-	opPokemon := gameState.OpposingPlayer.GetActivePokemon()
-	switch opPokemon.Status {
-	case game.STATUS_BURN:
-		applyBurn(opPokemon)
-	case game.STATUS_POISON:
-		applyPoison(opPokemon)
-	case game.STATUS_TOXIC:
-		applyToxic(opPokemon)
-	}
-
-	if gameState.Weather == game.WEATHER_SANDSTORM {
-		states = append(states, state.SandstormDamage(gameState, localPokemon))
-		states = append(states, state.SandstormDamage(gameState, opPokemon))
-	}
-
-	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
-		return item.Messages
-	})
-
-	log.Info().Msgf("States: %d", len(states))
-	log.Info().Strs("Queued Messages", messages).Msg("")
-
-	gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+	states = append(states, commonEndOfTurn(gameState)...)
 
 	return func() tea.Msg {
 		// Artifical Delay
@@ -295,7 +251,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	switches := make([]state.SwitchAction, 0)
 	otherActions := make([]state.Action, 0)
 
-	// states := make([]state.StateSnapshot, 0)
+	states := make([]state.StateSnapshot, 0)
 
 	for _, a := range actions {
 		switch a := a.(type) {
@@ -306,7 +262,108 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 		}
 	}
 
-	return nil
+	states = append(states, commonSwitching(gameState, switches)...)
+
+	if host.ActiveKOed || op.ActiveKOed {
+		// wish i didn't have to deal with cleaning up state here
+		host.ActiveKOed = false
+		op.ActiveKOed = false
+
+		gameState.Turn++
+
+		return func() tea.Msg {
+			time.Sleep(time.Second * 1)
+
+			messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
+				return item.Messages
+			})
+
+			log.Info().Msgf("States: %d", len(states))
+			log.Info().Strs("Queued Messages", messages).Msg("")
+
+			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+
+			networking.SendData(conn, TurnResolvedMessage{
+				StateUpdates: cleanStateSnapshots(states),
+			})
+
+			return TurnResolvedMessage{
+				StateUpdates: cleanStateSnapshots(states),
+			}
+		}
+	} else {
+		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
+	}
+
+	states = append(states, commonOtherActionHandling(gameState, otherActions)...)
+
+	gameOverValue := gameState.GameOver()
+	if gameOverValue == state.PLAYER {
+		return func() tea.Msg {
+			networking.SendData(conn, GameOverMessage{
+				ForThisPlayer: false,
+			})
+
+			return GameOverMessage{
+				ForThisPlayer: true,
+			}
+		}
+	} else if gameOverValue == state.PEER {
+		return func() tea.Msg {
+			networking.SendData(conn, GameOverMessage{
+				ForThisPlayer: true,
+			})
+
+			return GameOverMessage{
+				ForThisPlayer: false,
+			}
+		}
+	}
+
+	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
+		host.ActiveKOed = true
+		return func() tea.Msg {
+			networking.SendData(conn, ForceSwitchMessage{
+				ForThisPlayer: false,
+				StateUpdates:  cleanStateSnapshots(states),
+			})
+
+			return ForceSwitchMessage{
+				ForThisPlayer: true,
+				StateUpdates:  cleanStateSnapshots(states),
+			}
+		}
+	}
+
+	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
+		op.ActiveKOed = true
+		return func() tea.Msg {
+
+			networking.SendData(conn, ForceSwitchMessage{
+				ForThisPlayer: true,
+				StateUpdates:  cleanStateSnapshots(states),
+			})
+
+			return ForceSwitchMessage{
+				ForThisPlayer: false,
+				StateUpdates:  cleanStateSnapshots(states),
+			}
+		}
+	}
+
+	states = append(states, commonEndOfTurn(gameState)...)
+
+	return func() tea.Msg {
+		networking.SendData(conn, TurnResolvedMessage{
+			StateUpdates: cleanStateSnapshots(states),
+		})
+
+		gameState.Turn++
+
+		return TurnResolvedMessage{
+			StateUpdates: cleanStateSnapshots(states),
+		}
+	}
 }
 
 func NetClientUpdater(gameState *state.GameState, actions []state.Action, conn net.Conn) tea.Cmd {
