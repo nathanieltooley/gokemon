@@ -324,7 +324,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if outOfMoves {
-				attack := state.NewAttackAction(state.HOST, -1)
+				attack := state.NewAttackAction(m.ctx.playerSide, -1)
 				m.ctx.chosenAction = attack
 			}
 		}
