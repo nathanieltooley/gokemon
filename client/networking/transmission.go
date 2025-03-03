@@ -9,7 +9,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game/state"
-	"github.com/rs/zerolog/log"
 )
 
 type messageType int8
@@ -95,30 +94,28 @@ func AcceptAction(conn net.Conn) (state.Action, error) {
 		return nil, err
 	}
 
-	decoder := gob.NewDecoder(conn)
-
 	concreteName := string(concreteNameBytes[0:n])
-	log.Info().Msgf("host got action type: %s", concreteName)
+	decoder := gob.NewDecoder(conn)
 
 	// I tried to use a action type enum here rather than send the string of the concrete type name.
 	// However, when sending actions, i only have a pointer to the interface, not the actual concrete type.
 	// So I would end up having to do this anyway somewhere else (unless there is a better way to get around gob's lack of support for interfaces)
 	switch concreteName {
-	case "*state.SwitchAction":
+	case "state.SwitchAction":
 		a := &state.SwitchAction{}
 
 		err := decoder.Decode(a)
-		return a, err
-	case "*state.SkipAction":
+		return *a, err
+	case "state.SkipAction":
 		a := &state.SkipAction{}
 
 		err := decoder.Decode(a)
-		return a, err
-	case "*state.AttackAction":
+		return *a, err
+	case "state.AttackAction":
 		a := &state.AttackAction{}
 
 		err := decoder.Decode(a)
-		return a, err
+		return *a, err
 	}
 
 	return nil, &InvalidActionTypeError{concreteName}

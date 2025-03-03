@@ -248,8 +248,8 @@ type SwitchAction struct {
 	Poke        game.Pokemon
 }
 
-func NewSwitchAction(state *GameState, playerId int, switchIndex int) *SwitchAction {
-	return &SwitchAction{
+func NewSwitchAction(state *GameState, playerId int, switchIndex int) SwitchAction {
+	return SwitchAction{
 		ctx: NewActionCtx(playerId),
 		// TODO: OOB Check
 		SwitchIndex: switchIndex,
@@ -258,7 +258,7 @@ func NewSwitchAction(state *GameState, playerId int, switchIndex int) *SwitchAct
 	}
 }
 
-func (a *SwitchAction) UpdateState(state GameState) []StateSnapshot {
+func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.ctx.PlayerId)
 	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), a.SwitchIndex)
 	// TODO: OOB Check
@@ -317,13 +317,13 @@ type SkipAction struct {
 	ctx ActionCtx
 }
 
-func NewSkipAction(playerId int) *SkipAction {
-	return &SkipAction{
+func NewSkipAction(playerId int) SkipAction {
+	return SkipAction{
 		ctx: NewActionCtx(playerId),
 	}
 }
 
-func (a *SkipAction) UpdateState(state GameState) []StateSnapshot {
+func (a SkipAction) UpdateState(state GameState) []StateSnapshot {
 	return []StateSnapshot{
 		{
 			State:    state,

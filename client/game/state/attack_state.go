@@ -40,14 +40,14 @@ type AttackAction struct {
 	AttackerMove int
 }
 
-func NewAttackAction(attacker int, attackMove int) *AttackAction {
-	return &AttackAction{
+func NewAttackAction(attacker int, attackMove int) AttackAction {
+	return AttackAction{
 		ctx:          NewActionCtx(attacker),
 		AttackerMove: attackMove,
 	}
 }
 
-func (a *AttackAction) UpdateState(state GameState) []StateSnapshot {
+func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 	attacker := state.GetPlayer(a.ctx.PlayerId)
 	defenderInt := invertPlayerIndex(a.ctx.PlayerId)
 	defender := state.GetPlayer(defenderInt)
