@@ -238,11 +238,11 @@ type Action interface {
 	// Takes in a state and returns a new state and messages that communicate what happened
 	UpdateState(GameState) []StateSnapshot
 
-	Ctx() ActionCtx
+	GetCtx() ActionCtx
 }
 
 type SwitchAction struct {
-	ctx ActionCtx
+	Ctx ActionCtx
 
 	SwitchIndex int
 	Poke        game.Pokemon
@@ -250,7 +250,7 @@ type SwitchAction struct {
 
 func NewSwitchAction(state *GameState, playerId int, switchIndex int) SwitchAction {
 	return SwitchAction{
-		ctx: NewActionCtx(playerId),
+		Ctx: NewActionCtx(playerId),
 		// TODO: OOB Check
 		SwitchIndex: switchIndex,
 
@@ -259,8 +259,8 @@ func NewSwitchAction(state *GameState, playerId int, switchIndex int) SwitchActi
 }
 
 func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
-	player := state.GetPlayer(a.ctx.PlayerId)
-	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.ctx.PlayerId, playerIntToString(a.ctx.PlayerId), a.SwitchIndex)
+	player := state.GetPlayer(a.Ctx.PlayerId)
+	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.Ctx.PlayerId, playerIntToString(a.Ctx.PlayerId), a.SwitchIndex)
 	// TODO: OOB Check
 	player.ActivePokeIndex = a.SwitchIndex
 
@@ -281,7 +281,7 @@ func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 		state.Weather = game.WEATHER_RAIN
 		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
 	case "intimidate":
-		opPokemon := state.GetPlayer(invertPlayerIndex(a.ctx.PlayerId)).GetActivePokemon()
+		opPokemon := state.GetPlayer(invertPlayerIndex(a.Ctx.PlayerId)).GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
 			opPokemon.Attack.DecreaseStage(1)
 		}
@@ -296,13 +296,13 @@ func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 
 	newActivePkm.SwitchedInThisTurn = true
 
-	messages := []string{fmt.Sprintf("Player %d switched to %s", a.ctx.PlayerId, newActivePkm.Nickname)}
+	messages := []string{fmt.Sprintf("Player %d switched to %s", a.Ctx.PlayerId, newActivePkm.Nickname)}
 	states = append(states, StateSnapshot{State: state, Messages: messages})
 	return states
 }
 
-func (a SwitchAction) Ctx() ActionCtx {
-	return a.ctx
+func (a SwitchAction) GetCtx() ActionCtx {
+	return a.Ctx
 }
 
 func invertPlayerIndex(initial int) int {
@@ -314,12 +314,12 @@ func invertPlayerIndex(initial int) int {
 }
 
 type SkipAction struct {
-	ctx ActionCtx
+	Ctx ActionCtx
 }
 
 func NewSkipAction(playerId int) SkipAction {
 	return SkipAction{
-		ctx: NewActionCtx(playerId),
+		Ctx: NewActionCtx(playerId),
 	}
 }
 
@@ -327,11 +327,11 @@ func (a SkipAction) UpdateState(state GameState) []StateSnapshot {
 	return []StateSnapshot{
 		{
 			State:    state,
-			Messages: []string{fmt.Sprintf("Player %d skipped their turn", a.ctx.PlayerId)},
+			Messages: []string{fmt.Sprintf("Player %d skipped their turn", a.Ctx.PlayerId)},
 		},
 	}
 }
 
-func (a SkipAction) Ctx() ActionCtx {
-	return a.ctx
+func (a SkipAction) GetCtx() ActionCtx {
+	return a.Ctx
 }

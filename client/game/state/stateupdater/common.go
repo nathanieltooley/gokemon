@@ -47,7 +47,7 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 		var aPriority int
 		var bPriority int
 
-		activePokemon := gameState.GetPlayer(a.Ctx().PlayerId).GetActivePokemon()
+		activePokemon := gameState.GetPlayer(a.GetCtx().PlayerId).GetActivePokemon()
 		aSpeed = activePokemon.Speed()
 
 		switch a := a.(type) {
@@ -60,7 +60,7 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 			return 0
 		}
 
-		activePokemon = gameState.GetPlayer(b.Ctx().PlayerId).GetActivePokemon()
+		activePokemon = gameState.GetPlayer(b.GetCtx().PlayerId).GetActivePokemon()
 		bSpeed = activePokemon.Speed()
 
 		switch b := b.(type) {
@@ -78,8 +78,8 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 		}
 
 		log.Debug().
-			Int("aPlayer", a.Ctx().PlayerId).
-			Int("bPlayer", b.Ctx().PlayerId).
+			Int("aPlayer", a.GetCtx().PlayerId).
+			Int("bPlayer", b.GetCtx().PlayerId).
 			Int("aSpeed", aSpeed).
 			Int("bSpeed", bSpeed).
 			Int("aPriority", aPriority).
@@ -105,7 +105,7 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 	lo.ForEach(actions, func(a state.Action, i int) {
 		switch a.(type) {
 		case *state.AttackAction, *state.SkipAction:
-			player := gameState.GetPlayer(a.Ctx().PlayerId)
+			player := gameState.GetPlayer(a.GetCtx().PlayerId)
 
 			log.Info().Int("attackIndex", i).
 				Int("attackerSpeed", player.GetActivePokemon().Speed()).
@@ -145,7 +145,7 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
-			endOfTurnAbilities(gameState, a.Ctx().PlayerId)
+			endOfTurnAbilities(gameState, a.GetCtx().PlayerId)
 
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)

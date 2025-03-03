@@ -35,21 +35,21 @@ var struggleMove = game.Move{
 }
 
 type AttackAction struct {
-	ctx ActionCtx
+	Ctx ActionCtx
 
 	AttackerMove int
 }
 
 func NewAttackAction(attacker int, attackMove int) AttackAction {
 	return AttackAction{
-		ctx:          NewActionCtx(attacker),
+		Ctx:          NewActionCtx(attacker),
 		AttackerMove: attackMove,
 	}
 }
 
 func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
-	attacker := state.GetPlayer(a.ctx.PlayerId)
-	defenderInt := invertPlayerIndex(a.ctx.PlayerId)
+	attacker := state.GetPlayer(a.Ctx.PlayerId)
+	defenderInt := invertPlayerIndex(a.Ctx.PlayerId)
 	defender := state.GetPlayer(defenderInt)
 
 	attackPokemon := attacker.GetActivePokemon()
@@ -461,6 +461,6 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 	}
 }
 
-func (a AttackAction) Ctx() ActionCtx {
-	return a.ctx
+func (a AttackAction) GetCtx() ActionCtx {
+	return a.Ctx
 }
