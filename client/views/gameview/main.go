@@ -111,7 +111,7 @@ func (m MainGameModel) Init() tea.Cmd { return nil }
 func (m MainGameModel) View() string {
 	if m.showError {
 		errorStyle := lipgloss.NewStyle().Border(lipgloss.BlockBorder(), true)
-		return errorStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Error", m.currentErr.Error()))
+		return rendering.GlobalCenter(errorStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Error", m.currentErr.Error())))
 	}
 
 	var stateToRender state.GameState
