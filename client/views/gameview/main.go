@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
+	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/rs/zerolog/log"
 )
@@ -55,10 +56,13 @@ type MainGameModel struct {
 	messageQueue               []string
 	currentStateMessage        string
 
-	inited      bool
-	insidePanel bool
+	inited bool
 
-	panel tea.Model
+	insidePanel bool
+	panel       tea.Model
+
+	showError  bool
+	currentErr error
 
 	conn net.Conn
 }
@@ -105,6 +109,11 @@ func tick() tea.Cmd {
 func (m MainGameModel) Init() tea.Cmd { return nil }
 
 func (m MainGameModel) View() string {
+	if m.showError {
+		errorStyle := lipgloss.NewStyle().Border(lipgloss.BlockBorder(), true)
+		return errorStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Error", m.currentErr.Error()))
+	}
+
 	var stateToRender state.GameState
 	stateToRender = m.currentRenderedState
 
@@ -172,6 +181,10 @@ func (m *MainGameModel) nextStateMsg() bool {
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
+	if m.showError {
+		return m, nil
+	}
+
 	switch m.panel.(type) {
 	case actionPanel:
 		m.insidePanel = false
@@ -210,7 +223,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		cmds = append(cmds, tick())
 
-	case stateupdater.ForceSwitchMessage:
+	case networking.ForceSwitchMessage:
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
 			// m.startedTurnResolving = false
@@ -223,7 +236,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Do nothing, it's not our turn to move
 			cmds = append(cmds, m.stateUpdater(m.ctx.state, nil))
 		}
-	case stateupdater.TurnResolvedMessage:
+	case networking.TurnResolvedMessage:
 		m.panel = newActionPanel(m.ctx)
 		m.ctx.chosenAction = nil
 		m.ctx.forcedSwitch = false
@@ -232,12 +245,17 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Game Over Check
 	// NOTE: Assuming singleplayer
-	case stateupdater.GameOverMessage:
+	case networking.GameOverMessage:
 		if msg.ForThisPlayer {
 			return newEndScreen("You Won!"), nil
 		} else {
 			return newEndScreen("You Lost :("), nil
 		}
+	case stateupdater.NetworkingErrorMsg:
+		m.showError = true
+		m.currentErr = msg
+
+		return m, nil
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
