@@ -2,6 +2,7 @@ package mainmenu
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/views/gameview"
 )
@@ -41,7 +42,7 @@ func NewPlaySelection(backtrack components.Breadcrumbs) PlaySelection {
 }
 
 func (m PlaySelection) Init() tea.Cmd { return nil }
-func (m PlaySelection) View() string  { return m.buttons.View() }
+func (m PlaySelection) View() string  { return rendering.GlobalCenter(m.buttons.View()) }
 func (m PlaySelection) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	newModel, startCmd := m.buttons.Update(msg)
 	if newModel != nil {
