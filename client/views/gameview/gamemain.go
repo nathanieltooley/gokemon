@@ -115,8 +115,7 @@ func (m MainGameModel) View() string {
 		return rendering.GlobalCenter(errorStyle.Render(lipgloss.JoinVertical(lipgloss.Center, "Error", m.currentErr.Error())))
 	}
 
-	var stateToRender state.GameState
-	stateToRender = m.currentRenderedState
+	stateToRender := m.currentRenderedState
 
 	panelView := ""
 
