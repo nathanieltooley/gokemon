@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game/state"
@@ -76,8 +77,7 @@ func SendAction(conn net.Conn, data state.Action) error {
 	concreteName := reflect.TypeOf(data).String()
 
 	// Send concrete type name before the data itself
-	_, err := conn.Write([]byte(concreteName))
-
+	_, err := conn.Write([]byte(concreteName + "\n"))
 	if err != nil {
 		return err
 	}
@@ -87,14 +87,17 @@ func SendAction(conn net.Conn, data state.Action) error {
 }
 
 func AcceptAction(conn net.Conn) (state.Action, error) {
-	concreteNameBytes := make([]byte, 128)
+	concreteNameBytes := make([]byte, 1024)
 
 	n, err := conn.Read(concreteNameBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	concreteName := string(concreteNameBytes[0:n])
+	contentString := string(concreteNameBytes[0:n])
+	messageParts := strings.Split(contentString, "\n")
+
+	concreteName := string(messageParts[0])
 	decoder := gob.NewDecoder(conn)
 
 	// I tried to use a action type enum here rather than send the string of the concrete type name.
