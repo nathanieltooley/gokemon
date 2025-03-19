@@ -59,6 +59,6 @@ func main() {
 	log.Info().Msgf("Term Size: %d X %d\n", global.TERM_WIDTH, global.TERM_HEIGHT)
 
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to start program")
+		log.Fatal().Err(err).Msg("Critical Runtime Error")
 	}
 }
