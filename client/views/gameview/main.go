@@ -77,12 +77,13 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 	var updater stateupdater.StateUpdater = stateupdater.LocalUpdater
 
 	if conn != nil {
-		if playerSide == state.HOST {
+		switch playerSide {
+		case state.HOST:
 			// maybe changing these from interfaces wasn't the best idea
 			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
 				return stateupdater.NetHostUpdater(gs, a, conn)
 			}
-		} else if playerSide == state.PEER {
+		case state.PEER:
 			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
 				return stateupdater.NetClientUpdater(gs, a, conn)
 			}
@@ -254,6 +255,8 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateupdater.NetworkingErrorMsg:
 		m.showError = true
 		m.currentErr = msg
+
+		log.Err(msg).Msg("main loop error")
 
 		return m, nil
 	}
