@@ -253,6 +253,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 		// TODO: Have this return a tea.Cmd. gameState will have to keep track of when the players have submitted actions
 
 		// GET ACTION
+		log.Debug().Msg("host waiting for client to send action")
 		opAction, err := networking.AcceptAction(conn)
 		if err != nil {
 			return errorCmd(err, "failed to get opposing action")
@@ -404,6 +405,7 @@ func NetClientUpdater(gameState *state.GameState, actions []state.Action, conn n
 			return NetworkingErrorMsg{Err: err, Reason: "client failed to send action"}
 		}
 
+		log.Debug().Msg("client waiting for host to send state")
 		msg, err := networking.AcceptMessage(conn)
 		log.Debug().Msgf("client got message type: %s", reflect.TypeOf(msg).String())
 		if err != nil {

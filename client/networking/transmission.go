@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/rs/zerolog/log"
 )
 
 type messageType int8
@@ -97,8 +99,22 @@ func AcceptAction(conn net.Conn) (state.Action, error) {
 	contentString := string(concreteNameBytes[0:n])
 	messageParts := strings.Split(contentString, "\n")
 
+	log.Debug().Msgf("action content: %s", contentString)
+	log.Debug().Strs("messageParts", messageParts).Msg("")
+
 	concreteName := string(messageParts[0])
-	decoder := gob.NewDecoder(conn)
+
+	// HACK:
+	// Sometimes when reading the concrete type name of the action
+	// we end of grabbing the entire message (why? idk thats a good question. it doesn't seem to be consistent).
+	// In the case we do grab it, it will be stored in the second part of the message buffer
+	// and we set that to be the reader for the decoder rather than the conn itself
+	var decoder *gob.Decoder
+	if messageParts[1] != "" {
+		decoder = gob.NewDecoder(bytes.NewBufferString(messageParts[1]))
+	} else {
+		decoder = gob.NewDecoder(conn)
+	}
 
 	// I tried to use a action type enum here rather than send the string of the concrete type name.
 	// However, when sending actions, i only have a pointer to the interface, not the actual concrete type.

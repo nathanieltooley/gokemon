@@ -244,6 +244,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ctx.playerSide == state.PEER {
 			*m.ctx.state = msg.StateUpdates[len(msg.StateUpdates)-1].State.Clone()
 		}
+
 		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 
 	// Game Over Check
