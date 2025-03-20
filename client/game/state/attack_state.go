@@ -47,6 +47,8 @@ func NewAttackAction(attacker int, attackMove int) AttackAction {
 	}
 }
 
+var targetsAffectedByEvasion = [...]string{"specific-move", "selected-pokemon-me-first", "random-opponent", "all-other-pokemon", "selected-pokemon", "all-opponents", "entire-field", "all-pokemon", "fainting-pokemon"}
+
 func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 	attacker := state.GetPlayer(a.Ctx.PlayerId)
 	defenderInt := invertPlayerIndex(a.Ctx.PlayerId)
@@ -85,7 +87,12 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 		moveAccuracy = 100
 	}
 
-	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * defPokemon.Evasion()))
+	var effectiveEvasion float32 = 1.0
+	if lo.Contains(targetsAffectedByEvasion[0:], move.Target.Name) {
+		effectiveEvasion = defPokemon.Evasion()
+	}
+
+	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * effectiveEvasion))
 
 	if state.Weather == game.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
 		accuracy = int(float32(accuracy) * 0.8)
@@ -95,9 +102,6 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	if accuracyCheck < accuracy && pp > 0 {
 		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check passed")
-		// TODO: handle these categories
-		// - swagger
-		// - unique
 
 		defImmune := false
 
@@ -131,6 +135,9 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 		}
 
 		if !defImmune {
+			// TODO: handle these categories
+			// - swagger
+			// - unique
 			switch move.Meta.Category.Name {
 			case "damage", "damage+heal":
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
