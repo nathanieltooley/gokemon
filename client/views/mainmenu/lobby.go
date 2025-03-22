@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -72,7 +73,8 @@ type lanSearchResult struct {
 
 // simple bubbletea msgs
 type (
-	connectionAcceptedMsg net.Conn
+	connectionAcceptedMsg    net.Conn
+	repeatLanSearchBroadcast time.Time
 )
 
 type continueLanSearchMsg struct {
@@ -132,6 +134,7 @@ func sendLanSearchBroadcast() tea.Msg {
 		return nil
 	}
 
+	lobbyLogger().Debug().Msg("lan search broadcast sent!")
 	return nil
 }
 
@@ -286,6 +289,10 @@ func (m JoinLobbyModel) Init() tea.Cmd {
 		return listenForLanBroadcastResult(nil)
 	})
 
+	cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+		return repeatLanSearchBroadcast(t)
+	}))
+
 	return tea.Batch(cmds...)
 }
 
@@ -336,14 +343,32 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return NewLobbyJoiner(m.backtrack)
 		}), true, m.conn, state.PEER), nil
 	case lanSearchResult:
+		log.Debug().Msgf("Got search result: %+v", *msg.lob)
 		if msg.lob != nil {
 			var lobItem list.Item = *msg.lob
-			m.lobbyList.InsertItem(0, lobItem)
+
+			alreadyAdded := false
+			for _, item := range m.lobbyList.Items() {
+				itemAsLob := item.(lobby)
+				if itemAsLob.addr == msg.lob.addr {
+					alreadyAdded = true
+				}
+			}
+
+			if !alreadyAdded {
+				cmds = append(cmds, m.lobbyList.InsertItem(0, lobItem))
+			}
 		}
 
 		cmds = append(cmds, func() tea.Msg {
 			return listenForLanBroadcastResult(msg.conn)
 		})
+	case repeatLanSearchBroadcast:
+		sendLanSearchBroadcast()
+
+		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+			return repeatLanSearchBroadcast(t)
+		}))
 	}
 
 	switch m.focus {
