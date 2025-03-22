@@ -33,6 +33,7 @@ type TeamSelectModel struct {
 	conn             net.Conn
 	connId           int
 	waitingOnNetwork bool
+	teamSent         bool
 }
 
 type teamItem struct {
@@ -130,12 +131,14 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if m.selectingStarter && key.Matches(msg, selectKey) {
+		if m.selectingStarter && key.Matches(msg, selectKey) && !m.teamSent {
 			selectedTeam := m.teamList.SelectedItem().(teamItem)
 
 			// TODO: Check for HOST/PEER
 			if m.networked {
-				if m.connId == state.HOST {
+				m.teamSent = true
+				switch m.connId {
+				case state.HOST:
 					// Wait for opponent to send team over
 					return m, func() tea.Msg {
 						peerTeam, err := networking.AcceptData[networking.TeamSelectionPacket](m.conn)
@@ -146,7 +149,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 						return peerTeam
 					}
-				} else if m.connId == state.PEER {
+				case state.PEER:
 					return m, func() tea.Msg {
 						// Send team to host
 						log.Debug().Msgf("Sent team: %+v", selectedTeam.Pokemon)
@@ -165,7 +168,6 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return state
 					}
 				}
-
 			} else {
 				defaultEnemyTeam := state.RandomTeam()
 
