@@ -206,9 +206,13 @@ func listenForSearch(conn *net.UDPConn) tea.Msg {
 	// Send Response
 	if message == broadcastMessage {
 		broadcastAddrUdp, _ := net.ResolveUDPAddr("udp4", broadcastAddr+broadResponsePort)
-		// TODO: REMOVE HARDCODED LOCALHOST!
-		_, err := conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|BLANKNAME|%s", "localhost:7777"), broadcastAddrUdp)
-		// _, err := fmt.Fprintf(, "GOKEMON:BLANKNAME:%s", conn.LocalAddr().String())
+		selfAddrTcp, err := net.ResolveTCPAddr("tcp4", connPort)
+		// TODO: Maybe remove this? Should probably never actually error though right?
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|BLANKNAME|%s", selfAddrTcp.String()), broadcastAddrUdp)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
 		}
@@ -228,7 +232,7 @@ func (m LobbyModel) Init() tea.Cmd {
 
 	initCmds = append(initCmds, func() tea.Msg {
 		lobbyLogger().Info().Msg("Waiting for connection")
-		return listenForConnection("localhost:7777")
+		return listenForConnection(connPort)
 	})
 
 	initCmds = append(initCmds, func() tea.Msg {
