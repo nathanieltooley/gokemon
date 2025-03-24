@@ -20,10 +20,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var enterKey = key.NewBinding(
-	key.WithKeys("enter"),
-)
-
 var lobbyLogger = func() *zerolog.Logger {
 	logger := log.With().Str("location", "lobby").Logger()
 	return &logger
@@ -41,7 +37,10 @@ type (
 	LobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		conn net.Conn
+		conn          net.Conn
+		lobbyName     string
+		nameInput     textinput.Model
+		inputtingName bool
 	}
 	JoinLobbyModel struct {
 		backtrack components.Breadcrumbs
@@ -256,6 +255,12 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, global.BackKey) {
+			return m.backtrack.PopDefault(func() tea.Model {
+				return NewLobbyHost(m.backtrack)
+			}), nil
+		}
 	case connectionAcceptedMsg:
 		m.conn = msg
 
@@ -311,7 +316,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if key.Matches(msg, enterKey) {
+		if key.Matches(msg, global.SelectKey) {
 			switch m.focus {
 			case 0:
 				cmds = append(cmds, func() tea.Msg {
@@ -324,6 +329,12 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return connect(m.ipTextInput.Value())
 				})
 			}
+		}
+
+		if key.Matches(msg, global.BackKey) {
+			return m.backtrack.PopDefault(func() tea.Model {
+				return NewLobbyJoiner(m.backtrack)
+			}), nil
 		}
 
 		if msg.Type == tea.KeyTab {
