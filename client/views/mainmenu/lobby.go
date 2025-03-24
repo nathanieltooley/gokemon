@@ -37,10 +37,11 @@ type (
 	LobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		conn          net.Conn
-		lobbyName     string
-		nameInput     textinput.Model
-		inputtingName bool
+		conn                  net.Conn
+		lobbyName             string
+		nameInput             textinput.Model
+		focus                 int
+		waitingForConnections bool
 	}
 	JoinLobbyModel struct {
 		backtrack components.Breadcrumbs
@@ -113,15 +114,6 @@ func connect(address string) tea.Msg {
 }
 
 func sendLanSearchBroadcast() tea.Msg {
-	// local, _ := net.ResolveUDPAddr("udp4", broadPort)
-	// remote, _ := net.ResolveUDPAddr("udp4", broadcastAddr+broadPort)
-	// conn, err := net.DialUDP("udp", local, remote)
-	// if err != nil {
-	// 	lobbyLogger().Err(err).Msgf("Error trying to connect to UDP broadcastAddr: %s->%s", "0.0.0.0:"+broadPort, broadcastAddr+broadPort)
-	// 	return nil
-	// }
-	//
-
 	conn, err := net.Dial("udp4", broadcastAddr+broadPort)
 	if err != nil {
 		lobbyLogger().Err(err).Msgf("Error trying to connect to UDP broadcastAddr: %s", broadcastAddr+broadPort)
@@ -182,7 +174,13 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 	}
 }
 
-func listenForSearch(conn *net.UDPConn) tea.Msg {
+func listenForSearch(conn *net.UDPConn, name string) tea.Msg {
+	if name == "" {
+		name = "new_lobby"
+	}
+
+	name = strings.ReplaceAll(name, "|", "")
+
 	if conn == nil {
 		laddr, _ := net.ResolveUDPAddr("udp4", broadPort)
 		var err error
@@ -211,7 +209,7 @@ func listenForSearch(conn *net.UDPConn) tea.Msg {
 			panic(err)
 		}
 
-		_, err = conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|BLANKNAME|%s", selfAddrTcp.String()), broadcastAddrUdp)
+		_, err = conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, selfAddrTcp.String()), broadcastAddrUdp)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
 		}
@@ -223,32 +221,27 @@ func listenForSearch(conn *net.UDPConn) tea.Msg {
 }
 
 func NewLobbyHost(backtrack components.Breadcrumbs) LobbyModel {
-	return LobbyModel{backtrack: backtrack}
+	textInput := textinput.New()
+	textInput.Placeholder = "new_lobby"
+	textInput.CharLimit = 20
+	textInput.Focus()
+
+	return LobbyModel{backtrack: backtrack, nameInput: textInput}
 }
 
-func (m LobbyModel) Init() tea.Cmd {
-	initCmds := make([]tea.Cmd, 0)
-
-	initCmds = append(initCmds, func() tea.Msg {
-		lobbyLogger().Info().Msg("Waiting for connection")
-		return listenForConnection(connPort)
-	})
-
-	initCmds = append(initCmds, func() tea.Msg {
-		lobbyLogger().Info().Msg("Waiting for LAN searches")
-		return listenForSearch(nil)
-	})
-
-	return tea.Batch(initCmds...)
-}
-
+func (m LobbyModel) Init() tea.Cmd { return nil }
 func (m LobbyModel) View() string {
-	header := "Lobby"
-	if m.conn != nil {
-		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, "Connection Established!"))
+	if !m.waitingForConnections {
+		header := "Lobby Creation"
+		createButton := rendering.ButtonStyle.Render("Create Lobby")
+		if m.focus == 1 {
+			createButton = rendering.HighlightedButtonStyle.Render("Create Lobby")
+		}
+		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.nameInput.View(), createButton))
+	} else {
+		header := "Waiting..."
+		return rendering.GlobalCenter(header)
 	}
-
-	return rendering.GlobalCenter(header)
 }
 
 func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -261,6 +254,36 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return NewLobbyHost(m.backtrack)
 			}), nil
 		}
+
+		if key.Matches(msg, global.DownTabKey) {
+			m.focus++
+
+			if m.focus > 1 {
+				m.focus = 0
+			}
+		}
+
+		if key.Matches(msg, global.UpTabKey) {
+			m.focus--
+			if m.focus < 0 {
+				m.focus = 1
+			}
+		}
+
+		if m.focus == 1 && key.Matches(msg, global.SelectKey) {
+			m.lobbyName = m.nameInput.Value()
+			m.waitingForConnections = true
+
+			cmds = append(cmds, func() tea.Msg {
+				lobbyLogger().Info().Msg("Waiting for connection")
+				return listenForConnection(connPort)
+			})
+
+			cmds = append(cmds, func() tea.Msg {
+				lobbyLogger().Info().Msg("Waiting for LAN searches")
+				return listenForSearch(nil, m.lobbyName)
+			})
+		}
 	case connectionAcceptedMsg:
 		m.conn = msg
 
@@ -270,8 +293,15 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}), true, m.conn, state.HOST), nil
 	case continueLanSearchMsg:
 		cmds = append(cmds, func() tea.Msg {
-			return listenForSearch(msg.conn)
+			return listenForSearch(msg.conn, m.lobbyName)
 		})
+	}
+
+	if m.focus == 0 {
+		cmds = append(cmds, m.nameInput.Focus())
+		newInput, cmd := m.nameInput.Update(msg)
+		m.nameInput = newInput
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
