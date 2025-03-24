@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/errors"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog"
@@ -41,6 +42,11 @@ var (
 	MoveUpKey = key.NewBinding(
 		key.WithKeys("up", "k"),
 	)
+
+	DownTabKey = key.NewBinding(key.WithKeys(tea.KeyTab.String()))
+	UpTabKey   = key.NewBinding(key.WithKeys(tea.KeyShiftTab.String()))
+
+	BackKey = key.NewBinding(key.WithKeys(tea.KeyEsc.String()))
 
 	// TeamSaveLocation = "./saves/teams.json"
 	TeamSaveLocation = "./saves"
@@ -86,7 +92,6 @@ func GlobalInit() {
 func loadPokemon() PokemonRegistry {
 	dataFile := "./data/gen1-data.csv"
 	fileReader, err := os.Open(dataFile)
-
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
 	}
@@ -119,7 +124,7 @@ func loadPokemon() PokemonRegistry {
 		type1Name := row[2]
 		type2Name := row[3]
 
-		var type1 *game.PokemonType = game.TYPE_MAP[type1Name]
+		type1 := game.TYPE_MAP[type1Name]
 		var type2 *game.PokemonType = nil
 
 		if type2Name != "" {

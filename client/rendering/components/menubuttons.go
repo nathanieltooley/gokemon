@@ -4,16 +4,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
-)
-
-var (
-	moveDownKey = key.NewBinding(
-		key.WithKeys("j", "tab"),
-	)
-	moveUpKey = key.NewBinding(
-		key.WithKeys("k", "shift+tab"),
-	)
 )
 
 type ViewButton struct {
@@ -36,14 +28,14 @@ func NewMenuButton(buttons []ViewButton) MenuButtons {
 func (m *MenuButtons) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if key.Matches(msg, moveDownKey) {
+		if key.Matches(msg, global.MoveDownKey) {
 			m.index++
 			if m.index >= len(m.buttons) {
 				m.index = 0
 			}
 		}
 
-		if key.Matches(msg, moveUpKey) {
+		if key.Matches(msg, global.MoveUpKey) {
 			m.index--
 
 			if m.index < 0 {

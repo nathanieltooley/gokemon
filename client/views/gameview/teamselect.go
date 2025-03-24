@@ -41,13 +41,8 @@ type teamItem struct {
 	Pokemon []game.Pokemon
 }
 
-var (
-	switchFocusKey = key.NewBinding(
-		key.WithKeys(tea.KeyTab.String(), tea.KeyShiftTab.String()),
-	)
-	selectKey = key.NewBinding(
-		key.WithKeys(tea.KeyEnter.String()),
-	)
+var switchFocusKey = key.NewBinding(
+	key.WithKeys(tea.KeyTab.String(), tea.KeyShiftTab.String()),
 )
 
 func (t teamItem) FilterValue() string { return t.Name }
@@ -131,7 +126,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if m.selectingStarter && key.Matches(msg, selectKey) && !m.teamSent {
+		if m.selectingStarter && key.Matches(msg, global.SelectKey) && !m.teamSent {
 			selectedTeam := m.teamList.SelectedItem().(teamItem)
 
 			// TODO: Check for HOST/PEER
@@ -179,7 +174,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if m.focus == 0 && key.Matches(msg, selectKey) && !m.selectingStarter && m.teamList.SelectedItem() != nil {
+		if m.focus == 0 && key.Matches(msg, global.SelectKey) && !m.selectingStarter && m.teamList.SelectedItem() != nil {
 			m.selectingStarter = true
 			m.teamView.Focused = true
 		}
