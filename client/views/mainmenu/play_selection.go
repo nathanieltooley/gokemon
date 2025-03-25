@@ -23,7 +23,7 @@ func NewPlaySelection(backtrack components.Breadcrumbs) PlaySelection {
 		{
 			Name: "Host Lobby",
 			OnClick: func() (tea.Model, tea.Cmd) {
-				lh := NewLobbyHost(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }))
+				lh := NewLobbyCreater(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }))
 				return lh, lh.Init()
 			},
 		},

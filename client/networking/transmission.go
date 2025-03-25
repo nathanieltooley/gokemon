@@ -63,14 +63,21 @@ func SendData(conn net.Conn, data any) error {
 		return err
 	}
 
+	log.Debug().Msgf("Sent data: %s", reflect.TypeOf(data))
+
 	return nil
 }
 
 func AcceptData[T any](conn net.Conn) (T, error) {
+	var data T
+
 	decoder := gob.NewDecoder(conn)
 
-	var data T
+	log.Debug().Msgf("waiting for data: %s", reflect.TypeOf(data))
 	err := decoder.Decode(&data)
+	if err == nil {
+		log.Debug().Msgf("got data: %s", reflect.TypeOf(data))
+	}
 
 	return data, err
 }

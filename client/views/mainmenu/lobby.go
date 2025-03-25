@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
 	"github.com/nathanieltooley/gokemon/client/views/gameview"
@@ -34,24 +35,33 @@ const (
 )
 
 type (
+	CreateLobbyModel struct {
+		backtrack components.Breadcrumbs
+
+		nameInput textinput.Model
+		focus     int
+	}
 	LobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		conn                  net.Conn
-		lobbyName             string
-		nameInput             textinput.Model
-		focus                 int
-		waitingForConnections bool
+		conn       net.Conn
+		lobbyName  string
+		hosting    bool
+		playerList list.Model
+		focus      int
 	}
 	JoinLobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		focus       int
-		conn        net.Conn
-		lobbyList   list.Model
-		ipTextInput textinput.Model
+		conn      net.Conn
+		lobbyList list.Model
 	}
 )
+
+type lobbyPlayer struct {
+	Name string
+	Addr string
+}
 
 type lobby struct {
 	name string
@@ -66,6 +76,14 @@ func (l lobby) Value() string {
 	return l.name
 }
 
+func (l lobbyPlayer) FilterValue() string {
+	return l.Name
+}
+
+func (l lobbyPlayer) Value() string {
+	return l.Name
+}
+
 type lanSearchResult struct {
 	lob  *lobby // pointer for optional
 	conn *net.UDPConn
@@ -73,8 +91,14 @@ type lanSearchResult struct {
 
 // simple bubbletea msgs
 type (
-	connectionAcceptedMsg    net.Conn
+	connectionAcceptedMsg struct {
+		conn       net.Conn
+		clientData lobbyPlayer
+	}
 	repeatLanSearchBroadcast time.Time
+	startGameMsg             struct {
+		_dummy int
+	}
 )
 
 type continueLanSearchMsg struct {
@@ -99,7 +123,16 @@ func listenForConnection(address string) tea.Msg {
 
 		lobbyLogger().Info().Str("addr", conn.RemoteAddr().String()).Msg("Host accepted connection!")
 
-		return conn
+		clientData, err := networking.AcceptData[lobbyPlayer](conn)
+		if err != nil {
+			lobbyLogger().Err(err).Str("addr", conn.RemoteAddr().String()).Msg("Error getting client data")
+			continue
+		}
+
+		return connectionAcceptedMsg{
+			conn,
+			clientData,
+		}
 	}
 }
 
@@ -110,7 +143,15 @@ func connect(address string) tea.Msg {
 		return nil
 	}
 
-	return conn
+	if err := networking.SendData(conn, lobbyPlayer{"Hello World!", address}); err != nil {
+		lobbyLogger().Err(err).Msg("Error sending client data to host")
+		return nil
+	}
+
+	// discard client data part
+	return connectionAcceptedMsg{
+		conn: conn,
+	}
 }
 
 func sendLanSearchBroadcast() tea.Msg {
@@ -220,38 +261,56 @@ func listenForSearch(conn *net.UDPConn, name string) tea.Msg {
 	return continueLanSearchMsg{conn: conn}
 }
 
-func NewLobbyHost(backtrack components.Breadcrumbs) LobbyModel {
+func listenForStart(conn net.Conn) tea.Msg {
+	for {
+		log.Debug().Msg("waiting for start")
+		data := make([]byte, 512)
+		n, err := conn.Read(data)
+		if err != nil {
+			lobbyLogger().Err(err).Msg("Failed to listen for start message")
+			continue
+		}
+
+		message := string(data[:n])
+
+		if message != "GOKEMON|START" {
+			lobbyLogger().Info().Str("msg", string(data)).Msg("Sent() incorrect message!")
+			continue
+		}
+
+		lobbyLogger().Debug().Msg("client told to start game")
+
+		return startGameMsg{}
+	}
+}
+
+func NewLobbyCreater(backtrack components.Breadcrumbs) CreateLobbyModel {
 	textInput := textinput.New()
 	textInput.Placeholder = "new_lobby"
 	textInput.CharLimit = 20
 	textInput.Focus()
 
-	return LobbyModel{backtrack: backtrack, nameInput: textInput}
+	return CreateLobbyModel{backtrack: backtrack, nameInput: textInput}
 }
 
-func (m LobbyModel) Init() tea.Cmd { return nil }
-func (m LobbyModel) View() string {
-	if !m.waitingForConnections {
-		header := "Lobby Creation"
-		createButton := rendering.ButtonStyle.Render("Create Lobby")
-		if m.focus == 1 {
-			createButton = rendering.HighlightedButtonStyle.Render("Create Lobby")
-		}
-		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.nameInput.View(), createButton))
-	} else {
-		header := "Waiting..."
-		return rendering.GlobalCenter(header)
+func (m CreateLobbyModel) Init() tea.Cmd { return nil }
+func (m CreateLobbyModel) View() string {
+	header := "Lobby Creation"
+	createButton := rendering.ButtonStyle.Render("Create Lobby")
+	if m.focus == 1 {
+		createButton = rendering.HighlightedButtonStyle.Render("Create Lobby")
 	}
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.nameInput.View(), createButton))
 }
 
-func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, global.BackKey) {
 			return m.backtrack.PopDefault(func() tea.Model {
-				return NewLobbyHost(m.backtrack)
+				return NewLobbyCreater(m.backtrack)
 			}), nil
 		}
 
@@ -271,8 +330,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.focus == 1 && key.Matches(msg, global.SelectKey) {
-			m.lobbyName = m.nameInput.Value()
-			m.waitingForConnections = true
+			lobbyName := m.nameInput.Value()
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
@@ -281,20 +339,23 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for LAN searches")
-				return listenForSearch(nil, m.lobbyName)
+				return listenForSearch(nil, lobbyName)
 			})
-		}
-	case connectionAcceptedMsg:
-		m.conn = msg
 
-		// Send to team selection
-		return gameview.NewTeamSelectModel(m.backtrack.PushNew(func() tea.Model {
-			return NewLobbyHost(m.backtrack)
-		}), true, m.conn, state.HOST), nil
-	case continueLanSearchMsg:
-		cmds = append(cmds, func() tea.Msg {
-			return listenForSearch(msg.conn, m.lobbyName)
-		})
+			players := make([]list.Item, 0)
+			players = append(players, lobbyPlayer{
+				Name: "Host",
+				Addr: "Host",
+			})
+
+			playerList := list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-5)
+
+			return LobbyModel{
+				backtrack:  m.backtrack,
+				hosting:    true,
+				playerList: playerList,
+			}, tea.Batch(cmds...)
+		}
 	}
 
 	if m.focus == 0 {
@@ -312,10 +373,7 @@ func NewLobbyJoiner(backtrack components.Breadcrumbs) JoinLobbyModel {
 	list := list.New(lobbyList, rendering.NewSimpleListDelegate(), global.TERM_WIDTH/2, global.TERM_HEIGHT/2)
 	list.DisableQuitKeybindings()
 
-	textInput := textinput.New()
-	textInput.Focus()
-
-	return JoinLobbyModel{backtrack: backtrack, ipTextInput: textInput, lobbyList: list}
+	return JoinLobbyModel{backtrack: backtrack, lobbyList: list}
 }
 
 func (m JoinLobbyModel) Init() tea.Cmd {
@@ -338,7 +396,7 @@ func (m JoinLobbyModel) Init() tea.Cmd {
 func (m JoinLobbyModel) View() string {
 	header := "Join Lobby"
 
-	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.lobbyList.View(), m.ipTextInput.View()))
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.lobbyList.View()))
 }
 
 func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -347,18 +405,10 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, global.SelectKey) {
-			switch m.focus {
-			case 0:
-				cmds = append(cmds, func() tea.Msg {
-					selectedLobby := m.lobbyList.SelectedItem().(lobby)
-					return connect(selectedLobby.addr)
-				})
-			case 1:
-				cmds = append(cmds, func() tea.Msg {
-					// TODO: Input validation!
-					return connect(m.ipTextInput.Value())
-				})
-			}
+			cmds = append(cmds, func() tea.Msg {
+				selectedLobby := m.lobbyList.SelectedItem().(lobby)
+				return connect(selectedLobby.addr)
+			})
 		}
 
 		if key.Matches(msg, global.BackKey) {
@@ -367,26 +417,29 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}), nil
 		}
 
-		if msg.Type == tea.KeyTab {
-			m.focus++
-
-			if m.focus > 1 {
-				m.focus = 0
-			}
-		}
-
-		if msg.Type == tea.KeyShiftTab {
-			m.focus--
-			if m.focus < 0 {
-				m.focus = 1
-			}
-		}
 	case connectionAcceptedMsg:
-		m.conn = msg
+		players := make([]list.Item, 0)
+		players = append(players, lobbyPlayer{
+			Name: "Host",
+			Addr: "Host",
+		})
+		players = append(players, lobbyPlayer{
+			Name: "Self",
+			Addr: "Self",
+		})
 
-		return gameview.NewTeamSelectModel(m.backtrack.PushNew(func() tea.Model {
-			return NewLobbyJoiner(m.backtrack)
-		}), true, m.conn, state.PEER), nil
+		cmds = append(cmds, func() tea.Msg {
+			return listenForStart(msg.conn)
+		})
+
+		return LobbyModel{
+			backtrack: components.Breadcrumbs{},
+			conn:      msg.conn,
+			hosting:   false,
+			// TODO: REPLACE WITH ACTUAL NAME
+			lobbyName:  "Test",
+			playerList: list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-5),
+		}, tea.Batch(cmds...)
 	case lanSearchResult:
 		log.Debug().Msgf("Got search result: %+v", *msg.lob)
 		if msg.lob != nil {
@@ -416,15 +469,57 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}))
 	}
 
-	switch m.focus {
-	case 0:
-		var cmd tea.Cmd
-		m.lobbyList, cmd = m.lobbyList.Update(msg)
-		cmds = append(cmds, cmd)
-	case 1:
-		newInput, tiCmd := m.ipTextInput.Update(msg)
-		m.ipTextInput = newInput
-		cmds = append(cmds, tiCmd)
+	var cmd tea.Cmd
+	m.lobbyList, cmd = m.lobbyList.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m LobbyModel) Init() tea.Cmd { return nil }
+
+func (m LobbyModel) View() string {
+	header := "Lobby"
+
+	startGameButton := rendering.HighlightedButtonStyle.Render("Start Game!")
+	if !m.hosting {
+		startGameButton = ""
+	}
+
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.playerList.View(), startGameButton))
+}
+
+func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, global.SelectKey) {
+			// TODO: Get rid of blocking code
+			_, err := m.conn.Write([]byte("GOKEMON|START"))
+			lobbyLogger().Debug().Msg("host sent start msg")
+
+			if err == nil {
+				// Send to team selection
+				// TODO: Have backing out from here send you to main menu
+				return gameview.NewTeamSelectModel(components.NewBreadcrumb(), true, m.conn, state.HOST), nil
+			} else {
+				lobbyLogger().Err(err).Msg("Failed to send start message")
+			}
+
+		}
+	case continueLanSearchMsg:
+		cmds = append(cmds, func() tea.Msg {
+			return listenForSearch(msg.conn, m.lobbyName)
+		})
+	case connectionAcceptedMsg:
+		if m.hosting {
+			m.conn = msg.conn
+
+			m.playerList.InsertItem(-1, msg.clientData)
+		}
+	case startGameMsg:
+		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), true, m.conn, state.PEER), nil
 	}
 
 	return m, tea.Batch(cmds...)
