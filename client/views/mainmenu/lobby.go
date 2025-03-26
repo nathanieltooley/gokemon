@@ -67,16 +67,16 @@ type lobbyPlayer struct {
 }
 
 type lobby struct {
-	name string
-	addr string
+	Name string
+	Addr string
 }
 
 func (l lobby) FilterValue() string {
-	return l.name
+	return l.Name
 }
 
 func (l lobby) Value() string {
-	return l.name
+	return l.Name
 }
 
 func (l lobbyPlayer) FilterValue() string {
@@ -94,9 +94,13 @@ type lanSearchResult struct {
 
 // simple bubbletea msgs
 type (
-	connectionAcceptedMsg struct {
+	connectionAcceptedMsgHost struct {
 		conn       net.Conn
 		clientData lobbyPlayer
+	}
+	connectionAcceptedMsgClient struct {
+		conn      net.Conn
+		lobbyData lobby
 	}
 	repeatLanSearchBroadcast time.Time
 	startGameMsg             struct {
@@ -110,7 +114,7 @@ type continueLanSearchMsg struct {
 	conn   *net.UDPConn
 }
 
-func listenForConnection(address string) tea.Msg {
+func listenForConnection(address string, lobbyInfo lobby) tea.Msg {
 	listen, err := net.Listen("tcp", address)
 	if err != nil {
 		lobbyLogger().Err(err).Msgf("Error listening on %s", address)
@@ -132,7 +136,12 @@ func listenForConnection(address string) tea.Msg {
 			continue
 		}
 
-		return connectionAcceptedMsg{
+		if err := networking.SendData(conn, lobbyInfo); err != nil {
+			lobbyLogger().Err(err).Str("addr", conn.RemoteAddr().String()).Msg("Error sending lobby data to client")
+			continue
+		}
+
+		return connectionAcceptedMsgHost{
 			conn,
 			clientData,
 		}
@@ -151,9 +160,16 @@ func connect(address string, playerName string) tea.Msg {
 		return nil
 	}
 
+	lobbyData, err := networking.AcceptData[lobby](conn)
+	if err != nil {
+		lobbyLogger().Err(err).Msg("Error trying to receive lobby data")
+		return nil
+	}
+
 	// discard client data part
-	return connectionAcceptedMsg{
-		conn: conn,
+	return connectionAcceptedMsgClient{
+		conn:      conn,
+		lobbyData: lobbyData,
 	}
 }
 
@@ -206,8 +222,8 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 	}
 
 	lob := lobby{
-		name: responseParts[1],
-		addr: responseParts[2],
+		Name: responseParts[1],
+		Addr: responseParts[2],
 	}
 
 	lobbyLogger().Info().Msgf("Found lobby: %+v", lob)
@@ -337,7 +353,8 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
-				return listenForConnection(connPort)
+				addr, _ := net.ResolveTCPAddr("tcp4", connPort)
+				return listenForConnection(connPort, lobby{lobbyName, addr.String()})
 			})
 
 			cmds = append(cmds, func() tea.Msg {
@@ -351,12 +368,13 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Addr: "Host",
 			})
 
-			playerList := list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-5)
+			playerList := list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-15)
 
 			return LobbyModel{
 				backtrack:  m.backtrack,
 				hosting:    true,
 				playerList: playerList,
+				lobbyName:  lobbyName,
 			}, tea.Batch(cmds...)
 		}
 	}
@@ -416,7 +434,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.playerName = m.nameInput.Value()
 				cmds = append(cmds, func() tea.Msg {
 					selectedLobby := m.lobbyList.SelectedItem().(lobby)
-					return connect(selectedLobby.addr, m.playerName)
+					return connect(selectedLobby.Addr, m.playerName)
 				})
 			} else {
 				m.enteringName = true
@@ -435,7 +453,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case connectionAcceptedMsg:
+	case connectionAcceptedMsgClient:
 		players := make([]list.Item, 0)
 		players = append(players, lobbyPlayer{
 			Name: "Host",
@@ -451,11 +469,10 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 
 		return LobbyModel{
-			backtrack: components.Breadcrumbs{},
-			conn:      msg.conn,
-			hosting:   false,
-			// TODO: REPLACE WITH ACTUAL NAME
-			lobbyName:  "Test",
+			backtrack:  components.Breadcrumbs{},
+			conn:       msg.conn,
+			hosting:    false,
+			lobbyName:  msg.lobbyData.Name,
 			playerList: list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-5),
 		}, tea.Batch(cmds...)
 	case lanSearchResult:
@@ -466,7 +483,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			alreadyAdded := false
 			for _, item := range m.lobbyList.Items() {
 				itemAsLob := item.(lobby)
-				if itemAsLob.addr == msg.lob.addr {
+				if itemAsLob.Addr == msg.lob.Addr {
 					alreadyAdded = true
 				}
 			}
@@ -503,7 +520,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m LobbyModel) Init() tea.Cmd { return nil }
 
 func (m LobbyModel) View() string {
-	header := "Lobby"
+	header := fmt.Sprintf("Lobby: %s", m.lobbyName)
 
 	startGameButton := rendering.HighlightedButtonStyle.Render("Start Game!")
 	if !m.hosting {
@@ -536,12 +553,10 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, func() tea.Msg {
 			return listenForSearch(msg.conn, m.lobbyName)
 		})
-	case connectionAcceptedMsg:
-		if m.hosting {
-			m.conn = msg.conn
+	case connectionAcceptedMsgHost:
+		m.conn = msg.conn
 
-			m.playerList.InsertItem(-1, msg.clientData)
-		}
+		m.playerList.InsertItem(-1, msg.clientData)
 	case startGameMsg:
 		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), true, m.conn, state.PEER), nil
 	}
