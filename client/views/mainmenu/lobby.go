@@ -53,8 +53,11 @@ type (
 	JoinLobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		conn      net.Conn
-		lobbyList list.Model
+		conn         net.Conn
+		lobbyList    list.Model
+		enteringName bool
+		nameInput    textinput.Model
+		playerName   string
 	}
 )
 
@@ -136,14 +139,14 @@ func listenForConnection(address string) tea.Msg {
 	}
 }
 
-func connect(address string) tea.Msg {
+func connect(address string, playerName string) tea.Msg {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		lobbyLogger().Err(err).Msgf("Error connection to lobby addr: %s", address)
 		return nil
 	}
 
-	if err := networking.SendData(conn, lobbyPlayer{"Hello World!", address}); err != nil {
+	if err := networking.SendData(conn, lobbyPlayer{playerName, conn.LocalAddr().String()}); err != nil {
 		lobbyLogger().Err(err).Msg("Error sending client data to host")
 		return nil
 	}
@@ -394,9 +397,13 @@ func (m JoinLobbyModel) Init() tea.Cmd {
 }
 
 func (m JoinLobbyModel) View() string {
-	header := "Join Lobby"
-
-	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.lobbyList.View()))
+	if !m.enteringName {
+		header := "Join Lobby"
+		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.lobbyList.View()))
+	} else {
+		header := "Join with name..."
+		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.nameInput.View()))
+	}
 }
 
 func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -405,16 +412,27 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, global.SelectKey) {
-			cmds = append(cmds, func() tea.Msg {
-				selectedLobby := m.lobbyList.SelectedItem().(lobby)
-				return connect(selectedLobby.addr)
-			})
+			if m.enteringName {
+				m.playerName = m.nameInput.Value()
+				cmds = append(cmds, func() tea.Msg {
+					selectedLobby := m.lobbyList.SelectedItem().(lobby)
+					return connect(selectedLobby.addr, m.playerName)
+				})
+			} else {
+				m.enteringName = true
+				m.nameInput = textinput.New()
+				cmds = append(cmds, m.nameInput.Focus())
+			}
 		}
 
 		if key.Matches(msg, global.BackKey) {
-			return m.backtrack.PopDefault(func() tea.Model {
-				return NewLobbyJoiner(m.backtrack)
-			}), nil
+			if m.enteringName {
+				m.enteringName = false
+			} else {
+				return m.backtrack.PopDefault(func() tea.Model {
+					return NewLobbyJoiner(m.backtrack)
+				}), nil
+			}
 		}
 
 	case connectionAcceptedMsg:
@@ -424,8 +442,8 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Addr: "Host",
 		})
 		players = append(players, lobbyPlayer{
-			Name: "Self",
-			Addr: "Self",
+			Name: m.playerName,
+			Addr: msg.conn.LocalAddr().String(),
 		})
 
 		cmds = append(cmds, func() tea.Msg {
@@ -472,6 +490,12 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.lobbyList, cmd = m.lobbyList.Update(msg)
 	cmds = append(cmds, cmd)
+
+	if m.enteringName {
+		var cmd tea.Cmd
+		m.nameInput, cmd = m.nameInput.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
