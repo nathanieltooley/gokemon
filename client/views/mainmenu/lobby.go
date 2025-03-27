@@ -350,10 +350,10 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.focus == 1 && key.Matches(msg, global.SelectKey) {
 			lobbyName := m.nameInput.Value()
+			addr, _ := net.ResolveTCPAddr("tcp4", connPort)
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
-				addr, _ := net.ResolveTCPAddr("tcp4", connPort)
 				return listenForConnection(connPort, lobby{lobbyName, addr.String()})
 			})
 
@@ -364,10 +364,11 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			players := make([]list.Item, 0)
 			players = append(players, lobbyPlayer{
-				Name: "Host",
-				Addr: "Host",
+				Name: global.LocalPlayerName,
+				Addr: addr.String(),
 			})
 
+			// Height is shorter than client to account for startGameButton
 			playerList := list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-15)
 
 			return LobbyModel{
@@ -394,7 +395,10 @@ func NewLobbyJoiner(backtrack components.Breadcrumbs) JoinLobbyModel {
 	list := list.New(lobbyList, rendering.NewSimpleListDelegate(), global.TERM_WIDTH/2, global.TERM_HEIGHT/2)
 	list.DisableQuitKeybindings()
 
-	return JoinLobbyModel{backtrack: backtrack, lobbyList: list}
+	nameInput := textinput.New()
+	nameInput.Prompt = global.LocalPlayerName
+
+	return JoinLobbyModel{backtrack: backtrack, lobbyList: list, nameInput: nameInput}
 }
 
 func (m JoinLobbyModel) Init() tea.Cmd {

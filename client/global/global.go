@@ -50,6 +50,7 @@ var (
 
 	// TeamSaveLocation = "./saves/teams.json"
 	TeamSaveLocation = "./saves"
+	LocalPlayerName  = "Player"
 
 	initLogger zerolog.Logger
 )
