@@ -133,9 +133,9 @@ func (m MainGameModel) View() string {
 
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(stateToRender, "You", stateToRender.GetPlayer(state.HOST)).View(),
+				newPlayerPanel(stateToRender, m.ctx.state.LocalPlayer.Name, stateToRender.GetPlayer(state.HOST)).View(),
 				// TODO: Randomly generate fun trainer names
-				newPlayerPanel(stateToRender, "AI", stateToRender.GetPlayer(state.PEER)).View(),
+				newPlayerPanel(stateToRender, m.ctx.state.OpposingPlayer.Name, stateToRender.GetPlayer(state.PEER)).View(),
 			),
 
 			panelView,

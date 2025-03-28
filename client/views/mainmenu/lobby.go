@@ -62,13 +62,15 @@ type (
 )
 
 type lobbyPlayer struct {
-	Name string
-	Addr string
+	Name   string
+	Addr   string
+	ConnId int
 }
 
 type lobby struct {
-	Name string
-	Addr string
+	Name     string
+	Addr     string
+	HostName string
 }
 
 func (l lobby) FilterValue() string {
@@ -155,7 +157,7 @@ func connect(address string, playerName string) tea.Msg {
 		return nil
 	}
 
-	if err := networking.SendData(conn, lobbyPlayer{playerName, conn.LocalAddr().String()}); err != nil {
+	if err := networking.SendData(conn, lobbyPlayer{playerName, conn.LocalAddr().String(), state.PEER}); err != nil {
 		lobbyLogger().Err(err).Msg("Error sending client data to host")
 		return nil
 	}
@@ -354,7 +356,7 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
-				return listenForConnection(connPort, lobby{lobbyName, addr.String()})
+				return listenForConnection(connPort, lobby{lobbyName, addr.String(), global.LocalPlayerName})
 			})
 
 			cmds = append(cmds, func() tea.Msg {
@@ -460,8 +462,8 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case connectionAcceptedMsgClient:
 		players := make([]list.Item, 0)
 		players = append(players, lobbyPlayer{
-			Name: "Host",
-			Addr: "Host",
+			Name: msg.lobbyData.HostName,
+			Addr: msg.lobbyData.Addr,
 		})
 		players = append(players, lobbyPlayer{
 			Name: m.playerName,
@@ -544,10 +546,24 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_, err := m.conn.Write([]byte("GOKEMON|START"))
 			lobbyLogger().Debug().Msg("host sent start msg")
 
+			clientName := ""
+			for _, item := range m.playerList.Items() {
+				player := item.(lobbyPlayer)
+				if player.ConnId == state.PEER {
+					clientName = player.Name
+				}
+			}
+
+			netInfo := gameview.NetworkingInfo{
+				Conn:       m.conn,
+				ConnId:     state.HOST,
+				ClientName: clientName,
+			}
+
 			if err == nil {
 				// Send to team selection
 				// TODO: Have backing out from here send you to main menu
-				return gameview.NewTeamSelectModel(components.NewBreadcrumb(), true, m.conn, state.HOST), nil
+				return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &netInfo), nil
 			} else {
 				lobbyLogger().Err(err).Msg("Failed to send start message")
 			}
@@ -562,7 +578,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.playerList.InsertItem(-1, msg.clientData)
 	case startGameMsg:
-		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), true, m.conn, state.PEER), nil
+		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: state.PEER}), nil
 	}
 
 	return m, tea.Batch(cmds...)

@@ -17,7 +17,7 @@ func NewPlaySelection(backtrack components.Breadcrumbs) PlaySelection {
 		{
 			Name: "Singleplayer",
 			OnClick: func() (tea.Model, tea.Cmd) {
-				return gameview.NewTeamSelectModel(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }), false, nil, 0), nil
+				return gameview.NewTeamSelectModel(backtrack.PushNew(func() tea.Model { return NewPlaySelection(backtrack) }), nil), nil
 			},
 		},
 		{

@@ -29,9 +29,7 @@ type TeamSelectModel struct {
 	backtrack        components.Breadcrumbs
 	selectingStarter bool
 
-	networked        bool
-	conn             net.Conn
-	connId           int
+	networkInfo      *NetworkingInfo
 	waitingOnNetwork bool
 	teamSent         bool
 }
@@ -48,12 +46,19 @@ var switchFocusKey = key.NewBinding(
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
-func NewTeamSelectModel(backtrack components.Breadcrumbs, networked bool, conn net.Conn, connId int) TeamSelectModel {
+type NetworkingInfo struct {
+	Conn   net.Conn
+	ConnId int
+	// This value is only relevant for the host's TeamSelectModel
+	ClientName string
+}
+
+func NewTeamSelectModel(backtrack components.Breadcrumbs, netInfo *NetworkingInfo) TeamSelectModel {
 	button := components.ViewButton{
 		Name: "New Team",
 		OnClick: func() (tea.Model, tea.Cmd) {
 			return teameditor.NewTeamEditorModel(backtrack.PushNew(func() tea.Model {
-				return NewTeamSelectModel(backtrack, networked, conn, connId)
+				return NewTeamSelectModel(backtrack, netInfo)
 			}), make([]game.Pokemon, 0)), nil
 		},
 	}
@@ -92,13 +97,11 @@ func NewTeamSelectModel(backtrack components.Breadcrumbs, networked bool, conn n
 	}
 
 	return TeamSelectModel{
-		teamList:  list,
-		buttons:   buttons,
-		backtrack: backtrack,
-		teamView:  components.NewTeamView(startingTeam),
-		networked: networked,
-		conn:      conn,
-		connId:    connId,
+		teamList:    list,
+		buttons:     buttons,
+		backtrack:   backtrack,
+		teamView:    components.NewTeamView(startingTeam),
+		networkInfo: netInfo,
 	}
 }
 
@@ -130,13 +133,13 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selectedTeam := m.teamList.SelectedItem().(teamItem)
 
 			// TODO: Check for HOST/PEER
-			if m.networked {
+			if m.networkInfo != nil {
 				m.teamSent = true
-				switch m.connId {
+				switch m.networkInfo.ConnId {
 				case state.HOST:
 					// Wait for opponent to send team over
 					return m, func() tea.Msg {
-						peerTeam, err := networking.AcceptData[networking.TeamSelectionPacket](m.conn)
+						peerTeam, err := networking.AcceptData[networking.TeamSelectionPacket](m.networkInfo.Conn)
 						if err != nil {
 							// TODO: Change all log.Fatal() to something that doesn't crash
 							log.Fatal().Err(err).Msg("Error trying to get team from opponent")
@@ -149,13 +152,13 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						// Send team to host
 						log.Debug().Msgf("Sent team: %+v", selectedTeam.Pokemon)
 
-						err := networking.SendData(m.conn, networking.TeamSelectionPacket{Team: selectedTeam.Pokemon, StartingIndex: m.teamView.CurrentPokemonIndex})
+						err := networking.SendData(m.networkInfo.Conn, networking.TeamSelectionPacket{Team: selectedTeam.Pokemon, StartingIndex: m.teamView.CurrentPokemonIndex})
 						if err != nil {
 							log.Fatal().Err(err).Msg("Error trying to send team to host")
 						}
 
 						// Wait for starting state
-						state, err := networking.AcceptData[state.GameState](m.conn)
+						state, err := networking.AcceptData[state.GameState](m.networkInfo.Conn)
 						if err != nil {
 							log.Fatal().Err(err).Msg("Error trying to get gamestate from host")
 						}
@@ -180,7 +183,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// TODO: Allow backtracking but close connection for multiplayer games
-		if msg.Type == tea.KeyEsc && !m.networked {
+		if msg.Type == tea.KeyEsc && m.networkInfo == nil {
 			if m.selectingStarter {
 				m.selectingStarter = false
 			} else {
@@ -188,7 +191,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case state.GameState: // PEER CASE
-		return NewMainGameModel(msg, state.PEER, m.conn), nil
+		return NewMainGameModel(msg, state.PEER, m.networkInfo.Conn), nil
 
 	case networking.TeamSelectionPacket: // HOST CASE
 		selectedTeam := m.teamList.SelectedItem().(teamItem)
@@ -196,12 +199,15 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		gameState := state.NewState(selectedTeam.Pokemon, msg.Team)
 
 		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+		gameState.LocalPlayer.Name = global.LocalPlayerName
+
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
+		gameState.OpposingPlayer.Name = m.networkInfo.ClientName
 
 		// TODO: Make this a cmd so that it doesn't block
-		networking.SendData(m.conn, gameState)
+		networking.SendData(m.networkInfo.Conn, gameState)
 
-		return NewMainGameModel(gameState, state.HOST, m.conn), nil
+		return NewMainGameModel(gameState, state.HOST, m.networkInfo.Conn), nil
 	}
 
 	// Update team selection view
