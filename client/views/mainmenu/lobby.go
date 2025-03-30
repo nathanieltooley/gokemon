@@ -541,7 +541,8 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if key.Matches(msg, global.SelectKey) {
+		// Start game on enter
+		if key.Matches(msg, global.SelectKey) && len(m.playerList.Items()) == 2 { // hardcoded 2 here, though i doubt ill ever do 3 player lobbies?
 			// TODO: Get rid of blocking code
 			_, err := m.conn.Write([]byte("GOKEMON|START"))
 			lobbyLogger().Debug().Msg("host sent start msg")
