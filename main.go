@@ -1,11 +1,16 @@
 package main
 
 import (
+	"embed"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/views/mainmenu"
 	"github.com/rs/zerolog/log"
 )
+
+//go:embed data/*
+var files embed.FS
 
 type RootModel struct {
 	currentView tea.Model
@@ -47,7 +52,7 @@ func (m RootModel) View() string {
 }
 
 func main() {
-	global.GlobalInit()
+	global.GlobalInit(files)
 
 	m := RootModel{
 		// currentView: pokeselection.NewModel(basePokemon, &moves, abilities),

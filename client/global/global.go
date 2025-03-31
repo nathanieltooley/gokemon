@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"math/rand/v2"
 	"os"
 	"strconv"
@@ -55,7 +56,7 @@ var (
 	initLogger zerolog.Logger
 )
 
-func GlobalInit() {
+func GlobalInit(files fs.FS) {
 	rollingWriter := rollingFileWriter{}
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
@@ -71,28 +72,28 @@ func GlobalInit() {
 	wg.Add(4)
 
 	go func() {
-		POKEMON = loadPokemon()
+		POKEMON = loadPokemon(files)
 		wg.Done()
 	}()
 	go func() {
-		MOVES = loadMoves()
+		MOVES = loadMoves(files)
 		wg.Done()
 	}()
 	go func() {
-		ABILITIES = loadAbilities()
+		ABILITIES = loadAbilities(files)
 		wg.Done()
 	}()
 	go func() {
-		ITEMS = loadItems()
+		ITEMS = loadItems(files)
 		wg.Done()
 	}()
 
 	wg.Wait()
 }
 
-func loadPokemon() PokemonRegistry {
-	dataFile := "./data/gen1-data.csv"
-	fileReader, err := os.Open(dataFile)
+func loadPokemon(files fs.FS) PokemonRegistry {
+	dataFile := "data/gen1-data.csv"
+	fileReader, err := files.Open(dataFile)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
 	}
@@ -157,22 +158,31 @@ func loadPokemon() PokemonRegistry {
 	return PokemonRegistry(pokemonList)
 }
 
-func loadMoves() *MoveRegistry {
+func loadMoves(files fs.FS) *MoveRegistry {
 	initLogger.Info().Msg("Loading Move Data")
 
 	moveRegistry := new(MoveRegistry)
-	movesPath := "./data/moves.json"
-	movesMapPath := "./data/movesMap.json"
+	movesPath := "data/moves.json"
+	movesMapPath := "data/movesMap.json"
 
-	moveDataBytes, err := os.ReadFile(movesPath)
+	moveDataFile, err := files.Open(movesPath)
+	if err != nil {
+		initLogger.Fatal().Err(err).Msg("Couldn't read move data file")
+	}
+	defer moveDataFile.Close()
+
+	moveDataBytes, err := io.ReadAll(moveDataFile)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't read move data file")
 	}
 
-	moveMapBytes, err := os.ReadFile(movesMapPath)
+	moveMapFile, err := files.Open(movesMapPath)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't read move map file")
 	}
+	defer moveMapFile.Close()
+
+	moveMapBytes, err := io.ReadAll(moveMapFile)
 
 	parsedMoves := make([]game.Move, 0, 1000)
 	moveMap := make(map[string][]string)
@@ -197,9 +207,9 @@ func loadMoves() *MoveRegistry {
 	return moveRegistry
 }
 
-func loadAbilities() map[string][]game.Ability {
-	abilityFile := "./data/abilities.json"
-	file, err := os.Open(abilityFile)
+func loadAbilities(files fs.FS) map[string][]game.Ability {
+	abilityFile := "data/abilities.json"
+	file, err := files.Open(abilityFile)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open abilities file")
 	}
@@ -220,9 +230,9 @@ func loadAbilities() map[string][]game.Ability {
 	return abilityMap
 }
 
-func loadItems() []string {
-	itemsFile := "./data/items.json"
-	file, err := os.Open(itemsFile)
+func loadItems(files fs.FS) []string {
+	itemsFile := "data/items.json"
+	file, err := files.Open(itemsFile)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open items file")
 	}
