@@ -1,4 +1,4 @@
-package errors
+package errorutils
 
 // Returns the value passed in if there is no error, otherwise it will panic.
 // Very similar to Rust's Unwrap method on an Option or Err enum.
