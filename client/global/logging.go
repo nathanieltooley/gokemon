@@ -5,13 +5,35 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/nathanieltooley/gokemon/client/errors"
+	"github.com/nathanieltooley/gokemon/client/errorutils"
 )
 
-type rollingFileWriter struct{}
+type rollingFileWriter struct {
+	FileDirectory string
+	FileName      string
+}
+
+func NewRollingFileWriter(fileDir string, fileName string) rollingFileWriter {
+	absFileDir, err := filepath.Abs(fileDir)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create dir for log files if they dont exist
+	// perms copied from docs, i dont know linux file perms numbers
+	if err := os.MkdirAll(absFileDir, 0750); err != nil {
+		panic(err)
+	}
+
+	return rollingFileWriter{
+		FileDirectory: absFileDir,
+		FileName:      fileName,
+	}
+}
 
 const (
 	mb         = 1000000
@@ -21,8 +43,28 @@ const (
 	// maxLogSize = 0.5 * kb
 )
 
+func (w rollingFileWriter) getFullFilePath() string {
+	return filepath.Join(w.FileDirectory, fmt.Sprintf("%s.log", w.FileName))
+}
+
+func (w rollingFileWriter) getLogs(pattern string) ([]string, error) {
+	fileSystem, err := getFS(w.FileDirectory)
+	if err != nil {
+		return nil, err
+	}
+
+	// all log files ending in -*.log are archived logs
+	// meaning they aren't getting updated
+	logMatches, err := fs.Glob(fileSystem, pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	return logMatches, nil
+}
+
 func (w rollingFileWriter) Write(b []byte) (n int, err error) {
-	mainLogFile, err := os.OpenFile("client.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	mainLogFile, err := os.OpenFile(w.getFullFilePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return 0, err
 	}
@@ -39,10 +81,10 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	if size < maxLogSize {
 		return mainLogFile.Write(b)
 	} else {
-		updateLogIndices()
+		w.updateLogIndices()
 	}
 
-	logMatches, err := getLogs("client-*.log")
+	logMatches, err := w.getLogs(w.FileName + "-*.log")
 	if err != nil {
 		return 0, err
 	}
@@ -59,7 +101,7 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 		// delete an old file for as many times as necessary
 		for range difference {
 			for _, fileName := range logMatches {
-				file_index := getLogIndex(fileName)
+				file_index := getLogIndex(w.FileName, fileName)
 
 				if file_index > latestFileIndex {
 					latestFileIndex = file_index
@@ -87,7 +129,7 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	mainLogFile.Close()
 
 	// Append to a new log file
-	mainLogFile, err = os.OpenFile("client.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	mainLogFile, err = os.OpenFile(w.getFullFilePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return 0, err
 	}
@@ -96,14 +138,18 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	return mainLogFile.Write(b)
 }
 
-func updateLogIndices() error {
-	logMatches, err := getLogs("client-*.log")
+func (w rollingFileWriter) indexedLog(fileName string, index int) string {
+	return filepath.Join(w.FileDirectory, fmt.Sprintf("%s-%d.log", fileName, index))
+}
+
+func (w rollingFileWriter) updateLogIndices() error {
+	logMatches, err := w.getLogs(w.FileName + "-*.log")
 	if err != nil {
 		return err
 	}
 
 	for _, log := range logMatches {
-		index := getLogIndex(log)
+		index := getLogIndex(w.FileName, log)
 
 		// get rid of messed up log files
 		if index <= 0 {
@@ -116,13 +162,13 @@ func updateLogIndices() error {
 		// Add mod here since newly made files would conflict with old files
 		// i.e if client-1.log gets renamed to client-2.log and client-2.log needs to be renamed to client-3.log
 		// the new and old logs would conflict
-		newFileName := fmt.Sprintf("mod-client-%d.log", index)
+		newFileName := w.indexedLog("mod-"+w.FileName, int(index))
 		if err := os.Rename(log, newFileName); err != nil {
 			return err
 		}
 	}
 
-	modLogMatches, err := getLogs("mod-client-*.log")
+	modLogMatches, err := w.getLogs(fmt.Sprintf("mod-%s-*.log", w.FileName))
 	if err != nil {
 		return err
 	}
@@ -137,46 +183,25 @@ func updateLogIndices() error {
 	}
 
 	// Rename main log file
-	if err := os.Rename("client.log", "client-1.log"); err != nil {
+	if err := os.Rename(w.getFullFilePath(), w.indexedLog(w.FileName, 1)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func getFS() (fs.FS, error) {
-	workDir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	fileSystem := os.DirFS(workDir)
-	return fileSystem, nil
-}
-
-func getLogs(pattern string) ([]string, error) {
-	fileSystem, err := getFS()
-	if err != nil {
-		return nil, err
-	}
-
-	// all log files ending in -*.log are archived logs
-	// meaning they aren't getting updated
-	logMatches, err := fs.Glob(fileSystem, pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	return logMatches, nil
-}
-
-func getLogIndex(name string) int64 {
-	fileName, _ := strings.CutSuffix(name, ".log")
-	indexStr, _ := strings.CutPrefix(fileName, "client-")
+func getLogIndex(baseFileName string, filePath string) int64 {
+	fileName, _ := strings.CutSuffix(filepath.Base(filePath), ".log")
+	indexStr, _ := strings.CutPrefix(fileName, baseFileName+"-")
 
 	// TODO: Change this to actual error handling, even though the user shouldn't mess with this for no reason
 	// and if they do they are dumb and stupid and i would dislike them
-	index := errors.Must(strconv.ParseInt(indexStr, 10, 32))
+	index := errorutils.Must(strconv.ParseInt(indexStr, 10, 32))
 
 	return index
+}
+
+func getFS(fileDir string) (fs.FS, error) {
+	fileSystem := os.DirFS(fileDir)
+	return fileSystem, nil
 }

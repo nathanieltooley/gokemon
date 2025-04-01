@@ -13,7 +13,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/errors"
+	"github.com/nathanieltooley/gokemon/client/errorutils"
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -57,7 +57,7 @@ var (
 )
 
 func GlobalInit(files fs.FS) {
-	rollingWriter := rollingFileWriter{}
+	rollingWriter := NewRollingFileWriter("./logs/", "gokemon")
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	// TODO: Custom formatter, ends up printing out console format codes (obviously)
@@ -114,13 +114,13 @@ func loadPokemon(files fs.FS) PokemonRegistry {
 	// Load CSV data
 	for _, row := range rows {
 		// These are "unwraped" because the data inserted should always follow this format
-		pokedexNumber := uint(errors.Must(strconv.ParseInt(row[0], 10, 16)))
-		hp := uint(errors.Must(strconv.ParseInt(row[4], 10, 16)))
-		attack := uint(errors.Must(strconv.ParseInt(row[5], 10, 16)))
-		def := uint(errors.Must(strconv.ParseInt(row[6], 10, 16)))
-		spAttack := uint(errors.Must(strconv.ParseInt(row[7], 10, 16)))
-		spDef := uint(errors.Must(strconv.ParseInt(row[8], 10, 16)))
-		speed := uint(errors.Must(strconv.ParseInt(row[9], 10, 16)))
+		pokedexNumber := uint(errorutils.Must(strconv.ParseInt(row[0], 10, 16)))
+		hp := uint(errorutils.Must(strconv.ParseInt(row[4], 10, 16)))
+		attack := uint(errorutils.Must(strconv.ParseInt(row[5], 10, 16)))
+		def := uint(errorutils.Must(strconv.ParseInt(row[6], 10, 16)))
+		spAttack := uint(errorutils.Must(strconv.ParseInt(row[7], 10, 16)))
+		spDef := uint(errorutils.Must(strconv.ParseInt(row[8], 10, 16)))
+		speed := uint(errorutils.Must(strconv.ParseInt(row[9], 10, 16)))
 
 		name := row[1]
 		type1Name := row[2]
