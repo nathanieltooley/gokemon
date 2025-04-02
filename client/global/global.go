@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"math/rand/v2"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -50,14 +51,18 @@ var (
 	BackKey = key.NewBinding(key.WithKeys(tea.KeyEsc.String()))
 
 	// TeamSaveLocation = "./saves/teams.json"
-	TeamSaveLocation = "./saves"
+	TeamSaveLocation = ""
 	LocalPlayerName  = "Player"
 
 	initLogger zerolog.Logger
 )
 
 func GlobalInit(files fs.FS) {
-	rollingWriter := NewRollingFileWriter("./logs/", "gokemon")
+	configDir, _ := os.UserConfigDir()
+	configDir = filepath.Join(configDir, "gokemon")
+	TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
+
+	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	// TODO: Custom formatter, ends up printing out console format codes (obviously)
