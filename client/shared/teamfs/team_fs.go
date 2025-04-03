@@ -24,19 +24,17 @@ func SaveTeam(dir string, name string, pokemon []game.Pokemon) error {
 	}
 
 	serializablePokemon := make([]game.Pokemon, 0)
-	for _, poke := range pokemon {
-		serializablePokemon = append(serializablePokemon, poke)
-	}
+	serializablePokemon = append(serializablePokemon, pokemon...)
 
 	teams[name] = serializablePokemon
 
 	savePath := path.Join(dir, teamsFileName)
 
 	teamsFile, err := os.Create(savePath)
-	defer teamsFile.Close()
 	if err != nil {
 		return err
 	}
+	defer teamsFile.Close()
 
 	teamsJson, err := json.Marshal(teams)
 	if err != nil {
@@ -88,7 +86,6 @@ func LoadTeamMap(dir string) (SavedTeams, error) {
 	savePath := path.Join(dir, teamsFileName)
 
 	teamFile, err := os.Open(savePath)
-	defer teamFile.Close()
 	if err != nil {
 		// Create the file if it does not exist
 		if errors.Is(err, fs.ErrNotExist) {
@@ -100,6 +97,7 @@ func LoadTeamMap(dir string) (SavedTeams, error) {
 			return nil, err
 		}
 	}
+	defer teamFile.Close()
 
 	teamFileBytes, err := io.ReadAll(teamFile)
 	if err != nil {
