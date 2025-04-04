@@ -2,7 +2,7 @@ package mainmenu
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -12,14 +12,15 @@ import (
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
+	"github.com/rs/zerolog/log"
 )
 
 type optionsMenuModel struct {
 	backtrack components.Breadcrumbs
 
-	focus     components.Focus
-	showError bool
-	err       error
+	focus           components.Focus
+	shouldShowError bool
+	err             error
 }
 
 type clearErrorMessage struct {
@@ -42,18 +43,30 @@ func (s *saveLocationInput) OnFocus(m tea.Model, msg tea.Msg) (tea.Model, tea.Cm
 			saveLocation := s.inner.Value()
 			if saveLocation != "" {
 				// TODO: Validation!
-				saveLocation := path.Clean(saveLocation)
-				_, err := os.ReadDir(saveLocation)
-				if err != nil {
-					opM.showError = true
-					opM.err = err
+				saveLocation = filepath.Dir(saveLocation)
+				saveLocation := filepath.Clean(saveLocation)
+				// Isolate dir from filename so we can add our own filename
 
-					cmds = append(cmds, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-						return clearErrorMessage{t}
-					}))
+				// Turn relative path into absolute using config dir as base
+				if !filepath.IsAbs(saveLocation) {
+					saveLocation = filepath.Join(global.DefaultConfigDir(), saveLocation)
 				}
 
-				global.TeamSaveLocation = s.inner.Value()
+				// Create dirs if it doesn't exist
+				err := os.MkdirAll(saveLocation, 0750)
+				if err != nil {
+					cmds = append(cmds, opM.showError(err))
+				} else {
+					// Add back in filename
+					saveLocation = filepath.Join(saveLocation, "team.json")
+
+					global.Opt.TeamSaveLocation = saveLocation
+					if err := global.SaveConfig(global.Opt); err != nil {
+						cmds = append(cmds, opM.showError(err))
+					}
+				}
+
+				s.inner.SetValue(saveLocation)
 			}
 		}
 	}
@@ -82,6 +95,7 @@ type playerNameInput struct {
 }
 
 func (p *playerNameInput) OnFocus(m tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	opM := m.(optionsMenuModel)
 	fCmd := p.inner.Focus()
 
 	switch msg := msg.(type) {
@@ -92,14 +106,17 @@ func (p *playerNameInput) OnFocus(m tea.Model, msg tea.Msg) (tea.Model, tea.Cmd)
 				playerName = p.inner.Value()
 			}
 
-			global.LocalPlayerName = playerName
+			global.Opt.LocalPlayerName = playerName
+			if err := global.SaveConfig(global.Opt); err != nil {
+				opM.showError(err)
+			}
 		}
 	}
 
 	var uCmd tea.Cmd
 	p.inner, uCmd = p.inner.Update(msg)
 
-	return m, tea.Batch(fCmd, uCmd)
+	return opM, tea.Batch(fCmd, uCmd)
 }
 
 func (p *playerNameInput) Blur() {
@@ -114,10 +131,10 @@ func (p *playerNameInput) FocusedView() string { return p.View() }
 func newOptionsMenu(backtrack components.Breadcrumbs) optionsMenuModel {
 	prompt := textinput.New()
 	prompt.Focus()
-	prompt.SetValue(global.TeamSaveLocation)
+	prompt.SetValue(global.Opt.TeamSaveLocation)
 
 	namePrompt := textinput.New()
-	namePrompt.SetValue(global.LocalPlayerName)
+	namePrompt.SetValue(global.Opt.LocalPlayerName)
 
 	return optionsMenuModel{
 		backtrack: backtrack,
@@ -127,7 +144,11 @@ func newOptionsMenu(backtrack components.Breadcrumbs) optionsMenuModel {
 
 func (m optionsMenuModel) Init() tea.Cmd { return nil }
 func (m optionsMenuModel) View() string {
-	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.focus.Views()...))
+	if m.shouldShowError {
+		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, "Error!", rendering.ButtonStyle.Render(m.err.Error())))
+	} else {
+		return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, m.focus.Views()...))
+	}
 }
 
 func (m optionsMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -135,10 +156,10 @@ func (m optionsMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case clearErrorMessage:
-		m.showError = false
+		m.shouldShowError = false
 		m.err = nil
 	case tea.KeyMsg:
-		if m.showError {
+		if m.shouldShowError {
 			return m, nil
 		}
 
@@ -160,4 +181,15 @@ func (m optionsMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, focusCmd)
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *optionsMenuModel) showError(err error) tea.Cmd {
+	m.shouldShowError = true
+	m.err = err
+
+	log.Err(err).Msg("error in options")
+
+	return tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+		return clearErrorMessage{t}
+	})
 }

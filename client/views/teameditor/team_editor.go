@@ -458,7 +458,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			if key.Matches(msg, confirm) {
-				if err := teamfs.SaveTeam(global.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
+				if err := teamfs.SaveTeam(global.Opt.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
 					m.erroring = true
 					m.displayError = err
 					log.Error().Msgf("Failed to save team: %s", err)
@@ -500,7 +500,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.saveNameInput.Value() != "" {
-				teams, _ := teamfs.LoadTeamMap(global.TeamSaveLocation)
+				teams, _ := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 				_, ok := teams[m.saveNameInput.Value()]
 
 				if ok {
@@ -509,7 +509,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 
-				if err := teamfs.SaveTeam(global.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
+				if err := teamfs.SaveTeam(global.Opt.TeamSaveLocation, m.saveNameInput.Value(), m.ctx.team); err != nil {
 					m.erroring = true
 					m.displayError = err
 					log.Error().Msgf("Failed to save team: %s", err)

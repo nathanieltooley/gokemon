@@ -356,7 +356,7 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
-				return listenForConnection(connPort, lobby{lobbyName, addr.String(), global.LocalPlayerName})
+				return listenForConnection(connPort, lobby{lobbyName, addr.String(), global.Opt.LocalPlayerName})
 			})
 
 			cmds = append(cmds, func() tea.Msg {
@@ -366,7 +366,7 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			players := make([]list.Item, 0)
 			players = append(players, lobbyPlayer{
-				Name: global.LocalPlayerName,
+				Name: global.Opt.LocalPlayerName,
 				Addr: addr.String(),
 			})
 
@@ -398,7 +398,7 @@ func NewLobbyJoiner(backtrack components.Breadcrumbs) JoinLobbyModel {
 	list.DisableQuitKeybindings()
 
 	nameInput := textinput.New()
-	nameInput.Prompt = global.LocalPlayerName
+	nameInput.Prompt = global.Opt.LocalPlayerName
 
 	return JoinLobbyModel{backtrack: backtrack, lobbyList: list, nameInput: nameInput}
 }

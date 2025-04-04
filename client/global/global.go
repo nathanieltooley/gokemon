@@ -21,6 +21,11 @@ import (
 	"golang.org/x/term"
 )
 
+type GlobalConfig struct {
+	TeamSaveLocation string
+	LocalPlayerName  string
+}
+
 var (
 	TERM_WIDTH, TERM_HEIGHT, _ = term.GetSize(int(os.Stdout.Fd()))
 
@@ -50,21 +55,22 @@ var (
 
 	BackKey = key.NewBinding(key.WithKeys(tea.KeyEsc.String()))
 
-	// TeamSaveLocation = "./saves/teams.json"
-	TeamSaveLocation = ""
-	LocalPlayerName  = "Player"
+	Opt = GlobalConfig{
+		TeamSaveLocation: "",
+		LocalPlayerName:  "Player",
+	}
 
 	initLogger zerolog.Logger
 )
 
 func GlobalInit(files fs.FS) {
-	configDir, _ := os.UserConfigDir()
-	configDir = filepath.Join(configDir, "gokemon")
-	TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
-
-	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
+	configDir := DefaultConfigDir()
+	configFileName := DefaultConfigLocation()
+
+	// Logging Setup
+	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
 	// TODO: Custom formatter, ends up printing out console format codes (obviously)
 	fileWriter := zerolog.ConsoleWriter{Out: rollingWriter}
 	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
@@ -72,8 +78,33 @@ func GlobalInit(files fs.FS) {
 	initLogger = multiLogger
 	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger()
 
-	var wg sync.WaitGroup
+	if err := os.MkdirAll(configDir, 0750); err != nil {
+		initLogger.Err(err).Msg("error occured trying to create config dir")
+	}
 
+	// Read config file
+	configFile, err := os.ReadFile(configFileName)
+	if err != nil {
+		_, err := os.Create(configFileName)
+		if err != nil {
+			initLogger.Err(err).Msg("error occurred while trying to create config file")
+		}
+	}
+
+	if len(configFile) > 0 {
+		newOpts := GlobalConfig{}
+		if err := json.Unmarshal(configFile, &newOpts); err != nil {
+			initLogger.Err(err).Msg("error occurred while trying to create new config file")
+		} else {
+			Opt = newOpts
+		}
+	} else {
+		// default team save location
+		Opt.TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
+	}
+
+	// Load concurrently
+	var wg sync.WaitGroup
 	wg.Add(4)
 
 	go func() {

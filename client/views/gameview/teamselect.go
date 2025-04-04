@@ -65,10 +65,10 @@ func NewTeamSelectModel(backtrack components.Breadcrumbs, netInfo *NetworkingInf
 
 	buttons := components.NewMenuButton([]components.ViewButton{button})
 
-	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
+	teams, err := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			if err := teamfs.NewTeamSave(global.TeamSaveLocation); err != nil {
+			if err := teamfs.NewTeamSave(global.Opt.TeamSaveLocation); err != nil {
 				log.Panic().Msgf("Could not create new team save file: %s", err)
 			}
 		} else {
@@ -199,7 +199,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		gameState := state.NewState(selectedTeam.Pokemon, msg.Team)
 
 		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
-		gameState.LocalPlayer.Name = global.LocalPlayerName
+		gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
 
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
 		gameState.OpposingPlayer.Name = m.networkInfo.ClientName

@@ -63,10 +63,10 @@ func newTeamMainMenu(backtrace components.Breadcrumbs) startTeamMenu {
 }
 
 func newTeamSelectionMenu(backtrace components.Breadcrumbs) teamSelectionMenu {
-	teams, err := teamfs.LoadTeamMap(global.TeamSaveLocation)
+	teams, err := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			if err := teamfs.NewTeamSave(global.TeamSaveLocation); err != nil {
+			if err := teamfs.NewTeamSave(global.Opt.TeamSaveLocation); err != nil {
 				log.Panic().Msgf("Could not create team saves file: %s", err)
 			}
 		} else {
