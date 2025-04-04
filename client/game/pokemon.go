@@ -448,7 +448,7 @@ func (pb *PokemonBuilder) SetLevel(level uint) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) SetRandomLevel(low int, high int) *PokemonBuilder {
-	var n uint = uint(high - low)
+	n := uint(high - low)
 	rndLevel := rand.UintN(n) + uint(low)
 	pb.poke.Level = rndLevel
 
@@ -477,7 +477,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 		return pb
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		move := possibleMoves[rand.IntN(len(possibleMoves))]
 		moves[i] = *move
 	}
@@ -617,21 +617,20 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 	}
 
 	// Determine damage type
-	if move.DamageClass == DAMAGETYPE_PHYSICAL {
+	switch move.DamageClass {
+	case DAMAGETYPE_PHYSICAL:
 		baseA = attacker.Attack.RawValue
 		a = uint(attacker.Attack.CalcValue())
 		aBoost = attacker.Attack.Stage
-	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
-		baseA = attacker.SpAttack.RawValue
-		a = uint(attacker.SpAttack.CalcValue())
-		aBoost = attacker.SpAttack.Stage
-	}
 
-	if move.DamageClass == DAMAGETYPE_PHYSICAL {
 		baseD = defendent.Def.RawValue
 		d = uint(defendent.Def.CalcValue())
 		dBoost = defendent.Def.Stage
-	} else if move.DamageClass == DAMAGETYPE_SPECIAL {
+	case DAMAGETYPE_SPECIAL:
+		baseA = attacker.SpAttack.RawValue
+		a = uint(attacker.SpAttack.CalcValue())
+		aBoost = attacker.SpAttack.Stage
+
 		baseD = defendent.SpDef.RawValue
 		d = uint(defendent.SpDef.CalcValue())
 		dBoost = defendent.SpDef.Stage
