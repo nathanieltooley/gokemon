@@ -1,8 +1,6 @@
 package teameditor
 
 import (
-	"errors"
-	"io/fs"
 	"maps"
 	"slices"
 
@@ -65,14 +63,8 @@ func newTeamMainMenu(backtrace components.Breadcrumbs) startTeamMenu {
 func newTeamSelectionMenu(backtrace components.Breadcrumbs) teamSelectionMenu {
 	teams, err := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			if err := teamfs.NewTeamSave(global.Opt.TeamSaveLocation); err != nil {
-				log.Panic().Msgf("Could not create team saves file: %s", err)
-			}
-		} else {
-			// TODO: Show error message
-			log.Panic().Msgf("Could not load team saves file: %s", err)
-		}
+		// TODO: Show error message
+		log.Panic().Msgf("Could not load team saves file: %s", err)
 	}
 	items := make([]list.Item, 0)
 	for team := range maps.Keys(teams) {

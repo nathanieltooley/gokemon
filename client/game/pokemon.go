@@ -320,6 +320,10 @@ func (p *Pokemon) AbilityText() string {
 	return fmt.Sprintf("%s activated %s!", p.Nickname, p.Ability.Name)
 }
 
+func (p Pokemon) IsNil() bool {
+	return p.Base == nil
+}
+
 type PokemonBuilder struct {
 	poke Pokemon
 }

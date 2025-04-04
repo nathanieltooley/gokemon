@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 )
@@ -17,20 +16,22 @@ var teamsFileName string = "teams.json"
 
 type SavedTeams map[string][]game.Pokemon
 
-func SaveTeam(dir string, name string, pokemon []game.Pokemon) error {
-	teams, err := LoadTeamMap(dir)
+func SaveTeam(filePath string, name string, pokemon []game.Pokemon) error {
+	teams, err := LoadTeamMap(filePath)
 	if err != nil {
 		return err
 	}
 
 	serializablePokemon := make([]game.Pokemon, 0)
-	serializablePokemon = append(serializablePokemon, pokemon...)
+	for _, pokemon := range pokemon {
+		if !pokemon.IsNil() {
+			serializablePokemon = append(serializablePokemon, pokemon)
+		}
+	}
 
 	teams[name] = serializablePokemon
 
-	savePath := path.Join(dir, teamsFileName)
-
-	teamsFile, err := os.Create(savePath)
+	teamsFile, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
@@ -48,10 +49,10 @@ func SaveTeam(dir string, name string, pokemon []game.Pokemon) error {
 	return nil
 }
 
-func LoadTeam(dir string, name string) ([6]*game.Pokemon, error) {
+func LoadTeam(filePath string, name string) ([6]*game.Pokemon, error) {
 	var team [6]*game.Pokemon
 
-	teams, err := LoadTeamMap(dir)
+	teams, err := LoadTeamMap(filePath)
 	if err != nil {
 		return team, err
 	}
@@ -72,24 +73,12 @@ func LoadTeam(dir string, name string) ([6]*game.Pokemon, error) {
 	return team, nil
 }
 
-func NewTeamSave(dir string) error {
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return err
-	}
-
-	_, err := os.Create(path.Join(dir, teamsFileName))
-
-	return err
-}
-
-func LoadTeamMap(dir string) (SavedTeams, error) {
-	savePath := path.Join(dir, teamsFileName)
-
-	teamFile, err := os.Open(savePath)
+func LoadTeamMap(filePath string) (SavedTeams, error) {
+	teamFile, err := os.Open(filePath)
 	if err != nil {
 		// Create the file if it does not exist
 		if errors.Is(err, fs.ErrNotExist) {
-			teamFile, err = os.Create(savePath)
+			teamFile, err = os.Create(filePath)
 			if err != nil {
 				return nil, err
 			}

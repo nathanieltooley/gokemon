@@ -1,8 +1,6 @@
 package gameview
 
 import (
-	"errors"
-	"io/fs"
 	"maps"
 	"net"
 
@@ -67,14 +65,8 @@ func NewTeamSelectModel(backtrack components.Breadcrumbs, netInfo *NetworkingInf
 
 	teams, err := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			if err := teamfs.NewTeamSave(global.Opt.TeamSaveLocation); err != nil {
-				log.Panic().Msgf("Could not create new team save file: %s", err)
-			}
-		} else {
-			// TODO: Show error messages, and better handling (not crashing)
-			log.Panic().Msgf("Could not load Teams: %s", err)
-		}
+		// TODO: Show error messages, and better handling (not crashing)
+		log.Panic().Msgf("Could not load Teams: %s", err)
 	}
 
 	items := make([]list.Item, 0)
