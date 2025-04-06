@@ -44,11 +44,12 @@ type (
 	LobbyModel struct {
 		backtrack components.Breadcrumbs
 
-		conn       net.Conn
-		lobbyName  string
-		hosting    bool
-		playerList list.Model
-		focus      int
+		conn      net.Conn
+		lobbyName string
+		hosting   bool
+		host      lobbyPlayer
+		opponent  lobbyPlayer
+		focus     int
 	}
 	JoinLobbyModel struct {
 		backtrack components.Breadcrumbs
@@ -65,6 +66,10 @@ type lobbyPlayer struct {
 	Name   string
 	Addr   string
 	ConnId int
+}
+
+func (l lobbyPlayer) IsNil() bool {
+	return l.Name == "" && l.Addr == ""
 }
 
 type lobby struct {
@@ -364,20 +369,11 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return listenForSearch(nil, lobbyName)
 			})
 
-			players := make([]list.Item, 0)
-			players = append(players, lobbyPlayer{
-				Name: global.Opt.LocalPlayerName,
-				Addr: addr.String(),
-			})
-
-			// Height is shorter than client to account for startGameButton
-			playerList := list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-15)
-
 			return LobbyModel{
-				backtrack:  m.backtrack,
-				hosting:    true,
-				playerList: playerList,
-				lobbyName:  lobbyName,
+				backtrack: m.backtrack,
+				hosting:   true,
+				host:      lobbyPlayer{Name: global.Opt.LocalPlayerName, Addr: addr.String()},
+				lobbyName: lobbyName,
 			}, tea.Batch(cmds...)
 		}
 	}
@@ -460,26 +456,20 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case connectionAcceptedMsgClient:
-		players := make([]list.Item, 0)
-		players = append(players, lobbyPlayer{
-			Name: msg.lobbyData.HostName,
-			Addr: msg.lobbyData.Addr,
-		})
-		players = append(players, lobbyPlayer{
-			Name: m.playerName,
-			Addr: msg.conn.LocalAddr().String(),
-		})
+		host := lobbyPlayer{Name: msg.lobbyData.HostName, Addr: msg.lobbyData.Addr}
+		opponent := lobbyPlayer{Name: m.playerName, Addr: msg.conn.LocalAddr().String()}
 
 		cmds = append(cmds, func() tea.Msg {
 			return listenForStart(msg.conn)
 		})
 
 		return LobbyModel{
-			backtrack:  components.Breadcrumbs{},
-			conn:       msg.conn,
-			hosting:    false,
-			lobbyName:  msg.lobbyData.Name,
-			playerList: list.New(players, rendering.NewSimpleListDelegate(), global.TERM_WIDTH, global.TERM_HEIGHT-5),
+			backtrack: components.Breadcrumbs{},
+			conn:      msg.conn,
+			hosting:   false,
+			lobbyName: msg.lobbyData.Name,
+			host:      host,
+			opponent:  opponent,
 		}, tea.Batch(cmds...)
 	case lanSearchResult:
 		log.Debug().Msgf("Got search result: %+v", *msg.lob)
@@ -533,7 +523,17 @@ func (m LobbyModel) View() string {
 		startGameButton = ""
 	}
 
-	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, m.playerList.View(), startGameButton))
+	nameStyle := lipgloss.NewStyle().Margin(2).Padding(5).Border(lipgloss.NormalBorder(), true)
+
+	hostView := nameStyle.Render("Host: " + m.host.Name)
+	opponentView := nameStyle.Render("Client: " + m.opponent.Name)
+	if m.opponent.IsNil() {
+		opponentView = "Waiting for client . . . "
+	}
+
+	nameViews := lipgloss.JoinHorizontal(lipgloss.Center, hostView, opponentView)
+
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, header, nameViews, startGameButton))
 }
 
 func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -542,23 +542,15 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Start game on enter
-		if key.Matches(msg, global.SelectKey) && len(m.playerList.Items()) == 2 { // hardcoded 2 here, though i doubt ill ever do 3 player lobbies?
+		if key.Matches(msg, global.SelectKey) && !m.opponent.IsNil() {
 			// TODO: Get rid of blocking code
 			_, err := m.conn.Write([]byte("GOKEMON|START"))
 			lobbyLogger().Debug().Msg("host sent start msg")
 
-			clientName := ""
-			for _, item := range m.playerList.Items() {
-				player := item.(lobbyPlayer)
-				if player.ConnId == state.PEER {
-					clientName = player.Name
-				}
-			}
-
 			netInfo := gameview.NetworkingInfo{
 				Conn:       m.conn,
 				ConnId:     state.HOST,
-				ClientName: clientName,
+				ClientName: m.opponent.Name,
 			}
 
 			if err == nil {
@@ -577,7 +569,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case connectionAcceptedMsgHost:
 		m.conn = msg.conn
 
-		m.playerList.InsertItem(-1, msg.clientData)
+		m.opponent = msg.clientData
 	case startGameMsg:
 		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: state.PEER}), nil
 	}
