@@ -5,6 +5,9 @@ import (
 )
 
 type TeamSelectionPacket struct {
-	Team          []game.Pokemon
+	Team []game.Pokemon
+}
+
+type StarterSelectionPacket struct {
 	StartingIndex int
 }

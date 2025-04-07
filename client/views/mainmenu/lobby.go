@@ -548,9 +548,9 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lobbyLogger().Debug().Msg("host sent start msg")
 
 			netInfo := gameview.NetworkingInfo{
-				Conn:       m.conn,
-				ConnId:     state.HOST,
-				ClientName: m.opponent.Name,
+				Conn:         m.conn,
+				ConnId:       state.HOST,
+				OpposingName: m.opponent.Name,
 			}
 
 			if err == nil {
@@ -571,7 +571,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.opponent = msg.clientData
 	case startGameMsg:
-		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: state.PEER}), nil
+		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: state.PEER, OpposingName: m.host.Name}), nil
 	}
 
 	return m, tea.Batch(cmds...)
