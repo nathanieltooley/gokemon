@@ -218,6 +218,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
 				// update the starter to what the player selects in this screen
 				gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+				gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
 
 				return NewMainGameModel(gameState, state.HOST, nil), nil
 			}
