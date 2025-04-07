@@ -245,6 +245,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
 		gameState.OpposingPlayer.Name = m.networkInfo.OpposingName
+		gameState.Networked = true
 
 		// TODO: Make this a cmd so that it doesn't block
 		networking.SendData(m.networkInfo.Conn, gameState)

@@ -144,7 +144,7 @@ func pokemonEffects(pokemon game.Pokemon) string {
 
 func (m playerPanel) Init() tea.Cmd { return nil }
 func (m playerPanel) View() string {
-	if m.player.ActivePokeIndex >= len(m.player.Team) {
+	if m.player.ActivePokeIndex >= len(m.player.Team) || m.player.ActivePokeIndex < 0 {
 		return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, "ERROR: Invalid Active PokeIndex"))
 	}
 
@@ -165,8 +165,13 @@ func (m playerPanel) View() string {
 	healthPerc := float64(currentPokemon.Hp.Value) / float64(currentPokemon.MaxHp)
 
 	pokeInfo = pokeInfoStyle.Render(lipgloss.JoinVertical(lipgloss.Center, pokeInfo, m.healthBar.ViewAs(healthPerc)))
+	timerView := ""
 
-	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, pokeInfo))
+	if m.gameState.Networked {
+		timerView = fmt.Sprintf("Timer: %s", m.player.GetTimerString())
+	}
+
+	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, timerView, pokeInfo))
 }
 
 func (m playerPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

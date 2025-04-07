@@ -26,6 +26,7 @@ type GameState struct {
 	OpposingPlayer Player
 	Turn           int
 	Weather        int
+	Networked      bool
 
 	MessageHistory []string
 }
@@ -184,6 +185,8 @@ type Player struct {
 	// be persistent across the turn and not go away after switch in.
 	// That does mean that this needs to be reset every turn
 	ActiveKOed bool
+
+	MultiTimer int
 }
 
 // TODO: OOB Error handling
@@ -194,6 +197,20 @@ func (p Player) GetActivePokemon() *game.Pokemon {
 // Get a copy of a pokemon on a player's team
 func (p Player) GetPokemon(index int) *game.Pokemon {
 	return &p.Team[index]
+}
+
+func (p Player) GetTimerString() string {
+	minutes := p.MultiTimer / 60
+	seconds := p.MultiTimer % 60
+
+	// there could be a way to do this using a format string
+	// but this is easier
+	secondsString := fmt.Sprint(seconds)
+	if seconds < 10 {
+		secondsString = "0" + secondsString
+	}
+
+	return fmt.Sprintf("%d:%s", minutes, secondsString)
 }
 
 type ActionCtx struct {
