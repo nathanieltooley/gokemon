@@ -2,7 +2,6 @@ package stateupdater
 
 import (
 	"fmt"
-	"net"
 	"reflect"
 	"time"
 
@@ -18,19 +17,6 @@ import (
 // The reason for this abstraction is to hide away any network dependent stuff from the main UI code.
 // Singleplayer games return artifically delayed cmds after updates while networked games will have actual latency
 type StateUpdater func(*state.GameState, []state.Action) tea.Cmd
-
-type NetworkingErrorMsg struct {
-	Err    error
-	Reason string
-}
-
-func (e NetworkingErrorMsg) Error() string {
-	reason := e.Reason
-	if reason == "" {
-		reason = "error occured while networking"
-	}
-	return fmt.Sprintf("%s: %s", reason, e.Err)
-}
 
 // Takes a list of state snapshots and applies the final state to the main copy of state,
 // syncing all intermediate changes with the main state and returning the snapshots
@@ -244,7 +230,7 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 }
 
 // TODO: Add error handling for networking errors!!!
-func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net.Conn) tea.Cmd {
+func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Cmd {
 	host := &gameState.LocalPlayer
 	op := &gameState.OpposingPlayer
 
@@ -254,9 +240,9 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 
 		// GET ACTION
 		log.Debug().Msg("host waiting for client to send action")
-		opAction, err := networking.AcceptAction(conn)
-		if err != nil {
-			return errorCmd(err, "failed to get opposing action")
+		opAction, ok := <-netInfo.ActionChan
+		if !ok {
+			return nil
 		}
 
 		log.Info().Msgf("Host got action: %+v", opAction)
@@ -299,7 +285,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 
 			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
-			if err := networking.SendMessage(conn, networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
+			if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
 				StateUpdates: cleanStateSnapshots(states),
 			}); err != nil {
 				return errorCmd(err, "error trying to send turn resolve message after force switch")
@@ -318,7 +304,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	gameOverValue := gameState.GameOver()
 	if gameOverValue == state.PLAYER {
 		return func() tea.Msg {
-			if err := networking.SendMessage(conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
+			if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 				ForThisPlayer: false,
 			}); err != nil {
 				return errorCmd(err, "error trying to send game over message")
@@ -330,7 +316,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 		}
 	} else if gameOverValue == state.PEER {
 		return func() tea.Msg {
-			if err := networking.SendMessage(conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
+			if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 				ForThisPlayer: true,
 			}); err != nil {
 				return errorCmd(err, "error trying to send game over message")
@@ -345,7 +331,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
 		return func() tea.Msg {
-			if err := networking.SendMessage(conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
+			if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
 				ForThisPlayer: false,
 				StateUpdates:  cleanStateSnapshots(states),
 			}); err != nil {
@@ -362,7 +348,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
 		op.ActiveKOed = true
 		return func() tea.Msg {
-			if err := networking.SendMessage(conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
+			if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
 				ForThisPlayer: true,
 				StateUpdates:  cleanStateSnapshots(states),
 			}); err != nil {
@@ -379,10 +365,10 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	states = append(states, commonEndOfTurn(gameState)...)
 
 	return func() tea.Msg {
-		if err := networking.SendMessage(conn, networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
+		if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
 			StateUpdates: cleanStateSnapshots(states),
 		}); err != nil {
-			return NetworkingErrorMsg{Err: err, Reason: "error trying to send turn resolve message"}
+			return networking.NetworkingErrorMsg{Err: err, Reason: "error trying to send turn resolve message"}
 		}
 
 		gameState.Turn++
@@ -393,7 +379,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, conn net
 	}
 }
 
-func NetClientUpdater(gameState *state.GameState, actions []state.Action, conn net.Conn) tea.Cmd {
+func NetClientUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Cmd {
 	// the client is only going to have action,
 	// send that to the host, and then get all of the state updates
 	if len(actions) != 1 {
@@ -401,15 +387,16 @@ func NetClientUpdater(gameState *state.GameState, actions []state.Action, conn n
 	}
 
 	return func() tea.Msg {
-		if err := networking.SendAction(conn, actions[0]); err != nil {
-			return NetworkingErrorMsg{Err: err, Reason: "client failed to send action"}
+		if err := netInfo.SendAction(actions[0]); err != nil {
+			return networking.NetworkingErrorMsg{Err: err, Reason: "client failed to send action"}
 		}
 
 		log.Debug().Msg("client waiting for host to send state")
-		msg, err := networking.AcceptMessage(conn)
+		msg, ok := <-netInfo.MessageChan
 		log.Debug().Msgf("client got message type: %s", reflect.TypeOf(msg).String())
-		if err != nil {
-			return NetworkingErrorMsg{Err: err, Reason: "client failed to receive host msg"}
+
+		if !ok {
+			return nil
 		}
 
 		return msg
@@ -436,6 +423,6 @@ func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSna
 
 func errorCmd(err error, reason string) tea.Cmd {
 	return func() tea.Msg {
-		return NetworkingErrorMsg{Err: err, Reason: reason}
+		return networking.NetworkingErrorMsg{Err: err, Reason: reason}
 	}
 }

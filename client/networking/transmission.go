@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"net"
 	"reflect"
 	"strings"
@@ -15,29 +16,6 @@ import (
 )
 
 type messageType int8
-
-const (
-	MESSAGE_FORCESWITCH messageType = iota
-	MESSAGE_TURNRESOLVE
-	MESSAGE_GAMEOVER
-	MESSAGE_CONTINUE
-)
-
-type (
-	ForceSwitchMessage struct {
-		ForThisPlayer bool
-		StateUpdates  []state.StateSnapshot
-	}
-	TurnResolvedMessage struct {
-		StateUpdates []state.StateSnapshot
-	}
-	GameOverMessage struct {
-		ForThisPlayer bool
-	}
-	ContinueUpdaterMessage struct {
-		Actions []state.Action
-	}
-)
 
 type InvalidMsgTypeError struct {
 	msgType messageType
@@ -82,46 +60,47 @@ func AcceptData[T any](conn net.Conn) (T, error) {
 	return data, err
 }
 
+// Sends an action message (SendActionMessage)
 func SendAction(conn net.Conn, data state.Action) error {
 	concreteName := reflect.TypeOf(data).String()
 
-	// Send concrete type name before the data itself
-	_, err := conn.Write([]byte(concreteName + "\n"))
+	buffer := bytes.NewBuffer(make([]byte, 0))
+
+	// Write message type first
+	if err := binary.Write(buffer, binary.LittleEndian, MESSAGE_SENDACTION); err != nil {
+		return err
+	}
+
+	// Send concrete type name next
+	_, err := buffer.Write([]byte(concreteName + "\n"))
 	if err != nil {
 		return err
 	}
 
-	encoder := gob.NewEncoder(conn)
-	return encoder.Encode(data)
+	encoder := gob.NewEncoder(buffer)
+	if err := encoder.Encode(data); err != nil {
+		return err
+	}
+
+	_, err = conn.Write(buffer.Bytes())
+	return err
 }
 
-func AcceptAction(conn net.Conn) (state.Action, error) {
-	concreteNameBytes := make([]byte, 1024)
-
-	n, err := conn.Read(concreteNameBytes)
+// Accepts an action AFTER the message type has already been read and removed from the connection
+func acceptAction(reader io.Reader) (state.Action, error) {
+	actionBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	contentString := string(concreteNameBytes[0:n])
-	messageParts := strings.Split(contentString, "\n")
+	messageParts := strings.Split(string(actionBytes), "\n")
 
-	log.Debug().Msgf("action content: %s", contentString)
+	log.Debug().Msgf("action content: %s", actionBytes)
 	log.Debug().Strs("messageParts", messageParts).Msg("")
 
 	concreteName := string(messageParts[0])
 
-	// HACK:
-	// Sometimes when reading the concrete type name of the action
-	// we end of grabbing the entire message (why? idk thats a good question. it doesn't seem to be consistent).
-	// In the case we do grab it, it will be stored in the second part of the message buffer
-	// and we set that to be the reader for the decoder rather than the conn itself
-	var decoder *gob.Decoder
-	if messageParts[1] != "" {
-		decoder = gob.NewDecoder(bytes.NewBufferString(messageParts[1]))
-	} else {
-		decoder = gob.NewDecoder(conn)
-	}
+	decoder := gob.NewDecoder(bytes.NewBufferString(string(messageParts[1])))
 
 	// I tried to use a action type enum here rather than send the string of the concrete type name.
 	// However, when sending actions, i only have a pointer to the interface, not the actual concrete type.
@@ -148,44 +127,63 @@ func AcceptAction(conn net.Conn) (state.Action, error) {
 }
 
 func SendMessage(conn net.Conn, msgType messageType, msg tea.Msg) error {
-	err := binary.Write(conn, binary.LittleEndian, msgType)
+	buffer := bytes.NewBuffer(make([]byte, 0))
+	err := binary.Write(buffer, binary.LittleEndian, msgType)
 	if err != nil {
 		return err
 	}
 
-	encoder := gob.NewEncoder(conn)
-	return encoder.Encode(msg)
+	encoder := gob.NewEncoder(buffer)
+	if err := encoder.Encode(msg); err != nil {
+		return err
+	}
+
+	_, err = conn.Write(buffer.Bytes())
+	return err
+}
+
+func decodeMessage[T any](reader io.Reader) (T, error) {
+	m := new(T)
+
+	decoder := gob.NewDecoder(reader)
+	err := decoder.Decode(m)
+	return *m, err
 }
 
 func AcceptMessage(conn net.Conn) (tea.Msg, error) {
 	var msgType messageType = -1
-	if err := binary.Read(conn, binary.LittleEndian, &msgType); err != nil {
+
+	// TODO: Resolving messages can be VERY large!!!
+	// Trim down the size of state!!!
+	// Size for two pokemon is about 11kb so times 6 is 66kb round up to 70kb
+	readBytes := make([]byte, 1024*70)
+	n, err := conn.Read(readBytes)
+	if err != nil {
 		return nil, err
 	}
 
-	decoder := gob.NewDecoder(conn)
+	log.Debug().Msgf("Message size: %d", n)
+
+	buffer := bytes.NewReader(readBytes[:n])
+
+	if err := binary.Read(buffer, binary.LittleEndian, &msgType); err != nil {
+		return nil, err
+	}
 
 	switch msgType {
 	case MESSAGE_CONTINUE:
-		m := &ContinueUpdaterMessage{}
-
-		err := decoder.Decode(m)
-		return *m, err
+		return decodeMessage[ContinueUpdaterMessage](buffer)
 	case MESSAGE_FORCESWITCH:
-		m := &ForceSwitchMessage{}
-
-		err := decoder.Decode(m)
-		return *m, err
+		return decodeMessage[ForceSwitchMessage](buffer)
 	case MESSAGE_GAMEOVER:
-		m := &GameOverMessage{}
-
-		err := decoder.Decode(m)
-		return *m, err
+		return decodeMessage[GameOverMessage](buffer)
 	case MESSAGE_TURNRESOLVE:
-		m := &TurnResolvedMessage{}
-
-		err := decoder.Decode(m)
-		return *m, err
+		return decodeMessage[TurnResolvedMessage](buffer)
+	case MESSAGE_SENDACTION:
+		action, err := acceptAction(buffer)
+		return SendActionMessage{Action: action}, err
+	case MESSAGE_UPDATETIMER:
+		return decodeMessage[UpdateTimerMessage](buffer)
 	}
 
 	return nil, &InvalidMsgTypeError{msgType: msgType}

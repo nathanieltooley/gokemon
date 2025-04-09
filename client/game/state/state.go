@@ -186,7 +186,8 @@ type Player struct {
 	// That does mean that this needs to be reset every turn
 	ActiveKOed bool
 
-	MultiTimer int
+	TimerPaused bool
+	MultiTimer  int
 }
 
 // TODO: OOB Error handling

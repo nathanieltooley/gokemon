@@ -64,7 +64,7 @@ type MainGameModel struct {
 	showError  bool
 	currentErr error
 
-	conn net.Conn
+	netInfo networking.NetReaderInfo
 }
 
 func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) MainGameModel {
@@ -76,16 +76,30 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 
 	var updater stateupdater.StateUpdater = stateupdater.LocalUpdater
 
+	// Buffer size of 1 here since client should not send more than one per turn
+	actionChan := make(chan state.Action, 1)
+	timerChan := make(chan networking.UpdateTimerMessage)
+	messageChan := make(chan tea.Msg)
+
+	netInfo := networking.NewGameNetInfo(actionChan, timerChan, messageChan, conn)
+	readerInfo := networking.NetReaderInfo{
+		ActionChan:  actionChan,
+		TimerChan:   timerChan,
+		MessageChan: messageChan,
+
+		Conn: conn,
+	}
+
 	if conn != nil {
 		switch playerSide {
 		case state.HOST:
 			// maybe changing these from interfaces wasn't the best idea
 			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
-				return stateupdater.NetHostUpdater(gs, a, conn)
+				return stateupdater.NetHostUpdater(gs, a, netInfo)
 			}
 		case state.PEER:
 			updater = func(gs *state.GameState, a []state.Action) tea.Cmd {
-				return stateupdater.NetClientUpdater(gs, a, conn)
+				return stateupdater.NetClientUpdater(gs, a, netInfo)
 			}
 		}
 	}
@@ -95,7 +109,8 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 		stateUpdater:         updater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),
-		conn:                 conn,
+
+		netInfo: readerInfo,
 	}
 }
 
@@ -105,6 +120,28 @@ func tick() tea.Cmd {
 	return tea.Tick(time.Millisecond*_TICK_TIME, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
+}
+
+// All reads for a client go through here so multiple msgs could come through around the same time without "race conditions"
+// or anything similar
+func connectionReader(netInfo networking.NetReaderInfo) tea.Msg {
+	for {
+		msg, err := networking.AcceptMessage(netInfo.Conn)
+		if err != nil {
+			log.Err(err).Msg("error while reading from connection")
+			netInfo.CloseChans()
+			return networking.NetworkingErrorMsg{Err: err, Reason: "error while trying to read connection"}
+		}
+
+		switch msg := msg.(type) {
+		case networking.UpdateTimerMessage:
+			netInfo.TimerChan <- msg
+		case networking.SendActionMessage:
+			netInfo.ActionChan <- msg.Action
+		default:
+			netInfo.MessageChan <- msg
+		}
+	}
 }
 
 func (m MainGameModel) Init() tea.Cmd { return nil }
@@ -248,14 +285,13 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 
 	// Game Over Check
-	// NOTE: Assuming singleplayer
 	case networking.GameOverMessage:
 		if msg.ForThisPlayer {
 			return newEndScreen("You Won!"), nil
 		} else {
 			return newEndScreen("You Lost :("), nil
 		}
-	case stateupdater.NetworkingErrorMsg:
+	case networking.NetworkingErrorMsg:
 		m.showError = true
 		m.currentErr = msg
 
@@ -306,9 +342,12 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}))
 	}
 
-	// Start tick loop
+	// Start tick loop and read loop
 	if !m.inited {
 		cmds = append(cmds, tick())
+		cmds = append(cmds, func() tea.Msg {
+			return connectionReader(m.netInfo)
+		})
 		m.inited = true
 	}
 
