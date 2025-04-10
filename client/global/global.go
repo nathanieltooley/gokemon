@@ -60,6 +60,8 @@ var (
 		LocalPlayerName:  "Player",
 	}
 
+	GameTicksPerSecond = 20
+
 	initLogger zerolog.Logger
 )
 

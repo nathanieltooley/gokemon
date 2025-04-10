@@ -31,6 +31,16 @@ type GameState struct {
 	MessageHistory []string
 }
 
+func (s *GameState) TickPlayerTimers() {
+	if !s.LocalPlayer.TimerPaused {
+		s.LocalPlayer.MultiTimerTick--
+	}
+
+	if !s.OpposingPlayer.TimerPaused {
+		s.OpposingPlayer.MultiTimerTick--
+	}
+}
+
 func playerIntToString(player int) string {
 	switch player {
 	case HOST:
@@ -186,8 +196,8 @@ type Player struct {
 	// That does mean that this needs to be reset every turn
 	ActiveKOed bool
 
-	TimerPaused bool
-	MultiTimer  int
+	TimerPaused    bool
+	MultiTimerTick int64
 }
 
 // TODO: OOB Error handling
@@ -201,8 +211,9 @@ func (p Player) GetPokemon(index int) *game.Pokemon {
 }
 
 func (p Player) GetTimerString() string {
-	minutes := p.MultiTimer / 60
-	seconds := p.MultiTimer % 60
+	timerInSeconds := p.MultiTimerTick / int64(global.GameTicksPerSecond)
+	minutes := timerInSeconds / 60
+	seconds := timerInSeconds % 60
 
 	// there could be a way to do this using a format string
 	// but this is easier

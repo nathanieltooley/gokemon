@@ -44,6 +44,8 @@ var switchFocusKey = key.NewBinding(
 	key.WithKeys(tea.KeyTab.String(), tea.KeyShiftTab.String()),
 )
 
+var defaultTimer = 300 * global.GameTicksPerSecond // 5 minutes
+
 func (t teamItem) FilterValue() string { return t.Name }
 func (t teamItem) Value() string       { return t.Name }
 
@@ -242,9 +244,12 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 		gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
+		gameState.LocalPlayer.MultiTimerTick = int64(defaultTimer)
 
 		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
 		gameState.OpposingPlayer.Name = m.networkInfo.OpposingName
+		gameState.OpposingPlayer.MultiTimerTick = int64(defaultTimer)
+
 		gameState.Networked = true
 
 		// TODO: Make this a cmd so that it doesn't block

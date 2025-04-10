@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/rs/zerolog/log"
@@ -23,10 +24,10 @@ import (
 // and a panel with pokemon actions at the bottom ¯\_(ツ)_/¯
 
 const (
-	_MESSAGE_TIME     = time.Second * 2
-	_TICKS_PER_SECOND = 20
-	_TICK_TIME        = 1000 / _TICKS_PER_SECOND
+	_MESSAGE_TIME = time.Second * 2
 )
+
+var _TICK_TIME = 1000 / global.GameTicksPerSecond
 
 // Used to send info around different game UI components
 type gameContext struct {
@@ -64,7 +65,8 @@ type MainGameModel struct {
 	showError  bool
 	currentErr error
 
-	netInfo networking.NetReaderInfo
+	tickCount int64
+	netInfo   networking.NetReaderInfo
 }
 
 func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) MainGameModel {
@@ -117,7 +119,7 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 type tickMsg time.Time
 
 func tick() tea.Cmd {
-	return tea.Tick(time.Millisecond*_TICK_TIME, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*time.Duration(_TICK_TIME), func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
@@ -258,6 +260,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tickMsg:
+		m.ctx.state.TickPlayerTimers()
 		cmds = append(cmds, tick())
 
 	case networking.ForceSwitchMessage:
