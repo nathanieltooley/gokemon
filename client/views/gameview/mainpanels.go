@@ -83,9 +83,10 @@ type playerPanel struct {
 	player    *state.Player
 	name      string
 	healthBar progress.Model
+	timer     *int64
 }
 
-func newPlayerPanel(gameState state.GameState, name string, player *state.Player) playerPanel {
+func newPlayerPanel(gameState state.GameState, name string, player *state.Player, timer *int64) playerPanel {
 	progressBar := progress.New(progress.WithDefaultGradient())
 	progressBar.Width = playerPanelWidth * .50
 
@@ -95,6 +96,7 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 		player:    player,
 		name:      name,
 		healthBar: progressBar,
+		timer:     timer,
 	}
 }
 
@@ -168,7 +170,7 @@ func (m playerPanel) View() string {
 	timerView := ""
 
 	if m.gameState.Networked {
-		timerView = fmt.Sprintf("Timer: %s", m.player.GetTimerString())
+		timerView = fmt.Sprintf("Timer: %s", state.GetTimerString(*m.timer))
 	}
 
 	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, timerView, pokeInfo))

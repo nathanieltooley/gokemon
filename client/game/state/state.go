@@ -210,8 +210,8 @@ func (p Player) GetPokemon(index int) *game.Pokemon {
 	return &p.Team[index]
 }
 
-func (p Player) GetTimerString() string {
-	timerInSeconds := p.MultiTimerTick / int64(global.GameTicksPerSecond)
+func GetTimerString(timer int64) string {
+	timerInSeconds := timer / int64(global.GameTicksPerSecond)
 	minutes := timerInSeconds / 60
 	seconds := timerInSeconds % 60
 

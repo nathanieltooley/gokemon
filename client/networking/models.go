@@ -18,6 +18,11 @@ const (
 	MESSAGE_UPDATETIMER
 )
 
+const (
+	DIR_SYNC = iota
+	DIR_CLIENT_PAUSE
+)
+
 // "Messages" are during a game for communication
 type (
 	ForceSwitchMessage struct {
@@ -28,7 +33,8 @@ type (
 		StateUpdates []state.StateSnapshot
 	}
 	GameOverMessage struct {
-		ForThisPlayer bool
+		// The "you" in this sense is the player who is receiving the message
+		YouLost bool
 	}
 	ContinueUpdaterMessage struct {
 		Actions []state.Action
@@ -37,7 +43,11 @@ type (
 		Action state.Action
 	}
 	UpdateTimerMessage struct {
-		NewTime int
+		Directive     int
+		NewHostTime   int64
+		NewClientTime int64
+		HostPaused    bool
+		ClientPaused  bool
 	}
 )
 

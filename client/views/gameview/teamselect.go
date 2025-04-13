@@ -222,7 +222,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 				gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
 
-				return NewMainGameModel(gameState, state.HOST, nil), nil
+				return NewMainGameModel(gameState, state.HOST, nil), tick()
 			}
 		}
 
@@ -235,7 +235,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case state.GameState: // PEER CASE
-		return NewMainGameModel(msg, state.PEER, m.networkInfo.Conn), nil
+		return NewMainGameModel(msg, state.PEER, m.networkInfo.Conn), tick()
 
 	case networking.StarterSelectionPacket: // HOST CASE
 		selectedTeam := m.teamList.SelectedItem().(teamItem)
@@ -255,7 +255,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// TODO: Make this a cmd so that it doesn't block
 		networking.SendData(m.networkInfo.Conn, gameState)
 
-		return NewMainGameModel(gameState, state.HOST, m.networkInfo.Conn), nil
+		return NewMainGameModel(gameState, state.HOST, m.networkInfo.Conn), tick()
 	case networking.TeamSelectionPacket:
 		m.opposingTeam = msg.Team
 		m.opposingTeamView = components.NewTeamView(msg.Team)
