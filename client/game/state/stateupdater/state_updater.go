@@ -16,7 +16,7 @@ import (
 // Abstraction of state changes (pokemon taking dmg, statuses changing, weather updates, etc).
 // The reason for this abstraction is to hide away any network dependent stuff from the main UI code.
 // Singleplayer games return artifically delayed cmds after updates while networked games will have actual latency
-type StateUpdater func(*state.GameState, []state.Action) tea.Cmd
+type StateUpdater func(*state.GameState, []state.Action) tea.Msg
 
 // Takes a list of state snapshots and applies the final state to the main copy of state,
 // syncing all intermediate changes with the main state and returning the snapshots
@@ -112,7 +112,7 @@ func bestAiAction(gameState *state.GameState) state.Action {
 
 // The updater for singleplayer games.
 // Introduces artifical delay so theres some space in between human actions
-func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
+func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 	artificalDelay := time.Second * 2
 
 	host := &gameState.LocalPlayer
@@ -172,20 +172,16 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 
 	gameOverValue := gameState.GameOver()
 	if gameOverValue == state.PLAYER {
-		return func() tea.Msg {
-			time.Sleep(artificalDelay)
+		time.Sleep(artificalDelay)
 
-			return networking.GameOverMessage{
-				ForThisPlayer: true,
-			}
+		return networking.GameOverMessage{
+			ForThisPlayer: true,
 		}
 	} else if gameOverValue == state.AI {
-		return func() tea.Msg {
-			time.Sleep(artificalDelay)
+		time.Sleep(artificalDelay)
 
-			return networking.GameOverMessage{
-				ForThisPlayer: false,
-			}
+		return networking.GameOverMessage{
+			ForThisPlayer: false,
 		}
 	}
 
@@ -217,20 +213,18 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Cmd {
 
 	states = append(states, commonEndOfTurn(gameState)...)
 
-	return func() tea.Msg {
-		// Artifical Delay
-		time.Sleep(artificalDelay)
+	// Artifical Delay
+	time.Sleep(artificalDelay)
 
-		gameState.Turn++
+	gameState.Turn++
 
-		return networking.TurnResolvedMessage{
-			StateUpdates: cleanStateSnapshots(states),
-		}
+	return networking.TurnResolvedMessage{
+		StateUpdates: cleanStateSnapshots(states),
 	}
 }
 
 // TODO: Add error handling for networking errors!!!
-func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Cmd {
+func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Msg {
 	host := &gameState.LocalPlayer
 	op := &gameState.OpposingPlayer
 
@@ -273,27 +267,25 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 
 		gameState.Turn++
 
-		return func() tea.Msg {
-			time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 1)
 
-			messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
-				return item.Messages
-			})
+		messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
+			return item.Messages
+		})
 
-			log.Info().Msgf("States: %d", len(states))
-			log.Info().Strs("Queued Messages", messages).Msg("")
+		log.Info().Msgf("States: %d", len(states))
+		log.Info().Strs("Queued Messages", messages).Msg("")
 
-			gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+		gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
-			if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
-				StateUpdates: cleanStateSnapshots(states),
-			}); err != nil {
-				return errorCmd(err, "error trying to send turn resolve message after force switch")
-			}
+		if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
+			StateUpdates: cleanStateSnapshots(states),
+		}); err != nil {
+			return errorCmd(err, "error trying to send turn resolve message after force switch")
+		}
 
-			return networking.TurnResolvedMessage{
-				StateUpdates: cleanStateSnapshots(states),
-			}
+		return networking.TurnResolvedMessage{
+			StateUpdates: cleanStateSnapshots(states),
 		}
 	} else {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
@@ -303,45 +295,39 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 
 	gameOverValue := gameState.GameOver()
 	if gameOverValue == state.PLAYER {
-		return func() tea.Msg {
-			if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-				ForThisPlayer: false,
-			}); err != nil {
-				return errorCmd(err, "error trying to send game over message")
-			}
+		if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
+			ForThisPlayer: false,
+		}); err != nil {
+			return errorCmd(err, "error trying to send game over message")
+		}
 
-			return networking.GameOverMessage{
-				ForThisPlayer: true,
-			}
+		return networking.GameOverMessage{
+			ForThisPlayer: true,
 		}
 	} else if gameOverValue == state.PEER {
-		return func() tea.Msg {
-			if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-				ForThisPlayer: true,
-			}); err != nil {
-				return errorCmd(err, "error trying to send game over message")
-			}
+		if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
+			ForThisPlayer: true,
+		}); err != nil {
+			return errorCmd(err, "error trying to send game over message")
+		}
 
-			return networking.GameOverMessage{
-				ForThisPlayer: false,
-			}
+		return networking.GameOverMessage{
+			ForThisPlayer: false,
 		}
 	}
 
 	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
-		return func() tea.Msg {
-			if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
-				ForThisPlayer: false,
-				StateUpdates:  cleanStateSnapshots(states),
-			}); err != nil {
-				return errorCmd(err, "error trying to send force switch message")
-			}
+		if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
+			ForThisPlayer: false,
+			StateUpdates:  cleanStateSnapshots(states),
+		}); err != nil {
+			return errorCmd(err, "error trying to send force switch message")
+		}
 
-			return networking.ForceSwitchMessage{
-				ForThisPlayer: true,
-				StateUpdates:  cleanStateSnapshots(states),
-			}
+		return networking.ForceSwitchMessage{
+			ForThisPlayer: true,
+			StateUpdates:  cleanStateSnapshots(states),
 		}
 	}
 
@@ -364,43 +350,39 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 
 	states = append(states, commonEndOfTurn(gameState)...)
 
-	return func() tea.Msg {
-		if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
-			StateUpdates: cleanStateSnapshots(states),
-		}); err != nil {
-			return networking.NetworkingErrorMsg{Err: err, Reason: "error trying to send turn resolve message"}
-		}
+	if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
+		StateUpdates: cleanStateSnapshots(states),
+	}); err != nil {
+		return networking.NetworkingErrorMsg{Err: err, Reason: "error trying to send turn resolve message"}
+	}
 
-		gameState.Turn++
+	gameState.Turn++
 
-		return networking.TurnResolvedMessage{
-			StateUpdates: cleanStateSnapshots(states),
-		}
+	return networking.TurnResolvedMessage{
+		StateUpdates: cleanStateSnapshots(states),
 	}
 }
 
-func NetClientUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Cmd {
+func NetClientUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Msg {
 	// the client is only going to have action,
 	// send that to the host, and then get all of the state updates
 	if len(actions) != 1 {
 		log.Fatal().Msg("client tried to update with the incorrect amount of actions")
 	}
 
-	return func() tea.Msg {
-		if err := netInfo.SendAction(actions[0]); err != nil {
-			return networking.NetworkingErrorMsg{Err: err, Reason: "client failed to send action"}
-		}
-
-		log.Debug().Msg("client waiting for host to send state")
-		msg, ok := <-netInfo.MessageChan
-		log.Debug().Msgf("client got message type: %s", reflect.TypeOf(msg).String())
-
-		if !ok {
-			return nil
-		}
-
-		return msg
+	if err := netInfo.SendAction(actions[0]); err != nil {
+		return networking.NetworkingErrorMsg{Err: err, Reason: "client failed to send action"}
 	}
+
+	log.Debug().Msg("client waiting for host to send state")
+	msg, ok := <-netInfo.MessageChan
+	log.Debug().Msgf("client got message type: %s", reflect.TypeOf(msg).String())
+
+	if !ok {
+		return nil
+	}
+
+	return msg
 }
 
 // Activates certain end of turn abilities
