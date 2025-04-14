@@ -142,29 +142,26 @@ func SendMessage(conn net.Conn, msgType messageType, msg tea.Msg) error {
 	return err
 }
 
-func decodeMessage[T any](reader io.Reader) (T, error) {
-	m := new(T)
-
-	decoder := gob.NewDecoder(reader)
-	err := decoder.Decode(m)
-	return *m, err
-}
-
 func AcceptMessage(conn net.Conn) (tea.Msg, error) {
 	var msgType messageType = -1
 
 	// TODO: Resolving messages can be VERY large!!!
 	// Trim down the size of state!!!
 	// Size for two pokemon is about 11kb so times 6 is 66kb round up to 70kb
-	readBytes := make([]byte, 1024*70)
-	n, err := conn.Read(readBytes)
+	// readBytes := make([]byte, 1024*70)
+	// n, err := conn.Read(readBytes)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	readBytes, err := readAll(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug().Msgf("Message size: %d", n)
+	log.Debug().Msgf("Message size: %d", len(readBytes))
 
-	buffer := bytes.NewReader(readBytes[:n])
+	buffer := bytes.NewReader(readBytes)
 
 	if err := binary.Read(buffer, binary.LittleEndian, &msgType); err != nil {
 		return nil, err
@@ -187,4 +184,34 @@ func AcceptMessage(conn net.Conn) (tea.Msg, error) {
 	}
 
 	return nil, &InvalidMsgTypeError{msgType: msgType}
+}
+
+func decodeMessage[T any](reader io.Reader) (T, error) {
+	m := new(T)
+
+	decoder := gob.NewDecoder(reader)
+	err := decoder.Decode(m)
+	return *m, err
+}
+
+func readAll(conn net.Conn) ([]byte, error) {
+	finalBuf := make([]byte, 0)
+	tempBufLen := 2048
+
+	for {
+		tempBuf := make([]byte, tempBufLen)
+
+		n, err := conn.Read(tempBuf)
+		// We finished reading
+		if n < tempBufLen || err == io.EOF {
+			finalBuf = append(finalBuf, tempBuf[:n]...)
+			return finalBuf, nil
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		finalBuf = append(finalBuf, tempBuf[:n]...)
+	}
 }
