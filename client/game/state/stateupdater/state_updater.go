@@ -70,9 +70,9 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 
 // Determines the best AI Action. Failsafes to skip actions
 func bestAiAction(gameState *state.GameState) state.Action {
-	if gameState.OpposingPlayer.GetActivePokemon().Alive() {
-		playerPokemon := gameState.LocalPlayer.GetActivePokemon()
-		aiPokemon := gameState.OpposingPlayer.GetActivePokemon()
+	if gameState.ClientPlayer.GetActivePokemon().Alive() {
+		playerPokemon := gameState.HostPlayer.GetActivePokemon()
+		aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 
 		bestMoveIndex := 0
 		var bestMove game.Move
@@ -100,7 +100,7 @@ func bestAiAction(gameState *state.GameState) state.Action {
 
 	} else {
 		// Switch on death
-		for i, pokemon := range gameState.OpposingPlayer.Team {
+		for i, pokemon := range gameState.ClientPlayer.Team {
 			if pokemon.Alive() {
 				return state.NewSwitchAction(gameState, state.AI, i)
 			}
@@ -115,8 +115,8 @@ func bestAiAction(gameState *state.GameState) state.Action {
 func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 	artificalDelay := time.Second * 2
 
-	host := &gameState.LocalPlayer
-	ai := &gameState.OpposingPlayer
+	host := &gameState.HostPlayer
+	ai := &gameState.ClientPlayer
 
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
 	if !host.ActiveKOed || ai.ActiveKOed {
@@ -187,7 +187,7 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 	// Seems weird but should make sense if or when multiplayer is added
 	// also these checks will have to change if double battles are added
-	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
+	if !gameState.HostPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
 		return func() tea.Msg {
 			time.Sleep(artificalDelay)
@@ -199,7 +199,7 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 		}
 	}
 
-	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
+	if !gameState.ClientPlayer.GetActivePokemon().Alive() {
 		ai.ActiveKOed = true
 		return func() tea.Msg {
 			time.Sleep(artificalDelay)
@@ -225,8 +225,8 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 // TODO: Add error handling for networking errors!!!
 func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo networking.GameNetInfo) tea.Msg {
-	host := &gameState.LocalPlayer
-	op := &gameState.OpposingPlayer
+	host := &gameState.HostPlayer
+	op := &gameState.ClientPlayer
 
 	// We need to get an action from the opposing player
 	if !host.ActiveKOed || op.ActiveKOed {
@@ -316,7 +316,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 		}
 	}
 
-	if !gameState.LocalPlayer.GetActivePokemon().Alive() {
+	if !gameState.HostPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
 		if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{
 			ForThisPlayer: false,
@@ -331,7 +331,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 		}
 	}
 
-	if !gameState.OpposingPlayer.GetActivePokemon().Alive() {
+	if !gameState.ClientPlayer.GetActivePokemon().Alive() {
 		op.ActiveKOed = true
 		return func() tea.Msg {
 			if err := netInfo.SendMessage(networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{

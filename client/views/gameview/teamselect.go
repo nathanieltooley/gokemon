@@ -219,8 +219,8 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
 				// update the starter to what the player selects in this screen
-				gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
-				gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
+				gameState.HostPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+				gameState.HostPlayer.Name = global.Opt.LocalPlayerName
 
 				return NewMainGameModel(gameState, state.HOST, nil), tick()
 			}
@@ -242,13 +242,13 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		gameState := state.NewState(selectedTeam.Pokemon, m.opposingTeam)
 
-		gameState.LocalPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
-		gameState.LocalPlayer.Name = global.Opt.LocalPlayerName
-		gameState.LocalPlayer.MultiTimerTick = int64(defaultTimer)
+		gameState.HostPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
+		gameState.HostPlayer.Name = global.Opt.LocalPlayerName
+		gameState.HostPlayer.MultiTimerTick = int64(defaultTimer)
 
-		gameState.OpposingPlayer.ActivePokeIndex = msg.StartingIndex
-		gameState.OpposingPlayer.Name = m.networkInfo.OpposingName
-		gameState.OpposingPlayer.MultiTimerTick = int64(defaultTimer)
+		gameState.ClientPlayer.ActivePokeIndex = msg.StartingIndex
+		gameState.ClientPlayer.Name = m.networkInfo.OpposingName
+		gameState.ClientPlayer.MultiTimerTick = int64(defaultTimer)
 
 		gameState.Networked = true
 

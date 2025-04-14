@@ -223,10 +223,10 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0:
 				return movePanel{
 					ctx:   m.ctx,
-					moves: m.ctx.state.LocalPlayer.GetActivePokemon().InGameMoveInfo,
+					moves: m.ctx.state.HostPlayer.GetActivePokemon().InGameMoveInfo,
 				}, nil
 			case 1:
-				return newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team), nil
+				return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
 			}
 		}
 
@@ -313,7 +313,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			poke := m.ctx.state.LocalPlayer.GetActivePokemon()
+			poke := m.ctx.state.HostPlayer.GetActivePokemon()
 			move := poke.Moves[m.moveGridFocus]
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
@@ -414,7 +414,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 			}
 
-			if m.selectedPokemon == m.ctx.state.LocalPlayer.ActivePokeIndex {
+			if m.selectedPokemon == m.ctx.state.HostPlayer.ActivePokeIndex {
 				m.currentSubtext = "This pokemon is already active!"
 				return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
 					return clearTextMsg{t}

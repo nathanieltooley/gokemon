@@ -34,11 +34,11 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 
 	// Reset turn flags
 	// eventually this will have to change for double battles
-	gameState.LocalPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.LocalPlayer.GetActivePokemon().SwitchedInThisTurn = false
+	gameState.HostPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.HostPlayer.GetActivePokemon().SwitchedInThisTurn = false
 
-	gameState.OpposingPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.OpposingPlayer.GetActivePokemon().SwitchedInThisTurn = false
+	gameState.ClientPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.ClientPlayer.GetActivePokemon().SwitchedInThisTurn = false
 
 	// Sort Other Actions
 	slices.SortFunc(actions, func(a, b state.Action) int {
@@ -173,7 +173,7 @@ func commonEndOfTurn(gameState *state.GameState) []state.StateSnapshot {
 		states = append(states, state.ToxicHandler(gameState, pokemon))
 	}
 
-	localPokemon := gameState.LocalPlayer.GetActivePokemon()
+	localPokemon := gameState.HostPlayer.GetActivePokemon()
 	switch localPokemon.Status {
 	case game.STATUS_BURN:
 		applyBurn(localPokemon)
@@ -183,7 +183,7 @@ func commonEndOfTurn(gameState *state.GameState) []state.StateSnapshot {
 		applyToxic(localPokemon)
 	}
 
-	opPokemon := gameState.OpposingPlayer.GetActivePokemon()
+	opPokemon := gameState.ClientPlayer.GetActivePokemon()
 	switch opPokemon.Status {
 	case game.STATUS_BURN:
 		applyBurn(opPokemon)

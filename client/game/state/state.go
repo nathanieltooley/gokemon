@@ -22,22 +22,22 @@ const (
 )
 
 type GameState struct {
-	LocalPlayer    Player
-	OpposingPlayer Player
-	Turn           int
-	Weather        int
-	Networked      bool
+	HostPlayer   Player
+	ClientPlayer Player
+	Turn         int
+	Weather      int
+	Networked    bool
 
 	MessageHistory []string
 }
 
 func (s *GameState) TickPlayerTimers() {
-	if !s.LocalPlayer.TimerPaused {
-		s.LocalPlayer.MultiTimerTick--
+	if !s.HostPlayer.TimerPaused {
+		s.HostPlayer.MultiTimerTick--
 	}
 
-	if !s.OpposingPlayer.TimerPaused {
-		s.OpposingPlayer.MultiTimerTick--
+	if !s.ClientPlayer.TimerPaused {
+		s.ClientPlayer.MultiTimerTick--
 	}
 }
 
@@ -125,17 +125,17 @@ func NewState(localTeam []game.Pokemon, opposingTeam []game.Pokemon) GameState {
 	}
 
 	return GameState{
-		LocalPlayer:    localPlayer,
-		OpposingPlayer: opposingPlayer,
-		Turn:           0,
+		HostPlayer:   localPlayer,
+		ClientPlayer: opposingPlayer,
+		Turn:         0,
 	}
 }
 
 func (g *GameState) GetPlayer(index int) *Player {
 	if index == HOST {
-		return &g.LocalPlayer
+		return &g.HostPlayer
 	} else {
-		return &g.OpposingPlayer
+		return &g.ClientPlayer
 	}
 }
 
@@ -143,7 +143,7 @@ func (g *GameState) GetPlayer(index int) *Player {
 // Value will be -1 for no loser yet, or the winner HOST or PEER
 func (g *GameState) GameOver() int {
 	hostLoss := true
-	for _, pokemon := range g.LocalPlayer.Team {
+	for _, pokemon := range g.HostPlayer.Team {
 		if pokemon.Hp.Value > 0 {
 			hostLoss = false
 			log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
@@ -152,7 +152,7 @@ func (g *GameState) GameOver() int {
 	}
 
 	peerLoss := true
-	for _, pokemon := range g.OpposingPlayer.Team {
+	for _, pokemon := range g.ClientPlayer.Team {
 		if pokemon.Hp.Value > 0 {
 			peerLoss = false
 			// log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
@@ -176,11 +176,11 @@ func (g *GameState) GameOver() int {
 // Creates a copy of this state, handling new slice creation and allocation
 func (g GameState) Clone() GameState {
 	newState := g
-	newLTeam := slices.Clone(newState.LocalPlayer.Team)
-	newOTeam := slices.Clone(newState.OpposingPlayer.Team)
+	newLTeam := slices.Clone(newState.HostPlayer.Team)
+	newOTeam := slices.Clone(newState.ClientPlayer.Team)
 
-	newState.LocalPlayer.Team = newLTeam
-	newState.OpposingPlayer.Team = newOTeam
+	newState.HostPlayer.Team = newLTeam
+	newState.ClientPlayer.Team = newOTeam
 
 	return newState
 }

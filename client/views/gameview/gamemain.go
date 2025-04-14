@@ -176,9 +176,9 @@ func (m MainGameModel) View() string {
 
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(stateToRender, m.ctx.state.LocalPlayer.Name, stateToRender.GetPlayer(state.HOST), &m.ctx.state.LocalPlayer.MultiTimerTick).View(),
+				newPlayerPanel(stateToRender, m.ctx.state.HostPlayer.Name, stateToRender.GetPlayer(state.HOST), &m.ctx.state.HostPlayer.MultiTimerTick).View(),
 				// TODO: Randomly generate fun trainer names
-				newPlayerPanel(stateToRender, m.ctx.state.OpposingPlayer.Name, stateToRender.GetPlayer(state.PEER), &m.ctx.state.OpposingPlayer.MultiTimerTick).View(),
+				newPlayerPanel(stateToRender, m.ctx.state.ClientPlayer.Name, stateToRender.GetPlayer(state.PEER), &m.ctx.state.ClientPlayer.MultiTimerTick).View(),
 			),
 
 			panelView,
@@ -263,8 +263,8 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.startedTurnResolving = false
 
 				// TODO: Move these back to when a turnResolvedMsg is sent when i add skipping of UI msgs
-				m.ctx.state.LocalPlayer.TimerPaused = false
-				m.ctx.state.OpposingPlayer.TimerPaused = false
+				m.ctx.state.HostPlayer.TimerPaused = false
+				m.ctx.state.ClientPlayer.TimerPaused = false
 			}
 		}
 	case tickMsg:
@@ -272,7 +272,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Host's timer runs out
 		if m.ctx.playerSide == state.HOST {
-			if m.ctx.state.LocalPlayer.MultiTimerTick <= 0 {
+			if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
 				networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 					YouLost: false,
 				})
@@ -282,7 +282,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						YouLost: true,
 					}
 				}
-			} else if m.ctx.state.OpposingPlayer.MultiTimerTick <= 0 {
+			} else if m.ctx.state.ClientPlayer.MultiTimerTick <= 0 {
 				networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 					YouLost: true,
 				})
@@ -299,10 +299,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ctx.playerSide == state.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
 			_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
 				Directive:     networking.DIR_SYNC,
-				NewHostTime:   m.ctx.state.LocalPlayer.MultiTimerTick,
-				NewClientTime: m.ctx.state.OpposingPlayer.MultiTimerTick,
-				HostPaused:    m.ctx.state.LocalPlayer.TimerPaused,
-				ClientPaused:  m.ctx.state.OpposingPlayer.TimerPaused,
+				NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
+				NewClientTime: m.ctx.state.ClientPlayer.MultiTimerTick,
+				HostPaused:    m.ctx.state.HostPlayer.TimerPaused,
+				ClientPaused:  m.ctx.state.ClientPlayer.TimerPaused,
 			})
 		}
 
@@ -371,14 +371,14 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch timerMsg.Directive {
 			case networking.DIR_CLIENT_PAUSE:
 				log.Debug().Msg("host told to pause client timer")
-				m.ctx.state.OpposingPlayer.TimerPaused = true
+				m.ctx.state.ClientPlayer.TimerPaused = true
 			case networking.DIR_SYNC:
 				log.Debug().Msgf("client got sync message: %+v", timerMsg)
-				client := &m.ctx.state.OpposingPlayer
+				client := &m.ctx.state.ClientPlayer
 				client.TimerPaused = timerMsg.ClientPaused
 				client.MultiTimerTick = int64(timerMsg.NewClientTime)
 
-				host := &m.ctx.state.LocalPlayer
+				host := &m.ctx.state.HostPlayer
 				host.TimerPaused = timerMsg.HostPaused
 				host.MultiTimerTick = int64(timerMsg.NewHostTime)
 			}
@@ -387,11 +387,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Force the UI into the switch pokemon panel when the player's current pokemon is dead
-	if !m.ctx.state.LocalPlayer.GetActivePokemon().Alive() {
+	if !m.ctx.state.HostPlayer.GetActivePokemon().Alive() {
 		switch m.panel.(type) {
 		case pokemonPanel:
 		default:
-			m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
+			m.panel = newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team)
 		}
 	}
 
@@ -403,10 +403,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.ctx.playerSide {
 		case state.HOST:
-			m.ctx.state.LocalPlayer.TimerPaused = true
+			m.ctx.state.HostPlayer.TimerPaused = true
 			log.Debug().Msg("host timer should pause")
 		case state.PEER:
-			m.ctx.state.OpposingPlayer.TimerPaused = true
+			m.ctx.state.ClientPlayer.TimerPaused = true
 			log.Debug().Msg("client timer should pause")
 		}
 
