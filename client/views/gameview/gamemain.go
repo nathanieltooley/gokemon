@@ -92,7 +92,7 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 		Conn: conn,
 	}
 
-	if conn != nil {
+	if gameState.Networked {
 		switch playerSide {
 		case state.HOST:
 			// maybe changing these from interfaces wasn't the best idea
@@ -270,40 +270,42 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		m.ctx.state.TickPlayerTimers()
 
-		// Host's timer runs out
-		if m.ctx.playerSide == state.HOST {
-			if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
-				networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-					YouLost: false,
-				})
-
-				return m, func() tea.Msg {
-					return networking.GameOverMessage{
-						YouLost: true,
-					}
-				}
-			} else if m.ctx.state.ClientPlayer.MultiTimerTick <= 0 {
-				networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-					YouLost: true,
-				})
-
-				return m, func() tea.Msg {
-					return networking.GameOverMessage{
+		if m.ctx.state.Networked {
+			// Host's timer runs out
+			if m.ctx.playerSide == state.HOST {
+				if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
+					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 						YouLost: false,
+					})
+
+					return m, func() tea.Msg {
+						return networking.GameOverMessage{
+							YouLost: true,
+						}
+					}
+				} else if m.ctx.state.ClientPlayer.MultiTimerTick <= 0 {
+					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
+						YouLost: true,
+					})
+
+					return m, func() tea.Msg {
+						return networking.GameOverMessage{
+							YouLost: false,
+						}
 					}
 				}
 			}
-		}
 
-		// send a sync message every second
-		if m.ctx.playerSide == state.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
-			_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
-				Directive:     networking.DIR_SYNC,
-				NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
-				NewClientTime: m.ctx.state.ClientPlayer.MultiTimerTick,
-				HostPaused:    m.ctx.state.HostPlayer.TimerPaused,
-				ClientPaused:  m.ctx.state.ClientPlayer.TimerPaused,
-			})
+			// send a sync message every second
+			if m.ctx.playerSide == state.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
+				_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
+					Directive:     networking.DIR_SYNC,
+					NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
+					NewClientTime: m.ctx.state.ClientPlayer.MultiTimerTick,
+					HostPaused:    m.ctx.state.HostPlayer.TimerPaused,
+					ClientPaused:  m.ctx.state.ClientPlayer.TimerPaused,
+				})
+			}
 		}
 
 		m.tickCount++
@@ -441,10 +443,13 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Start message reading loops
 	if !m.inited {
-		// cmds = append(cmds, tick())
-		cmds = append(cmds, func() tea.Msg {
-			return connectionReader(m.netInfo)
-		})
+		cmds = append(cmds, tick())
+
+		if m.ctx.state.Networked {
+			cmds = append(cmds, func() tea.Msg {
+				return connectionReader(m.netInfo)
+			})
+		}
 
 		m.inited = true
 	}
