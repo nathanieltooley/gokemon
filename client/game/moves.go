@@ -6,9 +6,8 @@ type EffectEntry struct {
 }
 
 type Target struct {
-	Id          int
-	Name        string
-	Description string
+	Id   int
+	Name string
 }
 
 type NamedApiResource struct {
