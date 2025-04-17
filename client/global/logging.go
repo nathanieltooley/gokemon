@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/errorutils"
+	"github.com/samber/lo"
 )
 
 type rollingFileWriter struct {
@@ -38,7 +39,7 @@ func NewRollingFileWriter(fileDir string, fileName string) rollingFileWriter {
 const (
 	mb         = 1000000
 	kb         = 1000
-	maxLogSize = 2.5 * mb
+	maxLogSize = 2.5 * kb
 	maxLogs    = 2
 	// maxLogSize = 0.5 * kb
 )
@@ -60,7 +61,9 @@ func (w rollingFileWriter) getLogs(pattern string) ([]string, error) {
 		return nil, err
 	}
 
-	return logMatches, nil
+	return lo.Map(logMatches, func(log string, _ int) string {
+		return filepath.Join(w.FileDirectory, log)
+	}), nil
 }
 
 func (w rollingFileWriter) Write(b []byte) (n int, err error) {
@@ -68,8 +71,6 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-
-	defer mainLogFile.Close()
 
 	stats, err := mainLogFile.Stat()
 	if err != nil {
@@ -81,6 +82,8 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 	if size < maxLogSize {
 		return mainLogFile.Write(b)
 	} else {
+		// close since we are going to rename the main file
+		mainLogFile.Close()
 		w.updateLogIndices()
 	}
 
@@ -89,7 +92,8 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
-	// if we got this far, we had to of opened client.log, meaning it exists
+	// At this point, there should be no main log file (they're all numbered: name-1.log, name-2.log, etc.)
+	// So add in the main log file that will be there eventually
 	numberOfLogFiles := len(logMatches) + 1
 
 	// delete the last modified log file
@@ -126,8 +130,6 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 		}
 	}
 
-	mainLogFile.Close()
-
 	// Append to a new log file
 	mainLogFile, err = os.OpenFile(w.getFullFilePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -152,7 +154,7 @@ func (w rollingFileWriter) updateLogIndices() error {
 		index := getLogIndex(w.FileName, log)
 
 		// get rid of messed up log files
-		if index <= 0 {
+		if index < 0 {
 			if err := os.Remove(log); err != nil {
 				return err
 			}
@@ -175,9 +177,12 @@ func (w rollingFileWriter) updateLogIndices() error {
 
 	// Clean up mod prefixes
 	for _, log := range modLogMatches {
-		newName, _ := strings.CutPrefix(log, "mod-")
+		filenameOnly := filepath.Base(log)
+		newFileName, _ := strings.CutPrefix(filenameOnly, "mod-")
 
-		if err := os.Rename(log, newName); err != nil {
+		newFullPath := filepath.Join(filepath.Dir(log), newFileName)
+
+		if err := os.Rename(log, newFullPath); err != nil {
 			return err
 		}
 	}
