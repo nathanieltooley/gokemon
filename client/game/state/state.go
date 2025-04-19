@@ -21,6 +21,9 @@ const (
 	AI
 )
 
+// TODO: Lower size of this struct? (mainly for networking purposes)
+// might ignore just cause there haven't been any noticable issues,
+// and this is networked very infrequently, only after the end of turns
 type GameState struct {
 	HostPlayer   Player
 	ClientPlayer Player
