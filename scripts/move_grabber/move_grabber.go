@@ -132,17 +132,9 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 		}
 	}
 
-	var targetDescription string
-	for _, td := range targetJson.Descriptions {
-		if td.Language.Name == "en" {
-			targetDescription = td.Description
-		}
-	}
-
 	target := game.Target{
-		Id:          targetJson.Id,
-		Name:        targetJson.Name,
-		Description: targetDescription,
+		Id:   targetJson.Id,
+		Name: targetJson.Name,
 	}
 
 	var meta *game.MoveMeta
@@ -227,7 +219,7 @@ func main() {
 	}
 
 	log.Printf("Got %d moves\n", len(fullresponseJson.Results))
-	allMoves := make([]interface{}, 0, len(fullresponseJson.Results))
+	allMoves := make([]any, 0, len(fullresponseJson.Results))
 
 	// Maps moves that a pokemon learn
 	moveMap := make(map[string][]string)

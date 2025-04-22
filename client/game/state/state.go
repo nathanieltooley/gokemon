@@ -70,7 +70,7 @@ func DefaultTeam() []game.Pokemon {
 func RandomTeam() []game.Pokemon {
 	team := make([]game.Pokemon, 6)
 
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		rndBasePkm := global.POKEMON.GetRandomPokemon()
 		rndPkm := game.NewPokeBuilder(rndBasePkm).
 			SetRandomEvs().
