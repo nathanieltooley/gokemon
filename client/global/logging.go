@@ -39,7 +39,7 @@ func NewRollingFileWriter(fileDir string, fileName string) rollingFileWriter {
 const (
 	mb         = 1000000
 	kb         = 1000
-	maxLogSize = 2.5 * kb
+	maxLogSize = 2.5 * mb
 	maxLogs    = 2
 	// maxLogSize = 0.5 * kb
 )
