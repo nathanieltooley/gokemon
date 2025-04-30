@@ -74,12 +74,15 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 
 	stats, err := mainLogFile.Stat()
 	if err != nil {
+		// Not using defer because by the end of this function scope, mainLogFile most likely doesn't even point to the right thing anymore
+		mainLogFile.Close()
 		return 0, err
 	}
 
 	size := stats.Size()
 	// if the current log file is small enough, just append to it
 	if size < maxLogSize {
+		defer mainLogFile.Close()
 		return mainLogFile.Write(b)
 	} else {
 		// close since we are going to rename the main file
