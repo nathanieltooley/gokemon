@@ -279,9 +279,10 @@ func listenForSearch(conn *net.UDPConn, name string) tea.Msg {
 		_, err = conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, selfAddrTcp.String()), broadcastAddrUdp)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
+		} else {
+			lobbyLogger().Info().Msgf("Sent broadcast response to: %s", broadcastAddrUdp.String())
 		}
 
-		lobbyLogger().Info().Msg("Sent broadcast response")
 	}
 
 	return continueLanSearchMsg{conn: conn}
