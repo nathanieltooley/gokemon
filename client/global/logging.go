@@ -36,6 +36,7 @@ func NewRollingFileWriter(fileDir string, fileName string) rollingFileWriter {
 	}
 }
 
+// TODO: make this stuff runtime known through config file
 const (
 	mb         = 1000000
 	kb         = 1000

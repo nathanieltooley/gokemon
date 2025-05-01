@@ -27,8 +27,11 @@ var lobbyLogger = func() *zerolog.Logger {
 }
 
 const (
-	connPort          = ":7777"
-	broadPort         = ":7778"
+	// What port the actual game connection will be sent through
+	connPort = ":7777"
+	// The port the broadcast searches will be sent to and the host will listen to
+	broadPort = ":7778"
+	// The port the client listens to for responses to the search
 	broadResponsePort = ":7779"
 	broadcastAddr     = "255.255.255.255"
 	broadcastMessage  = "GOKEMON|SEARCH"
@@ -208,15 +211,15 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 		}
 	}
 
-	lobbyLogger().Info().Msgf("client listening for response on: %s|%s", conn.LocalAddr(), conn.RemoteAddr())
+	lobbyLogger().Info().Msgf("client (IP: %s) listening for response on: %s", conn.LocalAddr(), conn.RemoteAddr())
 
 	broadResponse := make([]byte, 1024)
-	n, addr, err := conn.ReadFromUDP(broadResponse)
+	n, responderAddr, err := conn.ReadFromUDP(broadResponse)
 	if err != nil {
-		lobbyLogger().Err(err).Msgf("Error trying to read message from: %s", addr)
+		lobbyLogger().Err(err).Msgf("Error trying to read message from: %s", responderAddr)
 	}
 
-	lobbyLogger().Info().Msgf("Client got message from: %s", addr)
+	lobbyLogger().Info().Msgf("Client got message from: %s", responderAddr)
 
 	// Response should look like: GOKEMON:NAME:ADDR
 	responseParts := strings.Split(string(broadResponse[0:n]), "|")
@@ -241,51 +244,57 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 	}
 }
 
-func listenForSearch(conn *net.UDPConn, name string) tea.Msg {
+func listenForSearch(searchConn *net.UDPConn, name string) tea.Msg {
 	if name == "" {
 		name = "new_lobby"
 	}
 
 	name = strings.ReplaceAll(name, "|", "")
 
-	if conn == nil {
+	// Setup connection if it is the first time this function is called
+	if searchConn == nil {
+		// I tried doing broadAddr + broadPort but windows doesn't like it
+		// I think the host should still be able to read the messages though by just connecting to a port with UDP
 		laddr, _ := net.ResolveUDPAddr("udp4", broadPort)
 		var err error
-		conn, err = net.ListenUDP("udp4", laddr)
+		searchConn, err = net.ListenUDP("udp4", laddr)
 		if err != nil {
-			lobbyLogger().Err(err).Msg("Error for host trying to connect to UDP broadcastAddr")
+			lobbyLogger().Err(err).Msgf("Error for host trying to connect to UDP addr: %s", laddr.String())
 			return nil
 		}
-		lobbyLogger().Debug().Msgf("host listening for searches on: %s", conn.LocalAddr())
+		lobbyLogger().Debug().Msgf("host listening for searches on: %s", searchConn.LocalAddr())
 	}
 
 	buf := make([]byte, 1024)
-	n, addr, err := conn.ReadFromUDP(buf)
+	n, senderAddr, err := searchConn.ReadFromUDP(buf)
 	if err != nil {
 		lobbyLogger().Err(err).Msgf("Host failed to listen to UDP broadcast")
+		return continueLanSearchMsg{conn: searchConn}
 	}
-	lobbyLogger().Debug().Msgf("HIT! %s; FROM!: %s", buf[0:n], addr.String())
+
+	lobbyLogger().Debug().Msgf("HIT! %s; FROM!: %s", buf[0:n], senderAddr.String())
 	message := string(buf[0:n])
 
 	// Send Response
 	if message == broadcastMessage {
-		broadcastAddrUdp, _ := net.ResolveUDPAddr("udp4", broadcastAddr+broadResponsePort)
+		returnUdpAddr, _ := net.ResolveUDPAddr("udp4", senderAddr.IP.String()+broadResponsePort)
 		selfAddrTcp, err := net.ResolveTCPAddr("tcp4", connPort)
 		// TODO: Maybe remove this? Should probably never actually error though right?
 		if err != nil {
 			panic(err)
 		}
 
-		_, err = conn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, selfAddrTcp.String()), broadcastAddrUdp)
+		// Send host's IP to the searcher's IP (port is implied to be connPort)
+		_, err = searchConn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, selfAddrTcp.String()), returnUdpAddr)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
 		} else {
-			lobbyLogger().Info().Msgf("Sent broadcast response to: %s", broadcastAddrUdp.String())
+			lobbyLogger().Info().Msgf("Sent broadcast response to: %s", returnUdpAddr.String())
 		}
 
 	}
 
-	return continueLanSearchMsg{conn: conn}
+	return continueLanSearchMsg{conn: searchConn}
 }
 
 func listenForStart(conn net.Conn) tea.Msg {
