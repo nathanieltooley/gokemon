@@ -9,9 +9,9 @@ Gokemon will not feature previous generations' mechanics, abilities, stats, or b
 Gokemon currently contains the Pokemon data of Gen-1 Pokemon and 50% of abilities introduced in Gen-3. The goal for now is to get all Pokemon and Pokemon abilites from Gens 1-3 added into the game.
 
 ## Installation
-The easiest way to install is to download the latest pre-compiled binary executable from the releases tab (eventually there will be a release I promise).
+The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
-**IMPORTANT NOTE**: The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable from the desktop will output nothing.
+**IMPORTANT NOTE**: The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable will output nothing.
 
 ### Building from source
 
