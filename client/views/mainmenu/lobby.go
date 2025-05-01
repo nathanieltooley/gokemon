@@ -557,7 +557,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Start game on enter
-		if key.Matches(msg, global.SelectKey) && !m.opponent.IsNil() {
+		if key.Matches(msg, global.SelectKey) && !m.opponent.IsNil() && m.hosting {
 			// TODO: Get rid of blocking code
 			_, err := m.conn.Write([]byte("GOKEMON|START"))
 			lobbyLogger().Debug().Msg("host sent start msg")
