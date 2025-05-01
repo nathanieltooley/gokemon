@@ -195,7 +195,7 @@ func sendLanSearchBroadcast() tea.Msg {
 		return nil
 	}
 
-	lobbyLogger().Debug().Msg("lan search broadcast sent!")
+	lobbyLogger().Debug().Msgf("lan search broadcast sent on: %s", conn.RemoteAddr())
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"reflect"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -71,7 +72,7 @@ func NewTeamSelectModel(backtrack components.Breadcrumbs, netInfo *NetworkingInf
 	teams, err := teamfs.LoadTeamMap(global.Opt.TeamSaveLocation)
 	if err != nil {
 		// TODO: Show error messages, and better handling (not crashing)
-		log.Panic().Msgf("Could not load Teams: %s", err)
+		log.Panic().Msgf("Could not load Teams: %s, err type: %+v", err, reflect.TypeOf(err))
 	}
 
 	items := make([]list.Item, 0)
