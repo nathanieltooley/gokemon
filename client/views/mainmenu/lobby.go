@@ -231,9 +231,14 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 		}
 	}
 
+	lobbyName := responseParts[1]
+	lobbyPort := responseParts[2]
+
+	lobbyAddr := responderAddr.IP.String() + lobbyPort
+
 	lob := lobby{
-		Name: responseParts[1],
-		Addr: responseParts[2],
+		Name: lobbyName,
+		Addr: lobbyAddr,
 	}
 
 	lobbyLogger().Info().Msgf("Found lobby: %+v", lob)
@@ -278,14 +283,9 @@ func listenForSearch(searchConn *net.UDPConn, name string) tea.Msg {
 	// Send Response
 	if message == broadcastMessage {
 		returnUdpAddr, _ := net.ResolveUDPAddr("udp4", senderAddr.IP.String()+broadResponsePort)
-		selfAddrTcp, err := net.ResolveTCPAddr("tcp4", connPort)
-		// TODO: Maybe remove this? Should probably never actually error though right?
-		if err != nil {
-			panic(err)
-		}
 
 		// Send host's IP to the searcher's IP (port is implied to be connPort)
-		_, err = searchConn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, selfAddrTcp.String()), returnUdpAddr)
+		_, err = searchConn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, connPort), returnUdpAddr)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
 		} else {
