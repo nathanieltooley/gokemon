@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/fs"
 	"os"
+	"path/filepath"
 
 	"github.com/nathanieltooley/gokemon/client/game"
 )
@@ -75,14 +75,15 @@ func LoadTeam(filePath string, name string) ([6]*game.Pokemon, error) {
 
 func LoadTeamMap(filePath string) (SavedTeams, error) {
 	teamFile, err := os.Open(filePath)
+	// If there is an error, assume the file doesn't exist
 	if err != nil {
-		// Create the file if it does not exist
-		if errors.Is(err, fs.ErrNotExist) {
-			teamFile, err = os.Create(filePath)
-			if err != nil {
-				return nil, err
-			}
-		} else {
+		if err := os.MkdirAll(filepath.Dir(filePath), 0666); err != nil {
+			return nil, err
+		}
+
+		teamFile, err = os.Create(filePath)
+		// If we still have errors, then bail
+		if err != nil {
 			return nil, err
 		}
 	}
