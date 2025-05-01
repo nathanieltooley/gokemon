@@ -33,8 +33,8 @@ const (
 	broadPort = ":7778"
 	// The port the client listens to for responses to the search
 	broadResponsePort = ":7779"
-	broadcastAddr     = "255.255.255.255"
-	broadcastMessage  = "GOKEMON|SEARCH"
+	// broadcastAddr     = "255.255.255.255"
+	broadcastMessage = "GOKEMON|SEARCH"
 )
 
 type (
@@ -184,18 +184,23 @@ func connect(address string, playerName string) tea.Msg {
 }
 
 func sendLanSearchBroadcast() tea.Msg {
-	conn, err := net.Dial("udp4", broadcastAddr+broadPort)
-	if err != nil {
-		lobbyLogger().Err(err).Msgf("Error trying to connect to UDP broadcastAddr: %s", broadcastAddr+broadPort)
+	for _, ip := range networking.GetAllBroadcastAddrs() {
+		raddr, _ := net.ResolveUDPAddr("udp4", ip.String()+broadPort)
+		conn, err := net.DialUDP("udp4", nil, raddr)
+		if err != nil {
+			lobbyLogger().Err(err).Msgf("Error trying to connect to UDP broadcastAddr: %s", ip.String()+broadPort)
+			continue
+		}
+
+		_, err = conn.Write([]byte(broadcastMessage))
+		if err != nil {
+			lobbyLogger().Warn().Msgf("Error trying to send broadcast: %s", err)
+		} else {
+			lobbyLogger().Debug().Msgf("lan search broadcast sent on: %s", conn.RemoteAddr())
+		}
+
 	}
 
-	_, err = conn.Write([]byte(broadcastMessage))
-	if err != nil {
-		lobbyLogger().Err(err).Msgf("Error trying to send broadcast")
-		return nil
-	}
-
-	lobbyLogger().Debug().Msgf("lan search broadcast sent on: %s", conn.RemoteAddr())
 	return nil
 }
 
@@ -221,7 +226,7 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 
 	lobbyLogger().Info().Msgf("Client got message from: %s", responderAddr)
 
-	// Response should look like: GOKEMON:NAME:ADDR
+	// Response should look like: GOKEMON:NAME:PORT
 	responseParts := strings.Split(string(broadResponse[0:n]), "|")
 	if len(responseParts) < 3 || responseParts[0] != "GOKEMON" {
 		lobbyLogger().Debug().Msgf("Read malformed or non Gokemon broadcast message: %s", broadResponse)
