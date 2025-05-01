@@ -1,3 +1,5 @@
 saves/
 logs/
 *.log
+# Added by goreleaser init:
+dist/
