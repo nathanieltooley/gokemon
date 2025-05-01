@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/uuid"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/networking"
@@ -48,7 +49,7 @@ type (
 		backtrack components.Breadcrumbs
 
 		conn      net.Conn
-		lobbyName string
+		lobbyInfo lobby
 		hosting   bool
 		host      lobbyPlayer
 		opponent  lobbyPlayer
@@ -79,6 +80,7 @@ type lobby struct {
 	Name     string
 	Addr     string
 	HostName string
+	Id       uuid.UUID
 }
 
 func (l lobby) FilterValue() string {
@@ -238,12 +240,14 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 
 	lobbyName := responseParts[1]
 	lobbyPort := responseParts[2]
+	lobbyId := responseParts[3]
 
 	lobbyAddr := responderAddr.IP.String() + lobbyPort
 
 	lob := lobby{
 		Name: lobbyName,
 		Addr: lobbyAddr,
+		Id:   uuid.MustParse(lobbyId),
 	}
 
 	lobbyLogger().Info().Msgf("Found lobby: %+v", lob)
@@ -254,12 +258,13 @@ func listenForLanBroadcastResult(conn *net.UDPConn) tea.Msg {
 	}
 }
 
-func listenForSearch(searchConn *net.UDPConn, name string) tea.Msg {
-	if name == "" {
-		name = "new_lobby"
+func listenForSearch(searchConn *net.UDPConn, lobbyInfo lobby) tea.Msg {
+	broadcastedName := lobbyInfo.Name
+	if broadcastedName == "" {
+		broadcastedName = "new_lobby"
 	}
 
-	name = strings.ReplaceAll(name, "|", "")
+	broadcastedName = strings.ReplaceAll(broadcastedName, "|", "")
 
 	// Setup connection if it is the first time this function is called
 	if searchConn == nil {
@@ -289,8 +294,8 @@ func listenForSearch(searchConn *net.UDPConn, name string) tea.Msg {
 	if message == broadcastMessage {
 		returnUdpAddr, _ := net.ResolveUDPAddr("udp4", senderAddr.IP.String()+broadResponsePort)
 
-		// Send host's IP to the searcher's IP (port is implied to be connPort)
-		_, err = searchConn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s", name, connPort), returnUdpAddr)
+		// Send host's port to the searcher's IP (IP is implied)
+		_, err = searchConn.WriteToUDP(fmt.Appendf(nil, "GOKEMON|%s|%s|%s", broadcastedName, connPort, lobbyInfo.Id.String()), returnUdpAddr)
 		if err != nil {
 			lobbyLogger().Err(err).Msgf("Host failed to send LAN search response")
 		} else {
@@ -315,7 +320,7 @@ func listenForStart(conn net.Conn) tea.Msg {
 		message := string(data[:n])
 
 		if message != "GOKEMON|START" {
-			lobbyLogger().Info().Str("msg", string(data)).Msg("Sent() incorrect message!")
+			lobbyLogger().Info().Str("msg", string(data)).Msg("Host sent incorrect message!")
 			continue
 		}
 
@@ -374,21 +379,29 @@ func (m CreateLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lobbyName := m.nameInput.Value()
 			addr, _ := net.ResolveTCPAddr("tcp4", connPort)
 
+			newId := uuid.New()
+			lobbyInfo := lobby{
+				Name:     lobbyName,
+				Addr:     addr.String(),
+				HostName: global.Opt.LocalPlayerName,
+				Id:       newId,
+			}
+
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for connection")
-				return listenForConnection(connPort, lobby{lobbyName, addr.String(), global.Opt.LocalPlayerName})
+				return listenForConnection(connPort, lobbyInfo)
 			})
 
 			cmds = append(cmds, func() tea.Msg {
 				lobbyLogger().Info().Msg("Waiting for LAN searches")
-				return listenForSearch(nil, lobbyName)
+				return listenForSearch(nil, lobbyInfo)
 			})
 
 			return LobbyModel{
 				backtrack: m.backtrack,
 				hosting:   true,
 				host:      lobbyPlayer{Name: global.Opt.LocalPlayerName, Addr: addr.String()},
-				lobbyName: lobbyName,
+				lobbyInfo: lobbyInfo,
 			}, tea.Batch(cmds...)
 		}
 	}
@@ -482,7 +495,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			backtrack: components.Breadcrumbs{},
 			conn:      msg.conn,
 			hosting:   false,
-			lobbyName: msg.lobbyData.Name,
+			lobbyInfo: msg.lobbyData,
 			host:      host,
 			opponent:  opponent,
 		}, tea.Batch(cmds...)
@@ -494,7 +507,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			alreadyAdded := false
 			for _, item := range m.lobbyList.Items() {
 				itemAsLob := item.(lobby)
-				if itemAsLob.Addr == msg.lob.Addr {
+				if itemAsLob.Id == msg.lob.Id {
 					alreadyAdded = true
 				}
 			}
@@ -531,7 +544,7 @@ func (m JoinLobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m LobbyModel) Init() tea.Cmd { return nil }
 
 func (m LobbyModel) View() string {
-	header := fmt.Sprintf("Lobby: %s", m.lobbyName)
+	header := fmt.Sprintf("Lobby: %s", m.lobbyInfo.Name)
 
 	startGameButton := rendering.HighlightedButtonStyle.Render("Start Game!")
 	if !m.hosting {
@@ -579,7 +592,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case continueLanSearchMsg:
 		cmds = append(cmds, func() tea.Msg {
-			return listenForSearch(msg.conn, m.lobbyName)
+			return listenForSearch(msg.conn, m.lobbyInfo)
 		})
 	case connectionAcceptedMsgHost:
 		m.conn = msg.conn
