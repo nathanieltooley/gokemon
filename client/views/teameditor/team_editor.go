@@ -74,8 +74,6 @@ type teamEditorCtx struct {
 	// The current team we're editing
 	team               []game.Pokemon
 	listeningForEscape bool
-	// HACK: needed to probably back out into team selection
-	backtrack components.Breadcrumbs
 }
 
 type (
@@ -86,6 +84,7 @@ type (
 		addingNewPokemon bool
 		choice           *game.BasePokemon
 		teamView         components.TeamView
+		backtrack        components.Breadcrumbs
 	}
 	editPokemonModel struct {
 		ctx *teamEditorCtx
@@ -93,6 +92,7 @@ type (
 		editorModels       [len(editors)]editor
 		currentPokemon     *game.Pokemon
 		currentEditorIndex int
+		backtrack          components.Breadcrumbs
 	}
 	saveTeamModel struct {
 		ctx *teamEditorCtx
@@ -101,6 +101,7 @@ type (
 		confirming    bool
 		erroring      bool
 		displayError  error
+		backtrack     components.Breadcrumbs
 	}
 )
 
@@ -108,13 +109,12 @@ func NewTeamEditorModel(backtrack components.Breadcrumbs, team []game.Pokemon) e
 	ctx := teamEditorCtx{
 		team:               team,
 		listeningForEscape: true,
-		backtrack:          backtrack,
 	}
 
-	return newEditTeamModelCtx(&ctx)
+	return newEditTeamModelCtx(&ctx, backtrack)
 }
 
-func newEditTeamModelCtx(ctx *teamEditorCtx) editTeamModel {
+func newEditTeamModelCtx(ctx *teamEditorCtx, backtrack components.Breadcrumbs) editTeamModel {
 	pokemon := global.POKEMON
 
 	items := make([]list.Item, len(pokemon))
@@ -138,6 +138,7 @@ func newEditTeamModelCtx(ctx *teamEditorCtx) editTeamModel {
 		addingNewPokemon: true,
 		choice:           choice,
 		teamView:         components.NewTeamView(ctx.team),
+		backtrack:        backtrack,
 	}
 }
 
@@ -199,12 +200,10 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if currentPokemon != nil {
 				m.addingNewPokemon = true
-				m.ctx.backtrack = m.ctx.backtrack.PushNew(func() tea.Model {
-					return newEditTeamModelCtx(m.ctx)
-				})
 
-				log.Debug().Msgf("len %d", len(m.ctx.team))
-				return newEditPokemonModel(m.ctx, currentPokemon), nil
+				return newEditPokemonModel(m.ctx, currentPokemon, m.backtrack.PushNew(func() tea.Model {
+					return newEditTeamModelCtx(m.ctx, m.backtrack)
+				})), nil
 			}
 		}
 
@@ -227,12 +226,11 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, openSaveTeam) {
-			m.ctx.backtrack = m.ctx.backtrack.Push(m)
-			return newSaveTeamModel(m.ctx), nil
+			return newSaveTeamModel(m.ctx, m.backtrack.Push(m)), nil
 		}
 
-		if msg.Type == tea.KeyEsc {
-			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+		if key.Matches(msg, global.BackKey) {
+			return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
@@ -247,7 +245,7 @@ func (m editTeamModel) GetCurrentPokemon() game.Pokemon {
 	return game.Pokemon{}
 }
 
-func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editPokemonModel {
+func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon, backtrack components.Breadcrumbs) editPokemonModel {
 	abilities := global.ABILITIES
 
 	var editorModels [len(editors)]editor
@@ -262,6 +260,7 @@ func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon) editP
 
 		currentPokemon: currentPokemon,
 		editorModels:   editorModels,
+		backtrack:      backtrack,
 	}
 }
 
@@ -413,16 +412,15 @@ func (m editPokemonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		if key.Matches(msg, goToPreviousPage) {
-			log.Debug().Msgf("len %d", len(m.ctx.team))
-			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+		if key.Matches(msg, global.BackKey) {
+			return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
 	return m, cmd
 }
 
-func newSaveTeamModel(ctx *teamEditorCtx) saveTeamModel {
+func newSaveTeamModel(ctx *teamEditorCtx, backtrack components.Breadcrumbs) saveTeamModel {
 	newInput := textinput.New()
 	newInput.CharLimit = 20
 	newInput.Width = 20
@@ -432,6 +430,7 @@ func newSaveTeamModel(ctx *teamEditorCtx) saveTeamModel {
 		ctx: ctx,
 
 		saveNameInput: newInput,
+		backtrack:     backtrack,
 	}
 }
 
@@ -468,7 +467,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+				return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 			} else {
 				m.confirming = false
 			}
@@ -519,10 +518,10 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+				return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 			}
 		case tea.KeyEsc:
-			return m.ctx.backtrack.PopDefault(func() tea.Model { return m }), nil
+			return m.backtrack.PopDefault(func() tea.Model { return m }), nil
 		}
 	}
 
