@@ -68,48 +68,6 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 	})
 }
 
-// Determines the best AI Action. Failsafes to skip actions
-func bestAiAction(gameState *state.GameState) state.Action {
-	if gameState.ClientPlayer.GetActivePokemon().Alive() {
-		playerPokemon := gameState.HostPlayer.GetActivePokemon()
-		aiPokemon := gameState.ClientPlayer.GetActivePokemon()
-
-		bestMoveIndex := 0
-		var bestMove game.Move
-		var bestMoveDamage uint = 0
-
-		for i, move := range aiPokemon.Moves {
-			if move.IsNil() {
-				continue
-			}
-
-			// assume no crits
-			moveDamage := game.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
-			if moveDamage > bestMoveDamage {
-				bestMoveIndex = i
-				bestMove = move
-				bestMoveDamage = moveDamage
-			}
-		}
-
-		if bestMove.IsNil() {
-			return &state.SkipAction{}
-		} else {
-			return state.NewAttackAction(state.AI, bestMoveIndex)
-		}
-
-	} else {
-		// Switch on death
-		for i, pokemon := range gameState.ClientPlayer.Team {
-			if pokemon.Alive() {
-				return state.NewSwitchAction(gameState, state.AI, i)
-			}
-		}
-	}
-
-	return &state.SkipAction{}
-}
-
 // The updater for singleplayer games.
 // Introduces artifical delay so theres some space in between human actions
 func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
@@ -120,7 +78,7 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 	// Do not have the AI add a new action to the list if the player is switching and the AI isnt
 	if !host.ActiveKOed || ai.ActiveKOed {
-		actions = append(actions, bestAiAction(gameState))
+		actions = append(actions, state.BestAiAction(gameState))
 	}
 
 	switches := make([]state.SwitchAction, 0)
