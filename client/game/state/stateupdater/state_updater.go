@@ -129,13 +129,14 @@ func LocalUpdater(gameState *state.GameState, actions []state.Action) tea.Msg {
 	states = append(states, commonOtherActionHandling(gameState, otherActions)...)
 
 	gameOverValue := gameState.GameOver()
-	if gameOverValue == state.PLAYER {
+	switch gameOverValue {
+	case state.PLAYER:
 		time.Sleep(artificalDelay)
 
 		return networking.GameOverMessage{
 			YouLost: true,
 		}
-	} else if gameOverValue == state.AI {
+	case state.AI:
 		time.Sleep(artificalDelay)
 
 		return networking.GameOverMessage{
@@ -252,7 +253,8 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 	states = append(states, commonOtherActionHandling(gameState, otherActions)...)
 
 	gameOverValue := gameState.GameOver()
-	if gameOverValue == state.PLAYER {
+	switch gameOverValue {
+	case state.PLAYER:
 		if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 			YouLost: false,
 		}); err != nil {
@@ -262,7 +264,7 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 		return networking.GameOverMessage{
 			YouLost: true,
 		}
-	} else if gameOverValue == state.PEER {
+	case state.PEER:
 		if err := netInfo.SendMessage(networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 			YouLost: true,
 		}); err != nil {
