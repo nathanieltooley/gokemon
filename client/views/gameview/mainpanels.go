@@ -221,12 +221,25 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, global.SelectKey) {
 			switch m.actionFocus {
 			case 0:
-				return movePanel{
-					ctx:   m.ctx,
-					moves: m.ctx.state.HostPlayer.GetActivePokemon().InGameMoveInfo,
-				}, nil
+				switch m.ctx.playerSide {
+				case state.HOST:
+					return movePanel{
+						ctx:   m.ctx,
+						moves: m.ctx.state.HostPlayer.GetActivePokemon().InGameMoveInfo,
+					}, nil
+				case state.PEER:
+					return movePanel{
+						ctx:   m.ctx,
+						moves: m.ctx.state.ClientPlayer.GetActivePokemon().InGameMoveInfo,
+					}, nil
+				}
 			case 1:
-				return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
+				switch m.ctx.playerSide {
+				case state.HOST:
+					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
+				case state.PEER:
+					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
+				}
 			}
 		}
 
@@ -261,9 +274,9 @@ func (m movePanel) Init() tea.Cmd { return nil }
 func (m movePanel) View() string {
 	grid := make([]string, 0)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		row := make([]string, 0)
-		for j := 0; j < 2; j++ {
+		for j := range 2 {
 			arrayIndex := (i * 2) + j
 			style := panelStyle.Width(20)
 
