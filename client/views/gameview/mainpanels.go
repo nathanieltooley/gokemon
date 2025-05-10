@@ -238,7 +238,7 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case state.HOST:
 					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
 				case state.PEER:
-					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
+					return newPokemonPanel(m.ctx, m.ctx.state.ClientPlayer.Team), nil
 				}
 			}
 		}
