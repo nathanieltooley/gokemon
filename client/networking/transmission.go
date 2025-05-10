@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"reflect"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/game/state"
@@ -93,14 +92,21 @@ func acceptAction(reader io.Reader) (state.Action, error) {
 		return nil, err
 	}
 
-	messageParts := strings.Split(string(actionBytes), "\n")
+	messageParts := bytes.SplitN(actionBytes, []byte{'\n'}, 2)
 
 	log.Debug().Msgf("action content: %s", actionBytes)
-	log.Debug().Strs("messageParts", messageParts).Msg("")
+
+	// Print out all parts of the message
+	messagePartsEvent := log.Debug().Int("messageParts", len(messageParts))
+	for i, msg := range messageParts {
+		messagePartsEvent = messagePartsEvent.Bytes(fmt.Sprintf("messagePart%d", i), msg)
+	}
+	messagePartsEvent.Msg("")
 
 	concreteName := string(messageParts[0])
+	actionContentBuffer := bytes.NewBuffer(messageParts[1])
 
-	decoder := gob.NewDecoder(bytes.NewBufferString(string(messageParts[1])))
+	decoder := gob.NewDecoder(actionContentBuffer)
 
 	// I tried to use a action type enum here rather than send the string of the concrete type name.
 	// However, when sending actions, i only have a pointer to the interface, not the actual concrete type.

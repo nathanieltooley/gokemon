@@ -375,7 +375,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Debug().Msg("host told to pause client timer")
 				m.ctx.state.ClientPlayer.TimerPaused = true
 			case networking.DIR_SYNC:
-				log.Debug().Msgf("client got sync message: %+v", timerMsg)
+				// log.Debug().Msgf("client got sync message: %+v", timerMsg)
 				client := &m.ctx.state.ClientPlayer
 				client.TimerPaused = timerMsg.ClientPaused
 				client.MultiTimerTick = int64(timerMsg.NewClientTime)
