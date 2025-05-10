@@ -436,7 +436,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Only allow switches to alive and existing pokemon
 			if currentValidPokemon.Alive() {
-				action := state.NewSwitchAction(m.ctx.state, state.HOST, m.selectedPokemon)
+				action := state.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
 
 				m.ctx.chosenAction = action
 			}
