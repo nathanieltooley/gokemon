@@ -224,6 +224,8 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 		host.ActiveKOed = false
 		op.ActiveKOed = false
 
+		states = append(states, commonEndOfTurn(gameState)...)
+
 		gameState.Turn++
 
 		time.Sleep(time.Second * 1)
@@ -237,14 +239,20 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 
 		gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
+		// HACK: Update the final state with the new turn so it gets sent to the client properly
+		cleanedStates := cleanStateSnapshots(states)
+		finalState := cleanedStates[len(cleanedStates)-1]
+		finalState.State.Turn++
+		cleanedStates[len(cleanedStates)-1] = finalState
+
 		if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
-			StateUpdates: cleanStateSnapshots(states),
+			StateUpdates: cleanedStates,
 		}); err != nil {
 			return errorCmd(err, "error trying to send turn resolve message after force switch")
 		}
 
 		return networking.TurnResolvedMessage{
-			StateUpdates: cleanStateSnapshots(states),
+			StateUpdates: cleanedStates,
 		}
 	} else {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
@@ -310,16 +318,22 @@ func NetHostUpdater(gameState *state.GameState, actions []state.Action, netInfo 
 
 	states = append(states, commonEndOfTurn(gameState)...)
 
+	gameState.Turn++
+
+	// HACK: same one as above
+	cleanedStates := cleanStateSnapshots(states)
+	finalState := cleanedStates[len(cleanedStates)-1]
+	finalState.State.Turn++
+	cleanedStates[len(cleanedStates)-1] = finalState
+
 	if err := netInfo.SendMessage(networking.MESSAGE_TURNRESOLVE, networking.TurnResolvedMessage{
-		StateUpdates: cleanStateSnapshots(states),
+		StateUpdates: cleanedStates,
 	}); err != nil {
 		return networking.NetworkingErrorMsg{Err: err, Reason: "error trying to send turn resolve message"}
 	}
 
-	gameState.Turn++
-
 	return networking.TurnResolvedMessage{
-		StateUpdates: cleanStateSnapshots(states),
+		StateUpdates: cleanedStates,
 	}
 }
 

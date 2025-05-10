@@ -170,7 +170,7 @@ func (m MainGameModel) View() string {
 		lipgloss.JoinVertical(
 			lipgloss.Center,
 
-			fmt.Sprintf("Turn: %d", m.ctx.state.Turn),
+			fmt.Sprintf("Turn: %d", stateToRender.Turn),
 
 			rendering.ButtonStyle.Width(40).Render(m.currentStateMessage),
 
@@ -451,6 +451,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 
+		// Make the "First turn" switch ins
 		playerInfo := m.ctx.state.GetPlayer(m.ctx.playerSide)
 		m.ctx.chosenAction = state.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
 
