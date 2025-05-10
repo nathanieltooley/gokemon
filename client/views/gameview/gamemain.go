@@ -451,6 +451,9 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 
+		playerInfo := m.ctx.state.GetPlayer(m.ctx.playerSide)
+		m.ctx.chosenAction = state.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
+
 		m.inited = true
 	}
 
