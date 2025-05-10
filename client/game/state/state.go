@@ -292,7 +292,7 @@ func NewSwitchAction(state *GameState, playerId int, switchIndex int) SwitchActi
 
 func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	player := state.GetPlayer(a.Ctx.PlayerId)
-	log.Info().Msgf("Player %d: %s, switchs to pokemon %d", a.Ctx.PlayerId, playerIntToString(a.Ctx.PlayerId), a.SwitchIndex)
+	log.Info().Msgf("%s switches to %s", player.Name, a.Poke.Nickname)
 	// TODO: OOB Check
 	player.ActivePokeIndex = a.SwitchIndex
 
@@ -328,7 +328,12 @@ func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 
 	newActivePkm.SwitchedInThisTurn = true
 
-	messages := []string{fmt.Sprintf("Player %d switched to %s", a.Ctx.PlayerId, newActivePkm.Nickname)}
+	messages := make([]string, 0)
+	if state.Turn == 0 {
+		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Nickname))
+	} else {
+		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Nickname))
+	}
 	states = append(states, StateSnapshot{State: state, Messages: messages})
 	return states
 }
