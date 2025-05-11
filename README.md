@@ -6,12 +6,16 @@
 Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be an fairly accurate, if feature-lacking, simulation of newer-gen Pokemon battle mechanics.
 Gokemon will not feature previous generations' mechanics, abilities, stats, or bugs the way a battle simulator like Pokemon Showdown does.
 
-Gokemon currently contains the Pokemon data of Gen-1 Pokemon and 50% of abilities introduced in Gen-3. The goal for now is to get all Pokemon and Pokemon abilites from Gens 1-3 added into the game.
+> [!WARNING]
+> This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 Pokemon and <50% of abilities introduced in Gen 3.
+> The goal for now is to get all Pokemon and Pokemon abilites from Gens 1-3 added into the game (though the mechanics would be from Gen 8). If there are any features you wish to see added, feel free to open
+> an issue or pull request.
 
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
-**IMPORTANT NOTE**: The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable will output nothing.
+> [!NOTE]
+> The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable will output nothing.
 
 ### Building from source
 
