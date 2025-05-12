@@ -12,6 +12,18 @@ func BestAiAction(gameState *GameState) Action {
 		playerPokemon := gameState.HostPlayer.GetActivePokemon()
 		aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 
+		hasAnyMoves := false
+		for _, move := range aiPokemon.Moves {
+			if !move.IsNil() {
+				hasAnyMoves = true
+				break
+			}
+		}
+
+		if !hasAnyMoves {
+			return &SkipAction{}
+		}
+
 		bestMoveIndex := -1
 
 		if aiPokemon.Speed() < playerPokemon.Speed() {
