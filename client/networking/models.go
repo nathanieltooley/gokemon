@@ -86,34 +86,3 @@ func (g NetReaderInfo) CloseChans() { // Doesn't take pointers because channels 
 	close(g.MessageChan)
 	close(g.TimerChan)
 }
-
-// Contains all info needed for the current multiplayer connection
-type GameNetInfo struct {
-	// TODO: Maybe make these send only, would have to think of a work-around for the connection reader though
-	ActionChan  <-chan state.Action
-	TimerChan   <-chan UpdateTimerMessage
-	MessageChan <-chan tea.Msg
-
-	// Should only be used for SENDING messages, reading messages should be done through the channels
-	conn net.Conn
-}
-
-func NewGameNetInfo(actionChan <-chan state.Action, timerChan <-chan UpdateTimerMessage, messageChan <-chan tea.Msg, conn net.Conn) GameNetInfo {
-	return GameNetInfo{
-		ActionChan:  actionChan,
-		TimerChan:   timerChan,
-		MessageChan: messageChan,
-
-		conn: conn,
-	}
-}
-
-// Wrapper around SendMessage so that the connection is private
-func (g GameNetInfo) SendMessage(msgType messageType, msg tea.Msg) error {
-	return SendMessage(g.conn, msgType, msg)
-}
-
-// Wrapper around SendAction so that the connection is private
-func (g GameNetInfo) SendAction(action state.Action) error {
-	return SendAction(g.conn, action)
-}
