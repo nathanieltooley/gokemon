@@ -63,7 +63,7 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 
 func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 	host := &gameState.HostPlayer
-	ai := &gameState.ClientPlayer
+	client := &gameState.ClientPlayer
 
 	switches := make([]state.SwitchAction, 0)
 	otherActions := make([]state.Action, 0)
@@ -83,10 +83,10 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 	states = append(states, commonSwitching(gameState, switches)...)
 
 	// Properly end turn after force switches are dealt with
-	if host.ActiveKOed || ai.ActiveKOed {
+	if host.ActiveKOed || client.ActiveKOed {
 		// wish i didn't have to deal with cleaning up state here
 		host.ActiveKOed = false
-		ai.ActiveKOed = false
+		client.ActiveKOed = false
 
 		gameState.Turn++
 
@@ -120,7 +120,7 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 		return networking.GameOverMessage{
 			YouLost: true,
 		}
-	case state.AI:
+	case state.PEER:
 		return networking.GameOverMessage{
 			YouLost: false,
 		}
@@ -137,7 +137,7 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 	}
 
 	if !gameState.ClientPlayer.GetActivePokemon().Alive() {
-		ai.ActiveKOed = true
+		client.ActiveKOed = true
 		return networking.ForceSwitchMessage{
 			ForThisPlayer: false,
 			StateUpdates:  cleanStateSnapshots(states),
