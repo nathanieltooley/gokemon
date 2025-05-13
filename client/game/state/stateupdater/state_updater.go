@@ -11,11 +11,6 @@ import (
 	"github.com/samber/lo"
 )
 
-// Abstraction of state changes (pokemon taking dmg, statuses changing, weather updates, etc).
-// The reason for this abstraction is to hide away any network dependent stuff from the main UI code.
-// Singleplayer games return artifically delayed cmds after updates while networked games will have actual latency
-type StateUpdater func(*state.GameState, []state.Action) tea.Msg
-
 // Takes a list of state snapshots and applies the final state to the main copy of state,
 // syncing all intermediate changes with the main state and returning the snapshots
 func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []state.StateSnapshot {
@@ -180,10 +175,4 @@ func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSna
 	}
 
 	return states
-}
-
-func errorCmd(err error, reason string) tea.Cmd {
-	return func() tea.Msg {
-		return networking.NetworkingErrorMsg{Err: err, Reason: reason}
-	}
 }
