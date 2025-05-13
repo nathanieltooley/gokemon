@@ -343,11 +343,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Game Over Check
 	case networking.GameOverMessage:
-		// !msg.YouLost instead of msg.YouLost for backcomp (have to change less stuff)
-		if !msg.YouLost {
-			return newEndScreen("You Won!"), nil
-		} else {
+		if msg.YouLost {
 			return newEndScreen("You Lost :("), nil
+		} else {
+			return newEndScreen("You Won!"), nil
 		}
 	case networking.NetworkingErrorMsg:
 		m.showError = true
