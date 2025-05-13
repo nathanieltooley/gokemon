@@ -224,13 +224,11 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch m.ctx.playerSide {
 				case state.HOST:
 					return movePanel{
-						ctx:   m.ctx,
-						moves: m.ctx.state.HostPlayer.GetActivePokemon().InGameMoveInfo,
+						ctx: m.ctx,
 					}, nil
 				case state.PEER:
 					return movePanel{
-						ctx:   m.ctx,
-						moves: m.ctx.state.ClientPlayer.GetActivePokemon().InGameMoveInfo,
+						ctx: m.ctx,
 					}, nil
 				}
 			case 1:
@@ -266,8 +264,6 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type movePanel struct {
 	ctx           *gameContext
 	moveGridFocus int
-
-	moves [4]game.BattleMove
 }
 
 func (m movePanel) Init() tea.Cmd { return nil }
@@ -284,7 +280,9 @@ func (m movePanel) View() string {
 				style = style.BorderBackground(rendering.HighlightedColor)
 			}
 
-			move := m.moves[arrayIndex]
+			moves := m.ctx.state.GetPlayer(m.ctx.playerSide).GetActivePokemon().InGameMoveInfo
+
+			move := moves[arrayIndex]
 			if move.Info.IsNil() {
 				row = append(row, style.Render("Empty"))
 			} else {
@@ -326,7 +324,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if key.Matches(msg, global.SelectKey) {
-			poke := m.ctx.state.HostPlayer.GetActivePokemon()
+			poke := m.ctx.state.GetPlayer(m.ctx.playerSide).GetActivePokemon()
 			move := poke.Moves[m.moveGridFocus]
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 

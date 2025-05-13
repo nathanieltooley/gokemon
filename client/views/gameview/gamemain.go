@@ -477,6 +477,8 @@ func singleplayerHandler(gameState *state.GameState, playerAction state.Action) 
 }
 
 func clientNetworkHandler(netInfo networking.NetReaderInfo, action state.Action) tea.Msg {
+	log.Debug().Msgf("client action: %+v", action)
+
 	if action == nil {
 		log.Debug().Msg("client is sending action of nil, should only happen during force switch")
 	} else {
