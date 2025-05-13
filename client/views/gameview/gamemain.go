@@ -1,6 +1,7 @@
 package gameview
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -41,8 +42,8 @@ type gameContext struct {
 }
 
 type MainGameModel struct {
-	ctx          *gameContext
-	stateUpdater stateupdater.StateUpdater
+	ctx               *gameContext
+	turnUpdateHandler func(state.Action) tea.Msg
 	// Player has submitted their action and starts waiting for the opponent to submit their's
 	// and for both of their actions to be processed
 	startedTurnResolving bool
@@ -76,14 +77,13 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 		playerSide:   playerSide,
 	}
 
-	var updater stateupdater.StateUpdater = stateupdater.LocalUpdater
+	var updater func(state.Action) tea.Msg
 
 	// Buffer size of 1 here since client should not send more than one per turn
 	actionChan := make(chan state.Action, 1)
 	timerChan := make(chan networking.UpdateTimerMessage, 5)
 	messageChan := make(chan tea.Msg)
 
-	netInfo := networking.NewGameNetInfo(actionChan, timerChan, messageChan, conn)
 	readerInfo := networking.NetReaderInfo{
 		ActionChan:  actionChan,
 		TimerChan:   timerChan,
@@ -96,19 +96,23 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 		switch playerSide {
 		case state.HOST:
 			// maybe changing these from interfaces wasn't the best idea
-			updater = func(gs *state.GameState, a []state.Action) tea.Msg {
-				return stateupdater.NetHostUpdater(gs, a, netInfo)
+			updater = func(action state.Action) tea.Msg {
+				return hostNetworkHandler(readerInfo, action, ctx.state)
 			}
 		case state.PEER:
-			updater = func(gs *state.GameState, a []state.Action) tea.Msg {
-				return stateupdater.NetClientUpdater(gs, a, netInfo)
+			updater = func(action state.Action) tea.Msg {
+				return clientNetworkHandler(readerInfo, action)
 			}
+		}
+	} else {
+		updater = func(action state.Action) tea.Msg {
+			return singleplayerHandler(ctx.state, action)
 		}
 	}
 
 	return MainGameModel{
 		ctx:                  ctx,
-		stateUpdater:         updater,
+		turnUpdateHandler:    updater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),
 
@@ -220,7 +224,6 @@ func (m *MainGameModel) nextStateMsg() bool {
 	return false
 }
 
-// TODO: There will have to be A LOT of changes for LAN or P2P Multiplayer
 func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 
@@ -324,7 +327,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 			// Do nothing, it's not our turn to move
 			cmds = append(cmds, func() tea.Msg {
-				return m.stateUpdater(m.ctx.state, nil)
+				return m.turnUpdateHandler(nil)
 			})
 		}
 	case networking.TurnResolvedMessage:
@@ -355,6 +358,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Handle misc msgs and timer sync
 	if m.netInfo.Conn != nil {
 		select {
 		case netMsg := <-m.netInfo.MessageChan:
@@ -413,7 +417,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		cmds = append(cmds, func() tea.Msg {
-			return m.stateUpdater(m.ctx.state, []state.Action{m.ctx.chosenAction})
+			return m.turnUpdateHandler(m.ctx.chosenAction)
 		})
 	} else {
 		m.panel, _ = m.panel.Update(msg)
@@ -464,4 +468,78 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func singleplayerHandler(gameState *state.GameState, playerAction state.Action) tea.Msg {
+	// Artifical delay
+	time.Sleep(time.Second * 2)
+	aiAction := state.BestAiAction(gameState)
+	return stateupdater.ProcessTurn(gameState, []state.Action{playerAction, aiAction})
+}
+
+func clientNetworkHandler(netInfo networking.NetReaderInfo, action state.Action) tea.Msg {
+	if action == nil {
+		log.Debug().Msg("client is sending action of nil, should only happen during force switch")
+	} else {
+		err := networking.SendAction(netInfo.Conn, action)
+		if err != nil {
+			return networking.NetworkingErrorMsg{Err: err, Reason: "client failed to send action to host"}
+		}
+	}
+
+	return <-netInfo.MessageChan
+}
+
+func hostNetworkHandler(netInfo networking.NetReaderInfo, action state.Action, gameState *state.GameState) tea.Msg {
+	opAction, ok := <-netInfo.ActionChan
+	if !ok {
+		return networking.NetworkingErrorMsg{Err: errors.New("host failed to listen to action channel")}
+	}
+
+	actions := []state.Action{action, opAction}
+	if action == nil {
+		log.Debug().Msg("host's action for this turn is nil, should only happen during force switch")
+		actions = []state.Action{opAction}
+	}
+	turnResult := stateupdater.ProcessTurn(gameState, actions)
+
+	switch msg := turnResult.(type) {
+	case networking.TurnResolvedMessage:
+		err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_TURNRESOLVE, msg)
+		if err != nil {
+			return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send turn resolve message"}
+		}
+
+		return turnResult
+	case networking.GameOverMessage:
+		// Host Lost, send client a message saying they won
+		if msg.YouLost {
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{YouLost: false})
+			if err != nil {
+				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send game over message"}
+			}
+		} else { // client lost, send client a message saying they lost
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{YouLost: true})
+			if err != nil {
+				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send game over message"}
+			}
+		}
+		return turnResult
+	case networking.ForceSwitchMessage:
+		if msg.ForThisPlayer { // For Host
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: false, StateUpdates: msg.StateUpdates})
+			if err != nil {
+				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
+			}
+		} else { // for client
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: true, StateUpdates: msg.StateUpdates})
+			if err != nil {
+				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
+			}
+		}
+
+		return turnResult
+	}
+
+	return turnResult
 }
