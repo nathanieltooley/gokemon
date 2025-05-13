@@ -158,19 +158,19 @@ func (g *GameState) GameOver() int {
 	for _, pokemon := range g.ClientPlayer.Team {
 		if pokemon.Hp.Value > 0 {
 			peerLoss = false
-			// log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
+			log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
 			break
 		}
 	}
 
 	if hostLoss {
 		log.Info().Msg("HOST/Player lost")
-		return PEER
+		return HOST
 	}
 
 	if peerLoss {
 		log.Info().Msg("PEER/AI lost")
-		return HOST
+		return PEER
 	}
 
 	return -1
