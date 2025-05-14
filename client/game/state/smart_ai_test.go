@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	global.GlobalInit(os.DirFS("../../../"))
+	global.GlobalInit(os.DirFS("../../../"), false)
 }
 
 func mustNotBeNil[T any](value *T) T {

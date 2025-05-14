@@ -65,7 +65,7 @@ var (
 	initLogger zerolog.Logger
 )
 
-func GlobalInit(files fs.FS) {
+func GlobalInit(files fs.FS, shouldLog bool) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	configDir := DefaultConfigDir()
@@ -78,6 +78,9 @@ func GlobalInit(files fs.FS) {
 	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
 
 	initLogger = multiLogger
+	if !shouldLog {
+		initLogger = zerolog.Nop()
+	}
 	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger()
 
 	if err := os.MkdirAll(configDir, 0750); err != nil {

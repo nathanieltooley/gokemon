@@ -52,7 +52,7 @@ func (m RootModel) View() string {
 }
 
 func main() {
-	global.GlobalInit(files)
+	global.GlobalInit(files, true)
 
 	m := RootModel{
 		// currentView: pokeselection.NewModel(basePokemon, &moves, abilities),

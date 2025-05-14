@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	global.GlobalInit(os.DirFS("../"))
+	global.GlobalInit(os.DirFS("../"), false)
 }
 
 func TestDrizzle(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDrizzle(t *testing.T) {
 	pokemon.Ability.Name = "drizzle"
 
 	gameState := state.NewState([]game.Pokemon{pokemon}, []game.Pokemon{enemyPokemon})
-	_ = stateupdater.LocalUpdater(&gameState, []state.Action{state.NewSwitchAction(&gameState, state.HOST, 0)})
+	_ = stateupdater.ProcessTurn(&gameState, []state.Action{state.NewSwitchAction(&gameState, state.HOST, 0)})
 
 	if gameState.Weather != game.WEATHER_RAIN {
 		t.Fatalf("Expected weather to be rain: got %d", gameState.Weather)
