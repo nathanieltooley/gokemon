@@ -473,6 +473,10 @@ func singleplayerHandler(gameState *state.GameState, playerAction state.Action) 
 	// Artifical delay
 	time.Sleep(time.Second * 2)
 	aiAction := state.BestAiAction(gameState)
+	// Force AI to switch in on "first" turn on battle as happens in a multiplayer game
+	if gameState.Turn == 0 {
+		aiAction = state.NewSwitchAction(gameState, state.AI, gameState.ClientPlayer.ActivePokeIndex)
+	}
 	return stateupdater.ProcessTurn(gameState, []state.Action{playerAction, aiAction})
 }
 
