@@ -24,6 +24,7 @@ import (
 type GlobalConfig struct {
 	TeamSaveLocation string
 	LocalPlayerName  string
+	Debug            bool
 }
 
 var (
@@ -69,44 +70,66 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	configDir := DefaultConfigDir()
-	configFileName := DefaultConfigLocation()
+	configFilepath := DefaultConfigLocation()
 
-	// Logging Setup
-	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
-	// TODO: Custom formatter, ends up printing out console format codes (obviously)
-	fileWriter := zerolog.ConsoleWriter{Out: rollingWriter}
-	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger()
+	// Basic logging for config debugging
+	initLogger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 
-	initLogger = multiLogger
-	if !shouldLog {
-		initLogger = zerolog.Nop()
-	}
-	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger()
-
+	// Initialize
 	if err := os.MkdirAll(configDir, 0750); err != nil {
 		initLogger.Err(err).Msg("error occured trying to create config dir")
 	}
 
 	// Read config file
-	configFile, err := os.ReadFile(configFileName)
+	configContents, err := os.ReadFile(configFilepath)
 	if err != nil {
-		_, err := os.Create(configFileName)
+		_, err := os.Create(configFilepath)
 		if err != nil {
 			initLogger.Err(err).Msg("error occurred while trying to create config file")
 		}
 	}
 
-	if len(configFile) > 0 {
+	// Non-empty config file
+	if len(configContents) > 0 {
 		newOpts := GlobalConfig{}
-		if err := json.Unmarshal(configFile, &newOpts); err != nil {
+		if err := json.Unmarshal(configContents, &newOpts); err != nil {
 			initLogger.Err(err).Msg("error occurred while trying to create new config file")
 		} else {
-			Opt = newOpts
+			Opt = populateConfig(newOpts)
 		}
 	} else {
-		// default team save location
-		Opt.TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
+		config := populateConfig(GlobalConfig{})
+		configBytes, err := json.Marshal(config)
+		if err != nil {
+			initLogger.Err(err).Msg("error occurred while trying to marshal default config values")
+		}
+
+		if err := os.WriteFile(configFilepath, configBytes, 0666); err != nil {
+			initLogger.Err(err).Msg("error occurred while trying to write default config values")
+		}
+
+		Opt = config
 	}
+
+	level := zerolog.InfoLevel
+	if Opt.Debug {
+		level = zerolog.DebugLevel
+	}
+
+	// Logging Setup
+	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
+	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
+	fileWriter := zerolog.ConsoleWriter{Out: rollingWriter}
+	// Only used for init logging
+	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger().Level(level)
+
+	initLogger = multiLogger
+	if !shouldLog {
+		initLogger = zerolog.Nop()
+	}
+
+	// Main global logger
+	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger().Level(level)
 
 	// Load concurrently
 	var wg sync.WaitGroup
@@ -353,4 +376,17 @@ func GetAbilitiesForPokemon(name string) []game.Ability {
 	pokemonLowerName := strings.ToLower(name)
 
 	return ABILITIES[pokemonLowerName]
+}
+
+func populateConfig(config GlobalConfig) GlobalConfig {
+	configDir := DefaultConfigDir()
+
+	if config.LocalPlayerName == "" {
+		config.LocalPlayerName = "Player"
+	}
+	if config.TeamSaveLocation == "" {
+		config.TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
+	}
+
+	return config
 }
