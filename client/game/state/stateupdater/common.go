@@ -145,8 +145,6 @@ func commonOtherActionHandling(gameState *state.GameState, actions []state.Actio
 				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
 			}
 
-			endOfTurnAbilities(gameState, a.GetCtx().PlayerId)
-
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
 			}
@@ -197,6 +195,9 @@ func commonEndOfTurn(gameState *state.GameState) []state.StateSnapshot {
 		states = append(states, state.SandstormDamage(gameState, localPokemon))
 		states = append(states, state.SandstormDamage(gameState, opPokemon))
 	}
+
+	endOfTurnAbilities(gameState, state.HOST)
+	endOfTurnAbilities(gameState, state.PEER)
 
 	messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
 		return item.Messages
