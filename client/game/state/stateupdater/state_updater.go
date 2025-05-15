@@ -174,8 +174,10 @@ func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSna
 	switch playerPokemon.Ability.Name {
 	// TEST: no gen 1 pkm have this ability
 	case "speed-boost":
-		states = append(states, state.NewMessageOnlySnapshot(abilityText))
-		states = append(states, state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100))
+		if !playerPokemon.SwitchedInThisTurn {
+			states = append(states, state.NewMessageOnlySnapshot(abilityText))
+			states = append(states, state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100))
+		}
 	}
 
 	return states
