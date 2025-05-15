@@ -97,11 +97,13 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 		log.Info().Msgf("States: %d", len(states))
 		log.Info().Strs("Queued Messages", messages).Msg("")
 
-		// HACK: same one as above
-		cleanedStates := cleanStateSnapshots(states)
-		finalState := cleanedStates[len(cleanedStates)-1]
-		finalState.State.Turn = gameState.Turn
-		cleanedStates[len(cleanedStates)-1] = finalState
+		if len(states) != 0 {
+			// HACK: same one as above
+			cleanedStates := cleanStateSnapshots(states)
+			finalState := cleanedStates[len(cleanedStates)-1]
+			finalState.State.Turn = gameState.Turn
+			cleanedStates[len(cleanedStates)-1] = finalState
+		}
 
 		gameState.MessageHistory = append(gameState.MessageHistory, messages...)
 
@@ -148,11 +150,13 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 	gameState.Turn++
 
-	// HACK: same one as above
-	cleanedStates := cleanStateSnapshots(states)
-	finalState := cleanedStates[len(cleanedStates)-1]
-	finalState.State.Turn = gameState.Turn
-	cleanedStates[len(cleanedStates)-1] = finalState
+	if len(states) != 0 {
+		// HACK: same one as above
+		cleanedStates := cleanStateSnapshots(states)
+		finalState := cleanedStates[len(cleanedStates)-1]
+		finalState.State.Turn = gameState.Turn
+		cleanedStates[len(cleanedStates)-1] = finalState
+	}
 
 	return networking.TurnResolvedMessage{
 		StateUpdates: cleanStateSnapshots(states),
