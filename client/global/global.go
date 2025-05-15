@@ -8,6 +8,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -136,7 +137,11 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	wg.Add(4)
 
 	go func() {
-		POKEMON = loadPokemon(files)
+		gen1Pokemon := loadPokemon(files, "data/gen1-data.csv")
+		gen2Pokemon := loadPokemon(files, "data/gen2-data.csv")
+		gen3Pokemon := loadPokemon(files, "data/gen3-data.csv")
+
+		POKEMON = slices.Concat(gen1Pokemon, gen2Pokemon, gen3Pokemon)
 		wg.Done()
 	}()
 	go func() {
@@ -155,9 +160,8 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	wg.Wait()
 }
 
-func loadPokemon(files fs.FS) PokemonRegistry {
-	dataFile := "data/gen1-data.csv"
-	fileReader, err := files.Open(dataFile)
+func loadPokemon(files fs.FS, filePath string) []game.BasePokemon {
+	fileReader, err := files.Open(filePath)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
 	}
@@ -219,7 +223,7 @@ func loadPokemon(files fs.FS) PokemonRegistry {
 		initLogger.Fatal().Err(err).Msg("Failed to load pokemon data")
 	}
 
-	return PokemonRegistry(pokemonList)
+	return pokemonList
 }
 
 func loadMoves(files fs.FS) *MoveRegistry {
