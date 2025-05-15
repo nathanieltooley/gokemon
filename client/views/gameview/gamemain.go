@@ -16,14 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// BIG PROBLEM IM GONNA HAVE TO FIGURE OUT
-//
-// bubbletea doesn't have a framework for creating "panels" or "windows" at arbitrary locations.
-// I'm gonna have to find a way to atleast put these panels in decent locations.
-// Maybe a module that creates these panels at a location and makes a string of it?
-// I may not deal with it ever and just make two panels with pokemon info in the center
-// and a panel with pokemon actions at the bottom ¯\_(ツ)_/¯
-
 const (
 	_MESSAGE_TIME = time.Second * 2
 )
