@@ -239,7 +239,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 		crit = false
 	}
 
-	damage := game.Damage(*attackPokemon, *defPokemon, move, crit, state.Weather)
+	damage := Damage(*attackPokemon, *defPokemon, move, crit, state.Weather)
 
 	if defPokemon.Ability.Name == "sturdy" {
 		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {

@@ -15,11 +15,6 @@ var builderLogger = func() *zerolog.Logger {
 	return &logger
 }
 
-var damageLogger = func() *zerolog.Logger {
-	logger := log.With().Str("location", "pokemon-damage").Logger()
-	return &logger
-}
-
 const (
 	STATUS_NONE = iota
 	STATUS_BURN

@@ -75,7 +75,7 @@ func bestAttackingMove(gameState *GameState) int {
 		}
 
 		// assume no crits
-		moveDamage := game.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
+		moveDamage := Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
 		if moveDamage > bestMoveDamage {
 			bestMoveIndex = i
 			bestMoveDamage = moveDamage

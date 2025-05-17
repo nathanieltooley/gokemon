@@ -44,17 +44,6 @@ func (s *GameState) TickPlayerTimers() {
 	}
 }
 
-func playerIntToString(player int) string {
-	switch player {
-	case HOST:
-		return "Host/Player"
-	case PEER:
-		return "Peer/AI"
-	}
-
-	return ""
-}
-
 func DefaultTeam() []game.Pokemon {
 	defaultTeam := make([]game.Pokemon, 0)
 
