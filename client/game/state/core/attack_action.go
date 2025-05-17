@@ -3,10 +3,10 @@ package core
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -80,7 +80,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	states = append(states, useMoveState)
 
-	accuracyCheck := rand.Intn(100)
+	accuracyCheck := global.GokeRand.IntN(100)
 
 	moveAccuracy := move.Accuracy
 	if moveAccuracy == 0 {
@@ -192,7 +192,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s can not be flinched", defPokemon.Nickname)))
 		}
 
-		if rand.Intn(100) < flinchChance {
+		if global.GokeRand.IntN(100) < flinchChance {
 			states = append(states, FlinchHandler(&state, defPokemon))
 		}
 
@@ -227,7 +227,7 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 	states := make([]StateSnapshot, 0)
 	crit := false
 
-	if rand.Float32() < attackPokemon.CritChance() {
+	if global.GokeRand.Float32() < attackPokemon.CritChance() {
 		crit = true
 		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
 	}
@@ -350,7 +350,7 @@ func ohkoHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core
 
 	defPokemon.Damage(defPokemon.Hp.Value)
 
-	randCheck := rand.Float64()
+	randCheck := global.GokeRand.Float64()
 	if randCheck < 0.01 {
 		ohkoState.Messages = append(ohkoState.Messages, "%s took calamitous damage!", defPokemon.Nickname)
 	} else {
@@ -365,7 +365,7 @@ func ohkoHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core
 func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) StateSnapshot {
 	ailment, ok := core.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	if ok && defPokemon.Status == core.STATUS_NONE {
-		ailmentCheck := rand.Intn(100)
+		ailmentCheck := global.GokeRand.IntN(100)
 		ailmentChance := move.Meta.AilmentChance
 
 		// in pokeapi speak, 0 here means the chance is 100% (at least as it relates to moves like toxic and poison-powder)
@@ -405,7 +405,7 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 		if effectChance == 0 {
 			effectChance = 100
 		}
-		effectCheck := rand.Intn(100)
+		effectCheck := global.GokeRand.IntN(100)
 
 		if effectCheck < effectChance {
 			switch effect {
@@ -414,7 +414,7 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 				if defPokemon.Ability.Name != "own-tempo" {
 					log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
 
-					confusionDuration := rand.Intn(3) + 2
+					confusionDuration := global.GokeRand.IntN(3) + 2
 					defPokemon.ConfusionCount = confusionDuration
 					log.Info().Int("confusionCount", defPokemon.ConfusionCount).Msg("confusion applied")
 				}
@@ -454,7 +454,7 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 		return e.Pokemon.Alive() && e.Index != defPlayer.ActivePokeIndex
 	})
 
-	choiceIndex := rand.Intn(len(alivePokemon))
+	choiceIndex := global.GokeRand.IntN(len(alivePokemon))
 
 	ogPokemonName := defPlayer.GetActivePokemon().Nickname
 

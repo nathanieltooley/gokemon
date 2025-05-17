@@ -3,10 +3,10 @@ package core
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,7 +21,7 @@ const (
 )
 
 func StatChangeHandler(state *GameState, pokemon *core.Pokemon, statChange core.StatChange, statChance int) StateSnapshot {
-	statCheck := rand.Intn(100)
+	statCheck := global.GokeRand.IntN(100)
 	if statChance == 0 {
 		statChance = 100
 	}
@@ -102,7 +102,7 @@ func SleepHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 
 func ParaHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	paraChance := 0.5
-	paraCheck := rand.Float64()
+	paraCheck := global.GokeRand.Float64()
 
 	if paraCheck > paraChance {
 		// don't get para'd
@@ -160,7 +160,7 @@ func ToxicHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 
 func FreezeHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	thawChance := .20
-	thawCheck := rand.Float64()
+	thawCheck := global.GokeRand.Float64()
 
 	message := ""
 
@@ -189,7 +189,7 @@ func ConfuseHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion lowered")
 
 	confChance := .33
-	confCheck := rand.Float64()
+	confCheck := global.GokeRand.Float64()
 
 	// Exit early
 	if confCheck > confChance {
@@ -244,7 +244,7 @@ func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSna
 			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Insomnia and can not fall asleep!", pokemon.Nickname))
 		}
 
-		randTime := rand.Intn(2) + 1
+		randTime := global.GokeRand.IntN(2) + 1
 		pokemon.SleepCount = randTime
 		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
 	case core.STATUS_POISON:

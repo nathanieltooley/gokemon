@@ -1,10 +1,9 @@
 package state
 
 import (
-	"math/rand"
-
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
+	"github.com/nathanieltooley/gokemon/client/global"
 )
 
 // Determines the best AI Action. Failsafes to skip action
@@ -41,7 +40,7 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 		if bestMove.IsNil() {
 			// Randomly select a non-nil move if no best move available
 			for {
-				rMoveIndex := rand.Intn(4)
+				rMoveIndex := global.GokeRand.IntN(4)
 				randMove := aiPokemon.Moves[rMoveIndex]
 				if !randMove.IsNil() {
 					return stateCore.NewAttackAction(AI, rMoveIndex)
