@@ -1,4 +1,4 @@
-package game
+package core
 
 const (
 	MAX_IV       = 31

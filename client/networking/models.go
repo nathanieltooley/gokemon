@@ -5,8 +5,8 @@ import (
 	"net"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 )
 
 const (
@@ -27,20 +27,20 @@ const (
 type (
 	ForceSwitchMessage struct {
 		ForThisPlayer bool
-		StateUpdates  []state.StateSnapshot
+		StateUpdates  []stateCore.StateSnapshot
 	}
 	TurnResolvedMessage struct {
-		StateUpdates []state.StateSnapshot
+		StateUpdates []stateCore.StateSnapshot
 	}
 	GameOverMessage struct {
 		// The "you" in this sense is the player who is receiving the message
 		YouLost bool
 	}
 	ContinueUpdaterMessage struct {
-		Actions []state.Action
+		Actions []stateCore.Action
 	}
 	SendActionMessage struct {
-		Action state.Action
+		Action stateCore.Action
 	}
 	UpdateTimerMessage struct {
 		Directive     int
@@ -53,7 +53,7 @@ type (
 
 // "Packets" are used for networking outside of the game (lobby setup and start)
 type TeamSelectionPacket struct {
-	Team []game.Pokemon
+	Team []core.Pokemon
 }
 
 type StarterSelectionPacket struct {
@@ -74,7 +74,7 @@ func (e NetworkingErrorMsg) Error() string {
 }
 
 type NetReaderInfo struct {
-	ActionChan  chan state.Action
+	ActionChan  chan stateCore.Action
 	TimerChan   chan UpdateTimerMessage
 	MessageChan chan tea.Msg
 

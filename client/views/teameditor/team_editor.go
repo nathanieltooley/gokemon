@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/nathanieltooley/gokemon/client/rendering/components"
@@ -72,7 +73,7 @@ const (
 
 type teamEditorCtx struct {
 	// The current team we're editing
-	team               []game.Pokemon
+	team               []core.Pokemon
 	listeningForEscape bool
 }
 
@@ -82,7 +83,7 @@ type (
 
 		addPokemonList   list.Model
 		addingNewPokemon bool
-		choice           *game.BasePokemon
+		choice           *core.BasePokemon
 		teamView         components.TeamView
 		backtrack        components.Breadcrumbs
 	}
@@ -90,7 +91,7 @@ type (
 		ctx *teamEditorCtx
 
 		editorModels       [len(editors)]editor
-		currentPokemon     *game.Pokemon
+		currentPokemon     *core.Pokemon
 		currentEditorIndex int
 		backtrack          components.Breadcrumbs
 	}
@@ -105,7 +106,7 @@ type (
 	}
 )
 
-func NewTeamEditorModel(backtrack components.Breadcrumbs, team []game.Pokemon) editTeamModel {
+func NewTeamEditorModel(backtrack components.Breadcrumbs, team []core.Pokemon) editTeamModel {
 	ctx := teamEditorCtx{
 		team:               team,
 		listeningForEscape: true,
@@ -192,7 +193,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.teamView.CurrentPokemonIndex = len(m.ctx.team) - 1
 			}
 
-			var currentPokemon *game.Pokemon
+			var currentPokemon *core.Pokemon
 
 			if len(m.ctx.team) > 0 {
 				currentPokemon = &m.ctx.team[m.teamView.CurrentPokemonIndex]
@@ -241,11 +242,11 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m editTeamModel) GetCurrentPokemon() game.Pokemon {
-	return game.Pokemon{}
+func (m editTeamModel) GetCurrentPokemon() core.Pokemon {
+	return core.Pokemon{}
 }
 
-func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *game.Pokemon, backtrack components.Breadcrumbs) editPokemonModel {
+func newEditPokemonModel(ctx *teamEditorCtx, currentPokemon *core.Pokemon, backtrack components.Breadcrumbs) editPokemonModel {
 	abilities := global.ABILITIES
 
 	var editorModels [len(editors)]editor
@@ -342,7 +343,7 @@ func (m editPokemonModel) View() string {
 		m.currentPokemon.Moves[1].Name,
 		m.currentPokemon.Moves[2].Name,
 		m.currentPokemon.Moves[3].Name,
-		game.MAX_TOTAL_EV-m.currentPokemon.GetCurrentEvTotal(),
+		core.MAX_TOTAL_EV-m.currentPokemon.GetCurrentEvTotal(),
 	)
 
 	var newEditors [len(editors)]string
@@ -529,7 +530,7 @@ func (m saveTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type item struct {
-	*game.BasePokemon
+	*core.BasePokemon
 }
 
 func (i item) FilterValue() string {

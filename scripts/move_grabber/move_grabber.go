@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/scripts"
 	"github.com/samber/lo"
 	"golang.org/x/text/cases"
@@ -16,11 +16,11 @@ import (
 )
 
 type MoveMetaPre struct {
-	Ailment       game.NamedApiResource
+	Ailment       core.NamedApiResource
 	AilmentChance int `json:"ailment_chance"`
 	FlinchChance  int `json:"flinch_chance"`
 	StatChance    int `json:"stat_chance"`
-	Category      game.NamedApiResource
+	Category      core.NamedApiResource
 
 	// Null means always hits once
 	MinHits *int `json:"min_hits"`
@@ -37,7 +37,7 @@ type MoveMetaPre struct {
 }
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
-func (m *MoveMetaPre) ToFullMeta() (*game.MoveMeta, error) {
+func (m *MoveMetaPre) ToFullMeta() (*core.MoveMeta, error) {
 	ailmentJson, err := scripts.FollowNamedResource[struct {
 		Id   int
 		Name string
@@ -54,7 +54,7 @@ func (m *MoveMetaPre) ToFullMeta() (*game.MoveMeta, error) {
 		return nil, err
 	}
 
-	meta := &game.MoveMeta{
+	meta := &core.MoveMeta{
 		Ailment:  ailmentJson,
 		Category: categoryJson,
 
@@ -86,25 +86,25 @@ type StatChangePre struct {
 // TODO: Follow all NamedApiResources and return their actual value
 type MoveFullPre struct {
 	Accuracy      int
-	DamageClass   game.NamedApiResource `json:"damage_class"`
+	DamageClass   core.NamedApiResource `json:"damage_class"`
 	EffectChance  int
 	EffectEntries []struct {
 		Effect      string
-		Language    game.NamedApiResource
+		Language    core.NamedApiResource
 		ShortEffect string `json:"short_effect"`
 	} `json:"effect_entries"`
-	LearnedByPokemon []game.NamedApiResource `json:"learned_by_pokemon"`
+	LearnedByPokemon []core.NamedApiResource `json:"learned_by_pokemon"`
 	Meta             *MoveMetaPre
 	Name             string
 	Power            int
 	PP               int
 	Priority         int
 	StatChanges      []StatChangePre `json:"stat_changes"`
-	Target           game.NamedApiResource
-	Type             game.NamedApiResource
+	Target           core.NamedApiResource
+	Type             core.NamedApiResource
 }
 
-func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
+func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 	damageClassJson, err := scripts.FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
@@ -117,14 +117,14 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 		Name         string
 		Descriptions []struct {
 			Description string
-			Language    game.NamedApiResource
+			Language    core.NamedApiResource
 		}
 	}](m.Target)
 	if err != nil {
 		return nil, err
 	}
 
-	var effect game.EffectEntry
+	var effect core.EffectEntry
 	for _, effectEntry := range m.EffectEntries {
 		if effectEntry.Language.Name == "en" {
 			effect.Effect = effectEntry.Effect
@@ -132,12 +132,12 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 		}
 	}
 
-	target := game.Target{
+	target := core.Target{
 		Id:   targetJson.Id,
 		Name: targetJson.Name,
 	}
 
-	var meta *game.MoveMeta
+	var meta *core.MoveMeta
 
 	if m.Meta != nil {
 		meta1, err := m.Meta.ToFullMeta()
@@ -150,7 +150,7 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 
 	titleCaser := cases.Title(language.English)
 
-	move := &game.MoveFull{
+	move := &core.MoveFull{
 		DamageClass: damageClassJson.Name,
 		EffectEntry: effect,
 		Target:      target,
@@ -164,8 +164,8 @@ func (m *MoveFullPre) ToFullMeta() (*game.MoveFull, error) {
 		Power:            m.Power,
 		PP:               m.PP,
 		Priority:         m.Priority,
-		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) game.StatChange {
-			return game.StatChange{
+		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) core.StatChange {
+			return core.StatChange{
 				Change:   statPre.Change,
 				StatName: statPre.Stat.Name,
 			}
@@ -190,7 +190,7 @@ func main() {
 		Count    int
 		Next     *string // Pointers because they can be nil
 		Previous *string
-		Results  []game.NamedApiResource
+		Results  []core.NamedApiResource
 	}
 
 	fullresponseJson := new(Response)
@@ -249,7 +249,7 @@ func main() {
 		}
 
 		// Gross hack to get rid of LearnedByPokemon info
-		move := game.Move{
+		move := core.Move{
 			Accuracy:     moveJson.Accuracy,
 			DamageClass:  moveJson.DamageClass,
 			EffectChance: movePreJson.EffectChance,

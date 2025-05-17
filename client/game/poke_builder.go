@@ -2,27 +2,35 @@ package game
 
 import (
 	"math"
-	"math/rand/v2"
 
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
-type PokemonBuilder struct {
-	poke Pokemon
+var builderLogger = func() *zerolog.Logger {
+	logger := log.With().Str("location", "pokemon-builder").Logger()
+	return &logger
 }
 
-func NewPokeBuilder(base *BasePokemon) *PokemonBuilder {
-	poke := Pokemon{
+type PokemonBuilder struct {
+	poke core.Pokemon
+}
+
+func NewPokeBuilder(base *core.BasePokemon) *PokemonBuilder {
+	poke := core.Pokemon{
 		Base:     base,
 		Nickname: base.Name,
 		Level:    1,
-		Hp:       HpStat{0, 0, 0},
-		Attack:   Stat{0, 0, 0, 0},
-		Def:      Stat{0, 0, 0, 0},
-		SpAttack: Stat{0, 0, 0, 0},
-		SpDef:    Stat{0, 0, 0, 0},
-		RawSpeed: Stat{0, 0, 0, 0},
-		Nature:   NATURE_HARDY,
+		Hp:       core.HpStat{Value: 0, Ev: 0, Iv: 0},
+		Attack:   core.Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
+		Def:      core.Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
+		SpAttack: core.Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
+		SpDef:    core.Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
+		RawSpeed: core.Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
+		Nature:   core.NATURE_HARDY,
 	}
 
 	return &PokemonBuilder{poke}
@@ -67,12 +75,12 @@ func (pb *PokemonBuilder) SetIvs(ivs [6]uint) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
-	pb.poke.Hp.Iv = MAX_IV
-	pb.poke.Attack.Iv = MAX_IV
-	pb.poke.Def.Iv = MAX_IV
-	pb.poke.SpAttack.Iv = MAX_IV
-	pb.poke.SpDef.Iv = MAX_IV
-	pb.poke.RawSpeed.Iv = MAX_IV
+	pb.poke.Hp.Iv = core.MAX_IV
+	pb.poke.Attack.Iv = core.MAX_IV
+	pb.poke.Def.Iv = core.MAX_IV
+	pb.poke.SpAttack.Iv = core.MAX_IV
+	pb.poke.SpDef.Iv = core.MAX_IV
+	pb.poke.RawSpeed.Iv = core.MAX_IV
 
 	builderLogger().Debug().Msg("Setting Perfect IVS")
 
@@ -83,7 +91,7 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 	var ivs [6]uint
 
 	for i := range ivs {
-		iv := rand.UintN(MAX_IV + 1)
+		iv := global.GokeRand.UintN(core.MAX_IV + 1)
 		ivs[i] = iv
 	}
 
@@ -97,15 +105,15 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 // and follow the order of HP, ATTACK, DEF, SPATTACK, SPDEF, SPEED
 // TODO: pretty sure this doesn't work
 func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
-	evPool := MAX_TOTAL_EV
+	evPool := core.MAX_TOTAL_EV
 	var evs [6]uint
 
 	for evPool > 0 {
 		// randomly select a stat to add EVs to
-		randomIndex := rand.UintN(6)
+		randomIndex := global.GokeRand.UintN(6)
 		currentEv := evs[randomIndex]
 
-		remainingEvSpace := MAX_EV - currentEv
+		remainingEvSpace := core.MAX_EV - currentEv
 
 		if remainingEvSpace <= 0 {
 			continue
@@ -113,7 +121,7 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 
 		// Get a random value to increase the EV by
 		// ranges from 0 to (remainingEvSpace or MAX_EV) + 1
-		randomEv := rand.UintN(uint(math.Max(float64(remainingEvSpace), MAX_EV)) + 1)
+		randomEv := global.GokeRand.UintN(uint(math.Max(float64(remainingEvSpace), core.MAX_EV)) + 1)
 		evs[randomIndex] += randomEv
 		evPool -= int(randomEv)
 	}
@@ -132,19 +140,19 @@ func (pb *PokemonBuilder) SetLevel(level uint) *PokemonBuilder {
 
 func (pb *PokemonBuilder) SetRandomLevel(low int, high int) *PokemonBuilder {
 	n := uint(high - low)
-	rndLevel := rand.UintN(n) + uint(low)
+	rndLevel := global.GokeRand.UintN(n) + uint(low)
 	pb.poke.Level = rndLevel
 
 	return pb
 }
 
-func (pb *PokemonBuilder) SetNature(nature Nature) *PokemonBuilder {
+func (pb *PokemonBuilder) SetNature(nature core.Nature) *PokemonBuilder {
 	pb.poke.Nature = nature
 	return pb
 }
 
 func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
-	rndNature := NATURES[rand.IntN(len(NATURES))]
+	rndNature := core.NATURES[global.GokeRand.IntN(len(core.NATURES))]
 	pb.poke.Nature = rndNature
 
 	return pb
@@ -152,8 +160,8 @@ func (pb *PokemonBuilder) SetRandomNature() *PokemonBuilder {
 
 // NOTE: takes in pointers rather than values even though pokemon struct no longer holds pointers (issues with gob)
 // mainly so i have to change less stuff
-func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder {
-	var moves [4]Move
+func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*core.Move) *PokemonBuilder {
+	var moves [4]core.Move
 
 	if len(possibleMoves) == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available moves to randomize with!")
@@ -161,11 +169,11 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 	}
 
 	for i := range 4 {
-		move := possibleMoves[rand.IntN(len(possibleMoves))]
+		move := possibleMoves[global.GokeRand.IntN(len(possibleMoves))]
 		moves[i] = *move
 	}
 
-	moveNames := lo.Map(moves[:], func(move Move, _ int) string {
+	moveNames := lo.Map(moves[:], func(move core.Move, _ int) string {
 		return move.Name
 	})
 
@@ -176,27 +184,27 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []*Move) *PokemonBuilder 
 	return pb
 }
 
-func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *PokemonBuilder {
+func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []core.Ability) *PokemonBuilder {
 	abilityCount := len(possibleAbilities)
 	if abilityCount == 0 {
 		builderLogger().Warn().Msg("This Pokemon was given no available abilities to randomize with!")
 		return pb
 	}
 
-	hiddenAbility, found := lo.Find(possibleAbilities, func(a Ability) bool {
+	hiddenAbility, found := lo.Find(possibleAbilities, func(a core.Ability) bool {
 		return a.IsHidden
 	})
-	normalAbilities := lo.Filter(possibleAbilities, func(a Ability, _ int) bool {
+	normalAbilities := lo.Filter(possibleAbilities, func(a core.Ability, _ int) bool {
 		return !a.IsHidden
 	})
 
-	choseHidden := rand.Float64()
+	choseHidden := global.GokeRand.Float64()
 
 	// 1% chance to get a hidden ability randomly
 	if found && choseHidden < 0.01 {
 		pb.poke.Ability = hiddenAbility
 	} else {
-		pb.poke.Ability = normalAbilities[rand.IntN(len(normalAbilities))]
+		pb.poke.Ability = normalAbilities[global.GokeRand.IntN(len(normalAbilities))]
 	}
 
 	return pb
@@ -204,7 +212,7 @@ func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *Pokemon
 
 // TODO: SetRandomItem
 
-func (pb *PokemonBuilder) Build() Pokemon {
+func (pb *PokemonBuilder) Build() core.Pokemon {
 	pb.poke.ReCalcStats()
 	builderLogger().Debug().Msg("Building pokemon")
 	return pb.poke

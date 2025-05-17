@@ -9,8 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/game/state"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/rendering"
 	"github.com/rs/zerolog/log"
@@ -36,57 +37,57 @@ var (
 )
 
 var statusColors map[int]lipgloss.Color = map[int]lipgloss.Color{
-	game.STATUS_BURN:   lipgloss.Color("#E36D1C"),
-	game.STATUS_PARA:   lipgloss.Color("#FFD400"),
-	game.STATUS_TOXIC:  lipgloss.Color("#A61AE5"),
-	game.STATUS_POISON: lipgloss.Color("#A61AE5"),
-	game.STATUS_FROZEN: lipgloss.Color("#31BBCE"),
-	game.STATUS_SLEEP:  lipgloss.Color("#BCE9EF"),
+	core.STATUS_BURN:   lipgloss.Color("#E36D1C"),
+	core.STATUS_PARA:   lipgloss.Color("#FFD400"),
+	core.STATUS_TOXIC:  lipgloss.Color("#A61AE5"),
+	core.STATUS_POISON: lipgloss.Color("#A61AE5"),
+	core.STATUS_FROZEN: lipgloss.Color("#31BBCE"),
+	core.STATUS_SLEEP:  lipgloss.Color("#BCE9EF"),
 }
 
 var statusTxt map[int]string = map[int]string{
-	game.STATUS_BURN:   "BRN",
-	game.STATUS_PARA:   "PAR",
-	game.STATUS_FROZEN: "FRZ",
-	game.STATUS_TOXIC:  "TOX",
-	game.STATUS_POISON: "PSN",
-	game.STATUS_SLEEP:  "SLP",
+	core.STATUS_BURN:   "BRN",
+	core.STATUS_PARA:   "PAR",
+	core.STATUS_FROZEN: "FRZ",
+	core.STATUS_TOXIC:  "TOX",
+	core.STATUS_POISON: "PSN",
+	core.STATUS_SLEEP:  "SLP",
 }
 
 var typeColors map[string]lipgloss.Color = map[string]lipgloss.Color{
-	game.TYPENAME_NORMAL:   lipgloss.Color("#99a2a5"),
-	game.TYPENAME_FIRE:     lipgloss.Color("#e31c1c"),
-	game.TYPENAME_WATER:    lipgloss.Color("#1461eb"),
-	game.TYPENAME_GRASS:    lipgloss.Color("#26bd45"),
-	game.TYPENAME_ELECTRIC: lipgloss.Color("#FFD400"),
-	game.TYPENAME_PSYCHIC:  lipgloss.Color("#dd228d"),
-	game.TYPENAME_ICE:      lipgloss.Color("#31BBCE"),
-	game.TYPENAME_DRAGON:   lipgloss.Color("#1d3be2"),
-	game.TYPENAME_DARK:     lipgloss.Color("#5c4733"),
-	game.TYPENAME_FAIRY:    lipgloss.Color("#e66fc3"),
-	game.TYPENAME_FIGHTING: lipgloss.Color("#cf8530"),
-	game.TYPENAME_FLYING:   lipgloss.Color("#51b2e8"),
-	game.TYPENAME_POISON:   lipgloss.Color("#A61AE5"),
-	game.TYPENAME_GROUND:   lipgloss.Color("#9a6b25"),
-	game.TYPENAME_ROCK:     lipgloss.Color("#d5c296"),
-	game.TYPENAME_BUG:      lipgloss.Color("#99e14b"),
-	game.TYPENAME_GHOST:    lipgloss.Color("#8606e6"),
+	core.TYPENAME_NORMAL:   lipgloss.Color("#99a2a5"),
+	core.TYPENAME_FIRE:     lipgloss.Color("#e31c1c"),
+	core.TYPENAME_WATER:    lipgloss.Color("#1461eb"),
+	core.TYPENAME_GRASS:    lipgloss.Color("#26bd45"),
+	core.TYPENAME_ELECTRIC: lipgloss.Color("#FFD400"),
+	core.TYPENAME_PSYCHIC:  lipgloss.Color("#dd228d"),
+	core.TYPENAME_ICE:      lipgloss.Color("#31BBCE"),
+	core.TYPENAME_DRAGON:   lipgloss.Color("#1d3be2"),
+	core.TYPENAME_DARK:     lipgloss.Color("#5c4733"),
+	core.TYPENAME_FAIRY:    lipgloss.Color("#e66fc3"),
+	core.TYPENAME_FIGHTING: lipgloss.Color("#cf8530"),
+	core.TYPENAME_FLYING:   lipgloss.Color("#51b2e8"),
+	core.TYPENAME_POISON:   lipgloss.Color("#A61AE5"),
+	core.TYPENAME_GROUND:   lipgloss.Color("#9a6b25"),
+	core.TYPENAME_ROCK:     lipgloss.Color("#d5c296"),
+	core.TYPENAME_BUG:      lipgloss.Color("#99e14b"),
+	core.TYPENAME_GHOST:    lipgloss.Color("#8606e6"),
 	// bulbapedia has this as a light blue
 	// it does look similar to normal, so maybe change?
 	// but ice and flying already have light blue
-	game.TYPENAME_STEEL: lipgloss.Color("#74868b"),
+	core.TYPENAME_STEEL: lipgloss.Color("#74868b"),
 }
 
 type playerPanel struct {
-	gameState state.GameState
+	gameState stateCore.GameState
 
-	player    *state.Player
+	player    *stateCore.Player
 	name      string
 	healthBar progress.Model
 	timer     *int64
 }
 
-func newPlayerPanel(gameState state.GameState, name string, player *state.Player, timer *int64) playerPanel {
+func newPlayerPanel(gameState stateCore.GameState, name string, player *stateCore.Player, timer *int64) playerPanel {
 	progressBar := progress.New(progress.WithDefaultGradient())
 	progressBar.Width = playerPanelWidth * .50
 
@@ -100,14 +101,14 @@ func newPlayerPanel(gameState state.GameState, name string, player *state.Player
 	}
 }
 
-func pokemonEffects(pokemon game.Pokemon) string {
+func pokemonEffects(pokemon core.Pokemon) string {
 	panels := make([]string, 0)
 
 	negativePanel := lipgloss.NewStyle().Background(lipgloss.Color("#ff2f2f")).Foreground(lipgloss.Color("#ffffff"))
 	positivePanel := lipgloss.NewStyle().Background(lipgloss.Color("#00cf00")).Foreground(lipgloss.Color("#000000"))
 
 	writeStat := func(statName string, statStage int) {
-		statMod := game.StageMultipliers[statStage]
+		statMod := core.StageMultipliers[statStage]
 		if statStage > 0 {
 			panels = append(panels, positivePanel.Render(fmt.Sprintf("%s: x%.2f", statName, statMod)))
 		} else if statStage < 0 {
@@ -152,7 +153,7 @@ func (m playerPanel) View() string {
 
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
 	statusText := ""
-	if currentPokemon.Status != game.STATUS_NONE {
+	if currentPokemon.Status != core.STATUS_NONE {
 		statusStyle := lipgloss.NewStyle().Background(statusColors[currentPokemon.Status])
 		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
 	}
@@ -329,7 +330,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
 			if !move.IsNil() && pp > 0 {
-				attack := state.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
+				attack := stateCore.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 			}
 
@@ -342,7 +343,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if outOfMoves {
-				attack := state.NewAttackAction(m.ctx.playerSide, -1)
+				attack := stateCore.NewAttackAction(m.ctx.playerSide, -1)
 				m.ctx.chosenAction = attack
 			}
 		}
@@ -353,13 +354,13 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type pokemonPanel struct {
 	ctx     *gameContext
-	pokemon []game.Pokemon
+	pokemon []core.Pokemon
 
 	selectedPokemon int
 	currentSubtext  string
 }
 
-func newPokemonPanel(ctx *gameContext, pokemon []game.Pokemon) pokemonPanel {
+func newPokemonPanel(ctx *gameContext, pokemon []core.Pokemon) pokemonPanel {
 	panel := pokemonPanel{
 		ctx:     ctx,
 		pokemon: pokemon,
@@ -434,7 +435,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Only allow switches to alive and existing pokemon
 			if currentValidPokemon.Alive() {
-				action := state.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
+				action := stateCore.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
 
 				m.ctx.chosenAction = action
 			}

@@ -1,20 +1,20 @@
-package stateupdater
+package state
 
 import (
 	"slices"
 	"testing"
 
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 )
 
 func TestSnapClean(t *testing.T) {
-	snaps := []state.StateSnapshot{
+	snaps := []stateCore.StateSnapshot{
 		{
-			State: state.NewState(make([]game.Pokemon, 0), make([]game.Pokemon, 0)),
+			State: NewState(make([]core.Pokemon, 0), make([]core.Pokemon, 0)),
 		},
-		state.NewEmptyStateSnapshot(),
-		state.NewMessageOnlySnapshot("Hello World!"),
+		stateCore.NewEmptyStateSnapshot(),
+		stateCore.NewMessageOnlySnapshot("Hello World!"),
 	}
 
 	newSnaps := cleanStateSnapshots(snaps)

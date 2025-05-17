@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 )
 
@@ -29,12 +31,12 @@ func TestAttackMove(t *testing.T) {
 	aiPokemon.Moves[2] = mustNotBeNil(global.MOVES.GetMove("tail-whip"))
 	aiPokemon.Moves[3] = mustNotBeNil(global.MOVES.GetMove("scary-face"))
 
-	gameState := NewState([]game.Pokemon{playerPokemon}, []game.Pokemon{aiPokemon})
+	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon})
 
 	aiResult := BestAiAction(&gameState)
 
-	if aiResult != NewAttackAction(AI, 1) {
-		t.Fatalf("Attack move should be ember, got: %+v", aiPokemon.Moves[aiResult.(AttackAction).AttackerMove])
+	if aiResult != stateCore.NewAttackAction(AI, 1) {
+		t.Fatalf("Attack move should be ember, got: %+v", aiPokemon.Moves[aiResult.(stateCore.AttackAction).AttackerMove])
 	}
 }
 
@@ -47,12 +49,12 @@ func TestSlowMove(t *testing.T) {
 	aiPokemon.Moves[2] = mustNotBeNil(global.MOVES.GetMove("tail-whip"))
 	aiPokemon.Moves[3] = mustNotBeNil(global.MOVES.GetMove("scary-face"))
 
-	gameState := NewState([]game.Pokemon{playerPokemon}, []game.Pokemon{aiPokemon})
+	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon})
 
 	aiResult := BestAiAction(&gameState)
 
-	if aiResult != NewAttackAction(AI, 3) {
+	if aiResult != stateCore.NewAttackAction(AI, 3) {
 		t.Logf("pSpeed: %d | aSpeed: %d", playerPokemon.Speed(), aiPokemon.Speed())
-		t.Fatalf("Attack move should be scary-face, got: %+v", aiPokemon.Moves[aiResult.(AttackAction).AttackerMove])
+		t.Fatalf("Attack move should be scary-face, got: %+v", aiPokemon.Moves[aiResult.(stateCore.AttackAction).AttackerMove])
 	}
 }

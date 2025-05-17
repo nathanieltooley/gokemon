@@ -1,4 +1,4 @@
-package game
+package core
 
 import (
 	"fmt"
@@ -6,14 +6,8 @@ import (
 
 	err "errors"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
-
-var builderLogger = func() *zerolog.Logger {
-	logger := log.With().Str("location", "pokemon-builder").Logger()
-	return &logger
-}
 
 const (
 	STATUS_NONE = iota

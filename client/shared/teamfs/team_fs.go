@@ -7,22 +7,22 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 )
 
 var ErrNoSuchTeam = errors.New("no such team exists")
 
 var teamsFileName string = "teams.json"
 
-type SavedTeams map[string][]game.Pokemon
+type SavedTeams map[string][]core.Pokemon
 
-func SaveTeam(filePath string, name string, pokemon []game.Pokemon) error {
+func SaveTeam(filePath string, name string, pokemon []core.Pokemon) error {
 	teams, err := LoadTeamMap(filePath)
 	if err != nil {
 		return err
 	}
 
-	serializablePokemon := make([]game.Pokemon, 0)
+	serializablePokemon := make([]core.Pokemon, 0)
 	for _, pokemon := range pokemon {
 		if !pokemon.IsNil() {
 			serializablePokemon = append(serializablePokemon, pokemon)
@@ -49,8 +49,8 @@ func SaveTeam(filePath string, name string, pokemon []game.Pokemon) error {
 	return nil
 }
 
-func LoadTeam(filePath string, name string) ([6]*game.Pokemon, error) {
-	var team [6]*game.Pokemon
+func LoadTeam(filePath string, name string) ([6]*core.Pokemon, error) {
+	var team [6]*core.Pokemon
 
 	teams, err := LoadTeamMap(filePath)
 	if err != nil {
@@ -103,8 +103,8 @@ func LoadTeamMap(filePath string) (SavedTeams, error) {
 	return teams, nil
 }
 
-func TeamSliceToArray(slice []game.Pokemon) [6]*game.Pokemon {
-	var team [6]*game.Pokemon
+func TeamSliceToArray(slice []core.Pokemon) [6]*core.Pokemon {
+	var team [6]*core.Pokemon
 
 	for i, pokemon := range slice {
 		team[i] = &pokemon

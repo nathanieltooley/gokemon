@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game/state"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/rs/zerolog/log"
 )
 
@@ -60,7 +60,7 @@ func AcceptData[T any](conn net.Conn) (T, error) {
 }
 
 // Sends an action message (SendActionMessage)
-func SendAction(conn net.Conn, data state.Action) error {
+func SendAction(conn net.Conn, data stateCore.Action) error {
 	concreteName := reflect.TypeOf(data).String()
 
 	buffer := bytes.NewBuffer(make([]byte, 0))
@@ -86,7 +86,7 @@ func SendAction(conn net.Conn, data state.Action) error {
 }
 
 // Accepts an action AFTER the message type has already been read and removed from the connection
-func acceptAction(reader io.Reader) (state.Action, error) {
+func acceptAction(reader io.Reader) (stateCore.Action, error) {
 	actionBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -113,17 +113,17 @@ func acceptAction(reader io.Reader) (state.Action, error) {
 	// So I would end up having to do this anyway somewhere else (unless there is a better way to get around gob's lack of support for interfaces)
 	switch concreteName {
 	case "state.SwitchAction":
-		a := &state.SwitchAction{}
+		a := &stateCore.SwitchAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
 	case "state.SkipAction":
-		a := &state.SkipAction{}
+		a := &stateCore.SkipAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
 	case "state.AttackAction":
-		a := &state.AttackAction{}
+		a := &stateCore.AttackAction{}
 
 		err := decoder.Decode(a)
 		return *a, err

@@ -1,4 +1,4 @@
-package state
+package core
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"slices"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -17,10 +17,10 @@ var attackActionLogger = func() *zerolog.Logger {
 	return &logger
 }
 
-var struggleMove = game.Move{
+var struggleMove = core.Move{
 	Accuracy:    100,
 	DamageClass: "physical",
-	Meta: &game.MoveMeta{
+	Meta: &core.MoveMeta{
 		Category: struct {
 			Id   int
 			Name string
@@ -57,8 +57,8 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
-	var move game.Move
-	var moveVars game.BattleMove
+	var move core.Move
+	var moveVars core.BattleMove
 	var pp uint
 
 	if a.AttackerMove == -1 {
@@ -94,7 +94,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * effectiveEvasion))
 
-	if state.Weather == game.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
+	if state.Weather == core.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
 		accuracy = int(float32(accuracy) * 0.8)
 	} else if attackPokemon.Ability.Name == "compound-eyes" && move.Meta.Category.Name != "ohko" {
 		accuracy = int(float32(accuracy) * 1.3)
@@ -106,7 +106,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 		defImmune := false
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == game.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
+		if move.Type == core.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
 			states = append(states, NewMessageOnlySnapshot(
 				fmt.Sprintf("%s activated volt absorb!", defPokemon.Nickname),
 				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
@@ -117,7 +117,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 		}
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == game.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
+		if move.Type == core.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
 			states = append(states, NewMessageOnlySnapshot(
 				fmt.Sprintf("%s activated Water Absorb!", defPokemon.Nickname),
 				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
@@ -128,7 +128,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 		}
 
 		if defPokemon.Ability.Name == "damp" {
-			if slices.Contains(game.EXPLOSIVE_MOVES, move.Name) {
+			if slices.Contains(core.EXPLOSIVE_MOVES, move.Name) {
 				states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s prevented %s with their ability: Damp", defPokemon.Nickname, move.Name)))
 				defImmune = true
 			}
@@ -147,7 +147,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 				ailmentHandler(&state, defPokemon, move)
 			case "net-good-stats":
-				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
 					affectedPokemon := attackPokemon
 					if statChange.Change < 0 {
@@ -159,7 +159,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 			// Damages and then CHANGES the targets stats
 			case "damage+lower":
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					states = append(states, StatChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
 				})
 			// Damages and then CHANGES the user's stats
@@ -168,7 +168,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 			// lower the user's stats but are in this category
 			case "damage+raise":
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				lo.ForEach(move.StatChanges, func(statChange game.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					states = append(states, StatChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
 				})
 			case "heal":
@@ -223,7 +223,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 	return states
 }
 
-func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon, move game.Move) []StateSnapshot {
+func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core.Pokemon, move core.Move) []StateSnapshot {
 	states := make([]StateSnapshot, 0)
 	crit := false
 
@@ -232,7 +232,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
 	}
 
-	effectiveness := defPokemon.Base.DefenseEffectiveness(game.GetAttackTypeMapping(move.Type))
+	effectiveness := defPokemon.Base.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
 		states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s cannot be crit!", defPokemon.Nickname)))
@@ -339,7 +339,7 @@ func damageMoveHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon
 	return states
 }
 
-func ohkoHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game.Pokemon) StateSnapshot {
+func ohkoHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core.Pokemon) StateSnapshot {
 	ohkoState := StateSnapshot{}
 
 	if defPokemon.Level > attackPokemon.Level {
@@ -362,9 +362,9 @@ func ohkoHandler(state *GameState, attackPokemon *game.Pokemon, defPokemon *game
 	return ohkoState
 }
 
-func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) StateSnapshot {
-	ailment, ok := game.STATUS_NAME_MAP[move.Meta.Ailment.Name]
-	if ok && defPokemon.Status == game.STATUS_NONE {
+func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) StateSnapshot {
+	ailment, ok := core.STATUS_NAME_MAP[move.Meta.Ailment.Name]
+	if ok && defPokemon.Status == core.STATUS_NONE {
 		ailmentCheck := rand.Intn(100)
 		ailmentChance := move.Meta.AilmentChance
 
@@ -383,7 +383,7 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) 
 
 			// Manual override of toxic so that it applies toxic and not poison
 			if move.Name == "toxic" {
-				defPokemon.Status = game.STATUS_TOXIC
+				defPokemon.Status = core.STATUS_TOXIC
 			} else {
 				ApplyAilment(state, defPokemon, ailment)
 			}
@@ -399,7 +399,7 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) 
 		}
 	}
 
-	effect, ok := game.EFFECT_NAME_MAP[move.Meta.Ailment.Name]
+	effect, ok := core.EFFECT_NAME_MAP[move.Meta.Ailment.Name]
 	if ok {
 		effectChance := move.Meta.AilmentChance
 		if effectChance == 0 {
@@ -409,7 +409,7 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) 
 
 		if effectCheck < effectChance {
 			switch effect {
-			case game.EFFECT_CONFUSION:
+			case core.EFFECT_CONFUSION:
 				// TODO: add message
 				if defPokemon.Ability.Name != "own-tempo" {
 					log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
@@ -427,7 +427,7 @@ func ailmentHandler(state *GameState, defPokemon *game.Pokemon, move game.Move) 
 	}
 }
 
-func healHandler(state *GameState, attackPokemon *game.Pokemon, move game.Move) StateSnapshot {
+func healHandler(state *GameState, attackPokemon *core.Pokemon, move core.Move) StateSnapshot {
 	healPercent := float64(move.Meta.Healing) / 100
 	attackPokemon.HealPerc(healPercent)
 
@@ -440,10 +440,10 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 	// that position which makes this clunky
 	type enumPokemon struct {
 		Index   int
-		Pokemon game.Pokemon
+		Pokemon core.Pokemon
 	}
 
-	enumeratedPkm := lo.Map(defPlayer.Team, func(pokemon game.Pokemon, i int) enumPokemon {
+	enumeratedPkm := lo.Map(defPlayer.Team, func(pokemon core.Pokemon, i int) enumPokemon {
 		return enumPokemon{
 			Index:   i,
 			Pokemon: pokemon,

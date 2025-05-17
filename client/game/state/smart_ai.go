@@ -3,11 +3,12 @@ package state
 import (
 	"math/rand"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 )
 
 // Determines the best AI Action. Failsafes to skip action
-func BestAiAction(gameState *GameState) Action {
+func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 	if gameState.ClientPlayer.GetActivePokemon().Alive() {
 		playerPokemon := gameState.HostPlayer.GetActivePokemon()
 		aiPokemon := gameState.ClientPlayer.GetActivePokemon()
@@ -21,7 +22,7 @@ func BestAiAction(gameState *GameState) Action {
 		}
 
 		if !hasAnyMoves {
-			return &SkipAction{}
+			return &stateCore.SkipAction{}
 		}
 
 		bestMoveIndex := -1
@@ -32,7 +33,7 @@ func BestAiAction(gameState *GameState) Action {
 			bestMoveIndex = bestAttackingMove(gameState)
 		}
 
-		bestMove := game.Move{}
+		bestMove := core.Move{}
 		if bestMoveIndex != -1 && bestMoveIndex < 4 {
 			bestMove = aiPokemon.Moves[bestMoveIndex]
 		}
@@ -43,26 +44,26 @@ func BestAiAction(gameState *GameState) Action {
 				rMoveIndex := rand.Intn(4)
 				randMove := aiPokemon.Moves[rMoveIndex]
 				if !randMove.IsNil() {
-					return NewAttackAction(AI, rMoveIndex)
+					return stateCore.NewAttackAction(AI, rMoveIndex)
 				}
 			}
 		} else {
-			return NewAttackAction(AI, bestMoveIndex)
+			return stateCore.NewAttackAction(AI, bestMoveIndex)
 		}
 
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.ClientPlayer.Team {
 			if pokemon.Alive() {
-				return NewSwitchAction(gameState, AI, i)
+				return stateCore.NewSwitchAction(gameState, AI, i)
 			}
 		}
 	}
 
-	return &SkipAction{}
+	return &stateCore.SkipAction{}
 }
 
-func bestAttackingMove(gameState *GameState) int {
+func bestAttackingMove(gameState *stateCore.GameState) int {
 	aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 	playerPokemon := gameState.HostPlayer.GetActivePokemon()
 
@@ -75,7 +76,7 @@ func bestAttackingMove(gameState *GameState) int {
 		}
 
 		// assume no crits
-		moveDamage := Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
+		moveDamage := stateCore.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
 		if moveDamage > bestMoveDamage {
 			bestMoveIndex = i
 			bestMoveDamage = moveDamage
@@ -85,7 +86,7 @@ func bestAttackingMove(gameState *GameState) int {
 	return bestMoveIndex
 }
 
-func bestSlowingMove(gameState *GameState) int {
+func bestSlowingMove(gameState *stateCore.GameState) int {
 	aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 	playerPokemon := gameState.HostPlayer.GetActivePokemon()
 
@@ -99,7 +100,7 @@ func bestSlowingMove(gameState *GameState) int {
 
 		moveCanSlow := false
 		for _, statChange := range move.StatChanges {
-			if statChange.StatName == STAT_SPEED {
+			if statChange.StatName == stateCore.STAT_SPEED {
 				moveCanSlow = true
 			}
 		}
@@ -109,7 +110,7 @@ func bestSlowingMove(gameState *GameState) int {
 			if chance > bestSlowChance {
 				bestMove = i
 			}
-		} else if move.Meta.Ailment.Name == "paralysis" && playerPokemon.Status == game.STATUS_NONE { // we make sure the player's pokemon can be para'd
+		} else if move.Meta.Ailment.Name == "paralysis" && playerPokemon.Status == core.STATUS_NONE { // we make sure the player's pokemon can be para'd
 			chance := move.Meta.AilmentChance
 			if chance > bestSlowChance {
 				bestMove = i

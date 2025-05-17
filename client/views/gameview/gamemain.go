@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/client/game/state"
-	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
@@ -27,23 +27,23 @@ type gameContext struct {
 	// This state is "The One True State", the actual state that dictates how the game is going
 	// If / When multiplayer is added, this will only be true for the host, but it will true be the
 	// actual state of that client
-	state        *state.GameState
-	chosenAction state.Action
+	state        *stateCore.GameState
+	chosenAction stateCore.Action
 	forcedSwitch bool
 	playerSide   int
 }
 
 type MainGameModel struct {
 	ctx               *gameContext
-	turnUpdateHandler func(state.Action) tea.Msg
+	turnUpdateHandler func(stateCore.Action) tea.Msg
 	// Player has submitted their action and starts waiting for the opponent to submit their's
 	// and for both of their actions to be processed
 	startedTurnResolving bool
 
 	// Intermediate states (in between turns) that need to be displayed to the client
-	stateQueue []state.StateSnapshot
+	stateQueue []stateCore.StateSnapshot
 	// State that should be rendered when inbetween turns
-	currentRenderedState state.GameState
+	currentRenderedState stateCore.GameState
 	// Whether we started the state update rendering process
 	renderingPastState         bool
 	waitingOnPastStateMessages bool
@@ -62,17 +62,17 @@ type MainGameModel struct {
 	netInfo   networking.NetReaderInfo
 }
 
-func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) MainGameModel {
+func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Conn) MainGameModel {
 	ctx := &gameContext{
 		state:        &gameState,
 		chosenAction: nil,
 		playerSide:   playerSide,
 	}
 
-	var updater func(state.Action) tea.Msg
+	var updater func(stateCore.Action) tea.Msg
 
 	// Buffer size of 1 here since client should not send more than one per turn
-	actionChan := make(chan state.Action, 1)
+	actionChan := make(chan stateCore.Action, 1)
 	timerChan := make(chan networking.UpdateTimerMessage, 5)
 	messageChan := make(chan tea.Msg)
 
@@ -88,16 +88,16 @@ func NewMainGameModel(gameState state.GameState, playerSide int, conn net.Conn) 
 		switch playerSide {
 		case state.HOST:
 			// maybe changing these from interfaces wasn't the best idea
-			updater = func(action state.Action) tea.Msg {
+			updater = func(action stateCore.Action) tea.Msg {
 				return hostNetworkHandler(readerInfo, action, ctx.state)
 			}
 		case state.PEER:
-			updater = func(action state.Action) tea.Msg {
+			updater = func(action stateCore.Action) tea.Msg {
 				return clientNetworkHandler(readerInfo, action)
 			}
 		}
 	} else {
-		updater = func(action state.Action) tea.Msg {
+		updater = func(action stateCore.Action) tea.Msg {
 			return singleplayerHandler(ctx.state, action)
 		}
 	}
@@ -448,7 +448,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Make the "First turn" switch ins
 		playerInfo := m.ctx.state.GetPlayer(m.ctx.playerSide)
-		m.ctx.chosenAction = state.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
+		m.ctx.chosenAction = stateCore.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
 
 		m.inited = true
 	}
@@ -461,18 +461,18 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func singleplayerHandler(gameState *state.GameState, playerAction state.Action) tea.Msg {
+func singleplayerHandler(gameState *stateCore.GameState, playerAction stateCore.Action) tea.Msg {
 	// Artifical delay
 	time.Sleep(time.Second * 2)
 	aiAction := state.BestAiAction(gameState)
 	// Force AI to switch in on "first" turn on battle as happens in a multiplayer game
 	if gameState.Turn == 0 {
-		aiAction = state.NewSwitchAction(gameState, state.AI, gameState.ClientPlayer.ActivePokeIndex)
+		aiAction = stateCore.NewSwitchAction(gameState, state.AI, gameState.ClientPlayer.ActivePokeIndex)
 	}
-	return stateupdater.ProcessTurn(gameState, []state.Action{playerAction, aiAction})
+	return state.ProcessTurn(gameState, []stateCore.Action{playerAction, aiAction})
 }
 
-func clientNetworkHandler(netInfo networking.NetReaderInfo, action state.Action) tea.Msg {
+func clientNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Action) tea.Msg {
 	log.Debug().Msgf("client action: %+v", action)
 
 	if action == nil {
@@ -487,18 +487,18 @@ func clientNetworkHandler(netInfo networking.NetReaderInfo, action state.Action)
 	return <-netInfo.MessageChan
 }
 
-func hostNetworkHandler(netInfo networking.NetReaderInfo, action state.Action, gameState *state.GameState) tea.Msg {
+func hostNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Action, gameState *stateCore.GameState) tea.Msg {
 	opAction, ok := <-netInfo.ActionChan
 	if !ok {
 		return networking.NetworkingErrorMsg{Err: errors.New("host failed to listen to action channel")}
 	}
 
-	actions := []state.Action{action, opAction}
+	actions := []stateCore.Action{action, opAction}
 	if action == nil {
 		log.Debug().Msg("host's action for this turn is nil, should only happen during force switch")
-		actions = []state.Action{opAction}
+		actions = []stateCore.Action{opAction}
 	}
-	turnResult := stateupdater.ProcessTurn(gameState, actions)
+	turnResult := state.ProcessTurn(gameState, actions)
 
 	switch msg := turnResult.(type) {
 	case networking.TurnResolvedMessage:

@@ -16,7 +16,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nathanieltooley/gokemon/client/errorutils"
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
@@ -33,7 +33,7 @@ var (
 
 	POKEMON   PokemonRegistry
 	MOVES     *MoveRegistry
-	ABILITIES map[string][]game.Ability
+	ABILITIES map[string][]core.Ability
 	ITEMS     []string
 
 	SelectKey = key.NewBinding(
@@ -63,6 +63,9 @@ var (
 	}
 
 	GameTicksPerSecond = 20
+
+	// Global RNG that can be changed for testing purposes
+	GokeRand = rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 
 	initLogger zerolog.Logger
 )
@@ -160,7 +163,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	wg.Wait()
 }
 
-func loadPokemon(files fs.FS, filePath string) []game.BasePokemon {
+func loadPokemon(files fs.FS, filePath string) []core.BasePokemon {
 	fileReader, err := files.Open(filePath)
 	if err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't open Pokemon data file")
@@ -175,7 +178,7 @@ func loadPokemon(files fs.FS, filePath string) []game.BasePokemon {
 		initLogger.Fatal().Err(err).Msg("Couldn't read Pokemon data file")
 	}
 
-	pokemonList := make([]game.BasePokemon, 0, len(rows))
+	pokemonList := make([]core.BasePokemon, 0, len(rows))
 
 	initLogger.Info().Msg("Loading Pokemon Data")
 
@@ -194,14 +197,14 @@ func loadPokemon(files fs.FS, filePath string) []game.BasePokemon {
 		type1Name := row[2]
 		type2Name := row[3]
 
-		type1 := game.TYPE_MAP[type1Name]
-		var type2 *game.PokemonType = nil
+		type1 := core.TYPE_MAP[type1Name]
+		var type2 *core.PokemonType = nil
 
 		if type2Name != "" {
-			type2 = game.TYPE_MAP[type2Name]
+			type2 = core.TYPE_MAP[type2Name]
 		}
 
-		newPokemon := game.BasePokemon{
+		newPokemon := core.BasePokemon{
 			PokedexNumber: pokedexNumber,
 			Name:          name,
 			Type1:         type1,
@@ -252,7 +255,7 @@ func loadMoves(files fs.FS) *MoveRegistry {
 
 	moveMapBytes, err := io.ReadAll(moveMapFile)
 
-	parsedMoves := make([]game.Move, 0, 1000)
+	parsedMoves := make([]core.Move, 0, 1000)
 	moveMap := make(map[string][]string)
 
 	if err := json.Unmarshal(moveDataBytes, &parsedMoves); err != nil {
@@ -275,7 +278,7 @@ func loadMoves(files fs.FS) *MoveRegistry {
 	return moveRegistry
 }
 
-func loadAbilities(files fs.FS) map[string][]game.Ability {
+func loadAbilities(files fs.FS) map[string][]core.Ability {
 	abilityFile := "data/abilities.json"
 	file, err := files.Open(abilityFile)
 	if err != nil {
@@ -289,7 +292,7 @@ func loadAbilities(files fs.FS) map[string][]game.Ability {
 		initLogger.Fatal().Err(err).Msg("Couldn't read abilities file")
 	}
 
-	abilityMap := make(map[string][]game.Ability)
+	abilityMap := make(map[string][]core.Ability)
 	if err := json.Unmarshal(fileData, &abilityMap); err != nil {
 		initLogger.Fatal().Err(err).Msg("Couldn't unmarshal ability data")
 	}
@@ -322,11 +325,11 @@ func loadItems(files fs.FS) []string {
 
 type MoveRegistry struct {
 	// TODO: Maybe make this a map
-	MoveList []game.Move
+	MoveList []core.Move
 	MoveMap  map[string][]string
 }
 
-func (m *MoveRegistry) GetMove(name string) *game.Move {
+func (m *MoveRegistry) GetMove(name string) *core.Move {
 	for _, move := range m.MoveList {
 		if move.Name == name {
 			return &move
@@ -336,10 +339,10 @@ func (m *MoveRegistry) GetMove(name string) *game.Move {
 	return nil
 }
 
-func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*game.Move {
+func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*core.Move {
 	pokemonLowerName := strings.ToLower(pokemonName)
 	moves := m.MoveMap[pokemonLowerName]
-	movesFull := make([]*game.Move, 0, len(moves))
+	movesFull := make([]*core.Move, 0, len(moves))
 
 	for _, moveName := range moves {
 		movesFull = append(movesFull, m.GetMove(moveName))
@@ -348,9 +351,9 @@ func (m *MoveRegistry) GetFullMovesForPokemon(pokemonName string) []*game.Move {
 	return movesFull
 }
 
-type PokemonRegistry []game.BasePokemon
+type PokemonRegistry []core.BasePokemon
 
-func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *game.BasePokemon {
+func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *core.BasePokemon {
 	for _, pkm := range p {
 		if pkm.PokedexNumber == uint(pkdNumber) {
 			return &pkm
@@ -360,7 +363,7 @@ func (p PokemonRegistry) GetPokemonByPokedex(pkdNumber int) *game.BasePokemon {
 	return nil
 }
 
-func (p PokemonRegistry) GetPokemonByName(pkmName string) *game.BasePokemon {
+func (p PokemonRegistry) GetPokemonByName(pkmName string) *core.BasePokemon {
 	for _, pkm := range p {
 		if strings.EqualFold(pkm.Name, pkmName) {
 			return &pkm
@@ -370,13 +373,13 @@ func (p PokemonRegistry) GetPokemonByName(pkmName string) *game.BasePokemon {
 	return nil
 }
 
-func (p PokemonRegistry) GetRandomPokemon() *game.BasePokemon {
+func (p PokemonRegistry) GetRandomPokemon() *core.BasePokemon {
 	pkmIndex := rand.IntN(len(p))
 
 	return &p[pkmIndex]
 }
 
-func GetAbilitiesForPokemon(name string) []game.Ability {
+func GetAbilitiesForPokemon(name string) []core.Ability {
 	pokemonLowerName := strings.ToLower(name)
 
 	return ABILITIES[pokemonLowerName]

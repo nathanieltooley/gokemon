@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/scripts"
 )
 
@@ -15,7 +15,7 @@ type Response struct {
 	Count    int
 	Next     *string
 	Previous *string
-	Results  []game.NamedApiResource
+	Results  []core.NamedApiResource
 }
 
 type PreAbility struct {
@@ -29,7 +29,7 @@ type PreAbility struct {
 }
 
 func main() {
-	abilitiesNR := make([]game.NamedApiResource, 0)
+	abilitiesNR := make([]core.NamedApiResource, 0)
 
 	url := "https://pokeapi.co/api/v2/ability?offset=0&limit=1000"
 	for {
@@ -59,7 +59,7 @@ func main() {
 		}
 	}
 
-	abilityMap := make(map[string][]game.Ability)
+	abilityMap := make(map[string][]core.Ability)
 
 	for _, nrAbility := range abilitiesNR {
 		log.Printf("Getting pokemon who have ability: %s\n", nrAbility.Name)
@@ -72,7 +72,7 @@ func main() {
 			log.Printf("--- %s : Is Hidden %v", pokemon.Pokemon.Name, pokemon.IsHidden)
 			pokemonAbilities, ok := abilityMap[pokemon.Pokemon.Name]
 
-			finalAbility := game.Ability{
+			finalAbility := core.Ability{
 				Name:     ability.Name,
 				IsHidden: pokemon.IsHidden,
 			}
@@ -80,7 +80,7 @@ func main() {
 			if ok {
 				abilityMap[pokemon.Pokemon.Name] = append(pokemonAbilities, finalAbility)
 			} else {
-				abilityMap[pokemon.Pokemon.Name] = []game.Ability{finalAbility}
+				abilityMap[pokemon.Pokemon.Name] = []core.Ability{finalAbility}
 			}
 		}
 	}

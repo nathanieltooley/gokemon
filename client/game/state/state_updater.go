@@ -1,11 +1,11 @@
-package stateupdater
+package state
 
 import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/state"
+	"github.com/nathanieltooley/gokemon/client/game/core"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -13,7 +13,7 @@ import (
 
 // Takes a list of state snapshots and applies the final state to the main copy of state,
 // syncing all intermediate changes with the main state and returning the snapshots
-func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []state.StateSnapshot {
+func syncState(mainState *stateCore.GameState, newStates []stateCore.StateSnapshot) []stateCore.StateSnapshot {
 	finalState := *mainState
 
 	// get first (from end) non-empty state
@@ -34,9 +34,9 @@ func syncState(mainState *state.GameState, newStates []state.StateSnapshot) []st
 }
 
 // Removes empty state snapshots and combines message only state updates with the previous full state update
-func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
+func cleanStateSnapshots(snaps []stateCore.StateSnapshot) []stateCore.StateSnapshot {
 	// Ignore empty state updates
-	snaps = lo.Filter(snaps, func(s state.StateSnapshot, _ int) bool {
+	snaps = lo.Filter(snaps, func(s stateCore.StateSnapshot, _ int) bool {
 		return !s.Empty
 	})
 
@@ -56,24 +56,24 @@ func cleanStateSnapshots(snaps []state.StateSnapshot) []state.StateSnapshot {
 	}
 
 	// Get rid of message only snapshots
-	return lo.Filter(snaps, func(s state.StateSnapshot, _ int) bool {
+	return lo.Filter(snaps, func(s stateCore.StateSnapshot, _ int) bool {
 		return !s.MessagesOnly
 	})
 }
 
-func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
+func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea.Msg {
 	host := &gameState.HostPlayer
 	client := &gameState.ClientPlayer
 
-	switches := make([]state.SwitchAction, 0)
-	otherActions := make([]state.Action, 0)
+	switches := make([]stateCore.SwitchAction, 0)
+	otherActions := make([]stateCore.Action, 0)
 
-	states := make([]state.StateSnapshot, 0)
+	states := make([]stateCore.StateSnapshot, 0)
 
 	// Sort different actions
 	for _, a := range actions {
 		switch a := a.(type) {
-		case *state.SwitchAction:
+		case *stateCore.SwitchAction:
 			switches = append(switches, *a)
 		default:
 			otherActions = append(otherActions, a)
@@ -90,7 +90,7 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 		gameState.Turn++
 
-		messages := lo.FlatMap(states, func(item state.StateSnapshot, i int) []string {
+		messages := lo.FlatMap(states, func(item stateCore.StateSnapshot, i int) []string {
 			return item.Messages
 		})
 
@@ -118,11 +118,11 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 
 	gameOverValue := gameState.GameOver()
 	switch gameOverValue {
-	case state.PLAYER:
+	case PLAYER:
 		return networking.GameOverMessage{
 			YouLost: true,
 		}
-	case state.PEER:
+	case PEER:
 		return networking.GameOverMessage{
 			YouLost: false,
 		}
@@ -164,10 +164,10 @@ func ProcessTurn(gameState *state.GameState, actions []state.Action) tea.Msg {
 }
 
 // Activates certain end of turn abilities
-func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSnapshot {
+func endOfTurnAbilities(gameState *stateCore.GameState, player int) []stateCore.StateSnapshot {
 	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
 
-	states := make([]state.StateSnapshot, 0)
+	states := make([]stateCore.StateSnapshot, 0)
 
 	abilityText := fmt.Sprintf("%s activated their ability: %s", playerPokemon.Nickname, playerPokemon.Ability.Name)
 
@@ -175,8 +175,8 @@ func endOfTurnAbilities(gameState *state.GameState, player int) []state.StateSna
 	// TEST: no gen 1 pkm have this ability
 	case "speed-boost":
 		if !playerPokemon.SwitchedInThisTurn {
-			states = append(states, state.NewMessageOnlySnapshot(abilityText))
-			states = append(states, state.StatChangeHandler(gameState, playerPokemon, game.StatChange{Change: 1, StatName: "speed"}, 100))
+			states = append(states, stateCore.NewMessageOnlySnapshot(abilityText))
+			states = append(states, stateCore.StatChangeHandler(gameState, playerPokemon, core.StatChange{Change: 1, StatName: "speed"}, 100))
 		}
 	}
 

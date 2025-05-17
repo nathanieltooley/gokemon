@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 )
 
 type Response struct {
-	Items []game.NamedApiResource
+	Items []core.NamedApiResource
 }
 
 func main() {
@@ -38,10 +38,10 @@ func main() {
 	os.Remove(itemFileName)
 
 	itemsFile, err := os.Create(itemFileName)
-	defer itemsFile.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer itemsFile.Close()
 
 	itemsBytes, err := json.Marshal(items)
 	if err != nil {

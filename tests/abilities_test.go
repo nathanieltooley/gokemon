@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/game/state"
-	"github.com/nathanieltooley/gokemon/client/game/state/stateupdater"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 )
 
@@ -22,10 +23,10 @@ func TestDrizzle(t *testing.T) {
 
 	pokemon.Ability.Name = "drizzle"
 
-	gameState := state.NewState([]game.Pokemon{pokemon}, []game.Pokemon{enemyPokemon})
-	_ = stateupdater.ProcessTurn(&gameState, []state.Action{state.NewSwitchAction(&gameState, state.HOST, 0)})
+	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
 
-	if gameState.Weather != game.WEATHER_RAIN {
+	if gameState.Weather != core.WEATHER_RAIN {
 		t.Fatalf("Expected weather to be rain: got %d", gameState.Weather)
 	}
 }
@@ -35,13 +36,13 @@ func TestSpeedBoost(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 	pokemon.Ability.Name = "speed-boost"
 
-	gameState := state.NewState([]game.Pokemon{pokemon}, []game.Pokemon{enemyPokemon})
+	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
 
 	if gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage != 0 {
 		t.Fatal("test pokemon has started with incorrect speed stage")
 	}
 
-	_ = stateupdater.ProcessTurn(&gameState, []state.Action{})
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{})
 
 	pokemonSpeedStage := gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -54,7 +55,7 @@ func TestSpeedBoost(t *testing.T) {
 	}
 
 	// Test that pokemon that switch in do not get the speed boost
-	_ = stateupdater.ProcessTurn(&gameState, []state.Action{state.NewSwitchAction(&gameState, state.HOST, 0)})
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
 
 	pokemonSpeedStage = gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -62,6 +63,6 @@ func TestSpeedBoost(t *testing.T) {
 	}
 }
 
-func getDummyPokemon() game.Pokemon {
+func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build()
 }

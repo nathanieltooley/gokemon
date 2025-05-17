@@ -5,12 +5,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/nathanieltooley/gokemon/client/game"
+	"github.com/nathanieltooley/gokemon/client/game/core"
 )
 
-func FollowNamedResource[T any](n game.NamedApiResource) (T, error) {
+func FollowNamedResource[T any](n core.NamedApiResource) (T, error) {
 	response, err := http.Get(n.Url)
-
 	if err != nil {
 		// FIX: Feels very hacky
 		var t T
@@ -18,7 +17,6 @@ func FollowNamedResource[T any](n game.NamedApiResource) (T, error) {
 	}
 
 	bytes, err := io.ReadAll(response.Body)
-
 	if err != nil {
 		var t T
 		return t, err
