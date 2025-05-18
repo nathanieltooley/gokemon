@@ -163,6 +163,23 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	wg.Wait()
 }
 
+func UpdateLogLevel(level zerolog.Level) {
+	log.Logger = log.Logger.Level(level)
+}
+
+func populateConfig(config GlobalConfig) GlobalConfig {
+	configDir := DefaultConfigDir()
+
+	if config.LocalPlayerName == "" {
+		config.LocalPlayerName = "Player"
+	}
+	if config.TeamSaveLocation == "" {
+		config.TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
+	}
+
+	return config
+}
+
 func loadPokemon(files fs.FS, filePath string) []core.BasePokemon {
 	fileReader, err := files.Open(filePath)
 	if err != nil {
@@ -383,17 +400,4 @@ func GetAbilitiesForPokemon(name string) []core.Ability {
 	pokemonLowerName := strings.ToLower(name)
 
 	return ABILITIES[pokemonLowerName]
-}
-
-func populateConfig(config GlobalConfig) GlobalConfig {
-	configDir := DefaultConfigDir()
-
-	if config.LocalPlayerName == "" {
-		config.LocalPlayerName = "Player"
-	}
-	if config.TeamSaveLocation == "" {
-		config.TeamSaveLocation = filepath.Join(configDir, "saves/", "teams.json")
-	}
-
-	return config
 }

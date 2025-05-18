@@ -8,10 +8,12 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog"
 )
 
 func init() {
 	global.GlobalInit(os.DirFS("../../../"), false)
+	global.UpdateLogLevel(zerolog.DebugLevel)
 }
 
 func mustNotBeNil[T any](value *T) T {
