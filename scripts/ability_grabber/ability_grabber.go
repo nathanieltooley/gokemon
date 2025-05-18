@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -20,6 +21,7 @@ type Response struct {
 
 type PreAbility struct {
 	Name       string
+	Generation core.NamedApiResource
 	ForPokemon []struct {
 		Pokemon struct {
 			Name string
@@ -28,7 +30,15 @@ type PreAbility struct {
 	} `json:"pokemon"`
 }
 
+type Generation struct {
+	Id   int
+	Name string
+}
+
 func main() {
+	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
+	flag.Parse()
+
 	abilitiesNR := make([]core.NamedApiResource, 0)
 
 	url := "https://pokeapi.co/api/v2/ability?offset=0&limit=1000"
@@ -66,6 +76,19 @@ func main() {
 		ability, err := scripts.FollowNamedResource[PreAbility](nrAbility)
 		if err != nil {
 			panic(err)
+		}
+
+		// Skip abilities after a certain generation
+		if *generationLimit > 0 {
+			gen, err := scripts.FollowNamedResource[Generation](ability.Generation)
+			if err != nil {
+				panic(err)
+			}
+
+			if gen.Id > *generationLimit {
+				log.Printf("Skipping ability. Gen higher than limit: %d > %d", gen.Id, *generationLimit)
+				continue
+			}
 		}
 
 		for _, pokemon := range ability.ForPokemon {
