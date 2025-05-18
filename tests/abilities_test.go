@@ -9,10 +9,12 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog"
 )
 
 func init() {
 	global.GlobalInit(os.DirFS("../"), false)
+	global.UpdateLogLevel(zerolog.DebugLevel)
 }
 
 // NOTE: Most ability tests will directly set the ability on a pokemon (probably bulbasaur) rather than choosing a pokemon
@@ -63,6 +65,22 @@ func TestSpeedBoost(t *testing.T) {
 	}
 }
 
+func TestSturdy(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("charizard")).SetLevel(100).SetPerfectIvs().Build()
+
+	pokemon.Ability.Name = "sturdy"
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
+
+	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.AI, 0)})
+
+	if gameState.HostPlayer.GetActivePokemon().Hp.Value != 1 {
+		t.Fatalf("pokemon should survive with 1 hp because of sturdy, got %d", pokemon.Hp.Value)
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
-	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(2)).Build()
+	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
