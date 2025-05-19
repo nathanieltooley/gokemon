@@ -23,7 +23,7 @@ func TestDrizzle(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("drizzle")
 	enemyPokemon := getDummyPokemon()
 
-	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	gameState := getSimpleState(pokemon, enemyPokemon)
 	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
 
 	if gameState.Weather != core.WEATHER_RAIN {
@@ -35,7 +35,7 @@ func TestSpeedBoost(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("speed-boost")
 	enemyPokemon := getDummyPokemon()
 
-	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	gameState := getSimpleState(pokemon, enemyPokemon)
 
 	if gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage != 0 {
 		t.Fatal("test pokemon has started with incorrect speed stage")
@@ -68,7 +68,7 @@ func TestSturdy(t *testing.T) {
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
 
-	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	gameState := getSimpleState(pokemon, enemyPokemon)
 
 	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.AI, 0)})
 
@@ -83,7 +83,7 @@ func TestDamp(t *testing.T) {
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("self-destruct")
 
-	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	gameState := getSimpleState(pokemon, enemyPokemon)
 
 	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
 
@@ -118,4 +118,9 @@ func getDummyPokemonWithAbility(ability string) core.Pokemon {
 	pkm.Ability.Name = ability
 
 	return pkm
+}
+
+func getSimpleState(playerPkm core.Pokemon, enemyPkm core.Pokemon) stateCore.GameState {
+	gameState := state.NewState([]core.Pokemon{playerPkm}, []core.Pokemon{enemyPkm})
+	return gameState
 }
