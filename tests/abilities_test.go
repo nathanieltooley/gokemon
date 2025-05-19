@@ -81,6 +81,22 @@ func TestSturdy(t *testing.T) {
 	}
 }
 
+func TestDamp(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Ability.Name = "damp"
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("self-destruct")
+
+	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	if pokemon.Hp.Value != pokemon.MaxHp || enemyPokemon.Hp.Value != enemyPokemon.MaxHp {
+		t.Fatalf("self-destruct most likely activated. player pokemon hp: %d/%d | enemy pokemon hp: %d|%d", pokemon.Hp.Value, pokemon.MaxHp, enemyPokemon.Hp.Value, enemyPokemon.MaxHp)
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
