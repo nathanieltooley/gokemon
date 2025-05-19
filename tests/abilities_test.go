@@ -92,8 +92,26 @@ func TestDamp(t *testing.T) {
 
 	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
 
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp || enemyPokemon.Hp.Value != enemyPokemon.MaxHp {
 		t.Fatalf("self-destruct most likely activated. player pokemon hp: %d/%d | enemy pokemon hp: %d|%d", pokemon.Hp.Value, pokemon.MaxHp, enemyPokemon.Hp.Value, enemyPokemon.MaxHp)
+	}
+}
+
+func TestLimber(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Ability.Name = "limber"
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
+
+	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	if gameState.HostPlayer.GetActivePokemon().Status == core.STATUS_PARA {
+		t.Fatal("pokemon with limber was paralyzed")
 	}
 }
 
