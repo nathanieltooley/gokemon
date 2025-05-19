@@ -20,10 +20,8 @@ func init() {
 // NOTE: Most ability tests will directly set the ability on a pokemon (probably bulbasaur) rather than choosing a pokemon
 // with that ability for the simple fact that it really doesn't matter. However it may change if for some reason it's important to the ability
 func TestDrizzle(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).Build()
+	pokemon := getDummyPokemonWithAbility("drizzle")
 	enemyPokemon := getDummyPokemon()
-
-	pokemon.Ability.Name = "drizzle"
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
 	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
@@ -34,9 +32,8 @@ func TestDrizzle(t *testing.T) {
 }
 
 func TestSpeedBoost(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
+	pokemon := getDummyPokemonWithAbility("speed-boost")
 	enemyPokemon := getDummyPokemon()
-	pokemon.Ability.Name = "speed-boost"
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
 
@@ -66,10 +63,9 @@ func TestSpeedBoost(t *testing.T) {
 }
 
 func TestSturdy(t *testing.T) {
-	pokemon := getDummyPokemon()
+	pokemon := getDummyPokemonWithAbility("sturdy")
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("charizard")).SetLevel(100).SetPerfectIvs().Build()
 
-	pokemon.Ability.Name = "sturdy"
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
@@ -82,10 +78,9 @@ func TestSturdy(t *testing.T) {
 }
 
 func TestDamp(t *testing.T) {
-	pokemon := getDummyPokemon()
+	pokemon := getDummyPokemonWithAbility("damp")
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.Ability.Name = "damp"
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("self-destruct")
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
@@ -100,10 +95,9 @@ func TestDamp(t *testing.T) {
 }
 
 func TestLimber(t *testing.T) {
-	pokemon := getDummyPokemon()
+	pokemon := getDummyPokemonWithAbility("limber")
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.Ability.Name = "limber"
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
@@ -117,4 +111,11 @@ func TestLimber(t *testing.T) {
 
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
+}
+
+func getDummyPokemonWithAbility(ability string) core.Pokemon {
+	pkm := getDummyPokemon()
+	pkm.Ability.Name = ability
+
+	return pkm
 }
