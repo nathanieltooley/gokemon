@@ -244,7 +244,7 @@ func (p *Pokemon) Damage(dmg uint) {
 }
 
 func (p *Pokemon) DamagePerc(dmg float64) {
-	dmgAmount := float64(p.MaxHp) * dmg
+	dmgAmount := math.Ceil(float64(p.MaxHp) * dmg)
 	p.Damage(uint(dmgAmount))
 }
 
