@@ -109,6 +109,21 @@ func TestLimber(t *testing.T) {
 	}
 }
 
+func TestSandVeilSandstormDamage(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("sand-veil")
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	gameState.Weather = core.WEATHER_SANDSTORM
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon most likely took sandstorm chip. pokemon hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
