@@ -124,6 +124,58 @@ func TestSandVeilSandstormDamage(t *testing.T) {
 	}
 }
 
+func TestVoltAbsorb(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("volt-absorb")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spark")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with volt-absorb took electric type damage")
+	}
+
+	pokemon.DamagePerc(.25)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with volt-absorb did not heal from electric attack: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
+
+func TestWaterAbsorb(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("water-absorb")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("bubble")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with water-absorb took water type damage")
+	}
+
+	pokemon.DamagePerc(.25)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with water-absorb did not heal from water attack: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
