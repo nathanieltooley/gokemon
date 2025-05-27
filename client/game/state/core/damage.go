@@ -44,6 +44,16 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		dBoost = defendent.SpDef.Stage
 	}
 
+	flashFireBoost := 1.0
+	if attacker.FlashFire {
+		flashFireBoost = 1.5
+	}
+
+	// Boost attack or special attack while flash-fire boosted and using fire attack
+	if move.Type == core.TYPENAME_FIRE {
+		a = uint(float64(a) * flashFireBoost)
+	}
+
 	power := move.Power
 
 	if power == 0 {
@@ -149,6 +159,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
 		Float32("crit", critBoost).
 		Float32("weatherBonus", weatherBonus).
+		Float64("flashFire", flashFireBoost).
 		Uint("damage", damage).
 		Msg("damage calc")
 

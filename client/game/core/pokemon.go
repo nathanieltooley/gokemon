@@ -213,6 +213,7 @@ type Pokemon struct {
 	AccuracyStage      int           `json:"-"`
 	EvasionStage       int           `json:"-"`
 	InGameMoveInfo     [4]BattleMove `json:"-"`
+	FlashFire          bool          `json:"-"`
 }
 
 func (p *Pokemon) ReCalcStats() {

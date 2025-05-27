@@ -127,6 +127,18 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 			defImmune = true
 		}
 
+		// TODO: This doesn't activate through protect or while frozen!
+		// TODO: The boost doesn't pass with baton-pass!
+		if move.Type == core.TYPENAME_FIRE && defPokemon.Ability.Name == "flash-fire" {
+			states = append(states, NewMessageOnlySnapshot(
+				fmt.Sprintf("%s activated Flash-Fire", defPokemon.Nickname),
+				fmt.Sprintf("%s boosted it's fire-type attacks!", defPokemon.Nickname),
+			))
+
+			defPokemon.FlashFire = true
+			defImmune = true
+		}
+
 		if defPokemon.Ability.Name == "damp" {
 			if slices.Contains(core.EXPLOSIVE_MOVES, move.Name) {
 				states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s prevented %s with their ability: Damp", defPokemon.Nickname, move.Name)))
