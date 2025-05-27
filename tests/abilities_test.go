@@ -176,6 +176,41 @@ func TestWaterAbsorb(t *testing.T) {
 	}
 }
 
+func TestInsomnia(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("insomnia")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spore")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status == core.STATUS_SLEEP {
+		t.Fatalf("pokemon with insomnia fell asleep")
+	}
+}
+
+func TestImmunity(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("immunity")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("toxic")
+	enemyPokemon.Moves[0].Accuracy = 100
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status == core.STATUS_POISON || pokemon.Status == core.STATUS_TOXIC {
+		t.Fatalf("pokemon with immunity was poisoned")
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
