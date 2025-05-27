@@ -85,7 +85,7 @@ type Stat struct {
 	RawValue uint
 	Ev       uint
 	Iv       uint
-	Stage    int
+	Stage    int `json:"-"`
 }
 
 type HpStat struct {
