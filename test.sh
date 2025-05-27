@@ -1,1 +1,1 @@
-go test -v ./client/game/state/ ./tests/
+go test -v -race ./client/game/state/ ./tests/
