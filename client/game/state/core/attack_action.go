@@ -142,10 +142,10 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 			case "damage", "damage+heal":
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
 			case "ailment":
-				ailmentHandler(&state, defPokemon, move)
+				states = append(states, ailmentHandler(&state, defPokemon, move))
 			case "damage+ailment":
 				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				ailmentHandler(&state, defPokemon, move)
+				states = append(states, ailmentHandler(&state, defPokemon, move))
 			case "net-good-stats":
 				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
@@ -383,13 +383,20 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 
 			// Manual override of toxic so that it applies toxic and not poison
 			if move.Name == "toxic" {
-				defPokemon.Status = core.STATUS_TOXIC
-			} else {
-				ApplyAilment(state, defPokemon, ailment)
+				ailment = core.STATUS_TOXIC
 			}
 
-			attackActionLogger().Info().
-				Msgf("%s was afflicted with ailment: %s:%d", defPokemon.Nickname, move.Meta.Ailment.Name, ailment)
+			stateSnap := ApplyAilment(state, defPokemon, ailment)
+
+			// Make sure the pokemon didn't avoid ailment with ability or such
+			if defPokemon.Status != core.STATUS_NONE {
+				attackActionLogger().Info().
+					Msgf("%s was afflicted with ailment: %s:%d", defPokemon.Nickname, move.Meta.Ailment.Name, ailment)
+			} else {
+				log.Info().Msgf("pokemon removed ailment with ability: %s", defPokemon.Ability.Name)
+			}
+
+			return stateSnap
 		} else {
 			attackActionLogger().
 				Debug().
@@ -397,6 +404,7 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 				Int("AilmentChance", ailmentChance).
 				Msg("Check failed")
 		}
+
 	}
 
 	effect, ok := core.EFFECT_NAME_MAP[move.Meta.Ailment.Name]
