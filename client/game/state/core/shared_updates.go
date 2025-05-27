@@ -224,6 +224,7 @@ func ConfuseHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 
 // Single place to apply ailment so that all abilities can be checked
 func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSnapshot {
+	// If pokemon already has ailment, return early
 	if pokemon.Status != core.STATUS_NONE {
 		return NewEmptyStateSnapshot()
 	}
@@ -257,8 +258,15 @@ func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSna
 			pokemon.Status = core.STATUS_NONE
 			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Magma Armor and cannot be frozen!", pokemon.Nickname))
 		}
-		pokemon.ToxicCount = 1
 	case core.STATUS_TOXIC:
+		// Block toxic with immunity
+		if pokemon.Ability.Name == "immunity" {
+			pokemon.Status = core.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Immunity to poison!", pokemon.Nickname))
+		} else {
+			// otherwise init toxic count
+			pokemon.ToxicCount = 1
+		}
 	}
 
 	return NewStateSnapshot(state)
