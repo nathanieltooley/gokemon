@@ -211,6 +211,23 @@ func TestImmunity(t *testing.T) {
 	}
 }
 
+func TestFlashFireImmunity(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("flash-fire")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("flamethrower")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
+
 func getDummyPokemon() core.Pokemon {
 	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
 }
