@@ -1,1 +1,1 @@
-go test -v -race ./client/game/state/ ./tests/
+go test -v -count=1 -race ./client/game/state/ ./tests/
