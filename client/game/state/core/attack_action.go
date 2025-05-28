@@ -332,7 +332,7 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 		}
 	}
 
-	attackActionLogger().Debug().Float32("effectiveness", effectiveness).Msg("")
+	attackActionLogger().Debug().Float64("effectiveness", effectiveness).Msg("")
 
 	effectivenessText := ""
 

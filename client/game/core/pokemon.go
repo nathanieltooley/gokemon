@@ -37,11 +37,11 @@ const (
 
 type PokemonType struct {
 	Name          string
-	Effectiveness map[string]float32
+	Effectiveness map[string]float64
 }
 
 // The effectiveness of this type against some defense type
-func (t PokemonType) AttackEffectiveness(defenseType string) float32 {
+func (t PokemonType) AttackEffectiveness(defenseType string) float64 {
 	effectiveness, ok := t.Effectiveness[defenseType]
 
 	if !ok {
@@ -66,10 +66,10 @@ type BasePokemon struct {
 	Speed         uint
 }
 
-func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float32 {
+func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
 	effectiveness1 := attackType.AttackEffectiveness(b.Type1.Name)
 
-	var effectiveness2 float32 = 1
+	var effectiveness2 float64 = 1
 	if b.Type2 != nil {
 		effectiveness2 = attackType.AttackEffectiveness(b.Type2.Name)
 	}

@@ -220,7 +220,7 @@ var TYPE_MAP = map[string]*PokemonType{
 
 var TYPE_NORMAL = PokemonType{
 	TYPENAME_NORMAL,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_ROCK:  0.5,
 		TYPENAME_STEEL: 0.5,
 
@@ -230,7 +230,7 @@ var TYPE_NORMAL = PokemonType{
 
 var TYPE_FIRE = PokemonType{
 	TYPENAME_FIRE,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_GRASS: 2,
 		TYPENAME_ICE:   2,
 		TYPENAME_BUG:   2,
@@ -245,7 +245,7 @@ var TYPE_FIRE = PokemonType{
 
 var TYPE_WATER = PokemonType{
 	TYPENAME_WATER,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_FIRE:   2,
 		TYPENAME_GROUND: 2,
 		TYPENAME_ROCK:   2,
@@ -258,7 +258,7 @@ var TYPE_WATER = PokemonType{
 
 var TYPE_ELECTRIC = PokemonType{
 	TYPENAME_ELECTRIC,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_WATER:  2,
 		TYPENAME_FLYING: 2,
 
@@ -272,7 +272,7 @@ var TYPE_ELECTRIC = PokemonType{
 
 var TYPE_GRASS = PokemonType{
 	TYPENAME_GRASS,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_WATER:  2,
 		TYPENAME_GROUND: 2,
 		TYPENAME_ROCK:   2,
@@ -289,7 +289,7 @@ var TYPE_GRASS = PokemonType{
 
 var TYPE_ICE = PokemonType{
 	TYPENAME_ICE,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_GRASS:  2,
 		TYPENAME_GROUND: 2,
 		TYPENAME_FLYING: 2,
@@ -304,7 +304,7 @@ var TYPE_ICE = PokemonType{
 
 var TYPE_FIGHTING = PokemonType{
 	TYPENAME_FIGHTING,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_NORMAL: 2,
 		TYPENAME_ICE:    2,
 		TYPENAME_ROCK:   2,
@@ -323,7 +323,7 @@ var TYPE_FIGHTING = PokemonType{
 
 var TYPE_POISON = PokemonType{
 	TYPENAME_POISON,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_GRASS: 2,
 		TYPENAME_FAIRY: 2,
 
@@ -338,7 +338,7 @@ var TYPE_POISON = PokemonType{
 
 var TYPE_GROUND = PokemonType{
 	TYPENAME_GROUND,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_FIRE:     2,
 		TYPENAME_ELECTRIC: 2,
 		TYPENAME_POISON:   2,
@@ -354,7 +354,7 @@ var TYPE_GROUND = PokemonType{
 
 var TYPE_FLYING = PokemonType{
 	TYPENAME_FLYING,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_GRASS:    2,
 		TYPENAME_FIGHTING: 2,
 		TYPENAME_BUG:      2,
@@ -367,7 +367,7 @@ var TYPE_FLYING = PokemonType{
 
 var TYPE_PSYCHIC = PokemonType{
 	TYPENAME_PSYCHIC,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_FIGHTING: 2,
 		TYPENAME_POISON:   2,
 
@@ -380,7 +380,7 @@ var TYPE_PSYCHIC = PokemonType{
 
 var TYPE_BUG = PokemonType{
 	TYPENAME_BUG,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_GRASS:   2,
 		TYPENAME_PSYCHIC: 2,
 		TYPENAME_DARK:    2,
@@ -397,7 +397,7 @@ var TYPE_BUG = PokemonType{
 
 var TYPE_ROCK = PokemonType{
 	TYPENAME_ROCK,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_FIRE:   2,
 		TYPENAME_ICE:    2,
 		TYPENAME_FLYING: 2,
@@ -411,7 +411,7 @@ var TYPE_ROCK = PokemonType{
 
 var TYPE_GHOST = PokemonType{
 	TYPENAME_GHOST,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_PSYCHIC: 2,
 		TYPENAME_GHOST:   2,
 
@@ -423,7 +423,7 @@ var TYPE_GHOST = PokemonType{
 
 var TYPE_DRAGON = PokemonType{
 	TYPENAME_DRAGON,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_DRAGON: 2,
 
 		TYPENAME_STEEL: .5,
@@ -434,7 +434,7 @@ var TYPE_DRAGON = PokemonType{
 
 var TYPE_DARK = PokemonType{
 	TYPENAME_DARK,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_PSYCHIC: 2,
 		TYPENAME_GHOST:   2,
 
@@ -446,7 +446,7 @@ var TYPE_DARK = PokemonType{
 
 var TYPE_STEEL = PokemonType{
 	TYPENAME_STEEL,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_ICE:   2,
 		TYPENAME_ROCK:  2,
 		TYPENAME_FAIRY: 2,
@@ -460,7 +460,7 @@ var TYPE_STEEL = PokemonType{
 
 var TYPE_FAIRY = PokemonType{
 	TYPENAME_FAIRY,
-	map[string]float32{
+	map[string]float64{
 		TYPENAME_FIGHTING: 2,
 		TYPENAME_DRAGON:   2,
 		TYPENAME_DARK:     2,
@@ -473,7 +473,7 @@ var TYPE_FAIRY = PokemonType{
 
 var TYPE_TYPELESS = PokemonType{
 	"typeless",
-	map[string]float32{},
+	map[string]float64{},
 }
 
 func GetAttackTypeMapping(t string) *PokemonType {
