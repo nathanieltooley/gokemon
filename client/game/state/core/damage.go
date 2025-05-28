@@ -65,8 +65,8 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	attackType := core.GetAttackTypeMapping(move.Type)
 
-	var type1Effectiveness float32 = 1
-	var type2Effectiveness float32 = 1
+	var type1Effectiveness float64 = 1
+	var type2Effectiveness float64 = 1
 
 	if attackType != nil {
 		type1Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type1.Name)
@@ -76,17 +76,19 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		}
 	}
 
-	if type1Effectiveness == 0 || type2Effectiveness == 0 {
+	totalTypeEffectiveness := type1Effectiveness * type2Effectiveness
+
+	if totalTypeEffectiveness == 0 {
 		return 0
 	}
 
 	if defendent.Ability.Name == "wonder_guard" {
-		if type1Effectiveness <= 1 && type2Effectiveness <= 1 {
+		if totalTypeEffectiveness <= 1 {
 			return 0
 		}
 	}
 
-	var critBoost float32 = 1
+	var critBoost float64 = 1
 	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5
 		a = baseA
@@ -96,7 +98,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability.Name)
 	}
 
-	var lowHealthBonus float32 = 1.0
+	lowHealthBonus := 1.0
 	if float32(attacker.Hp.Value) <= float32(attacker.MaxHp)*0.33 {
 		if (attacker.Ability.Name == "overgrow" && move.Type == core.TYPENAME_GRASS) ||
 			(attacker.Ability.Name == "blaze" && move.Type == core.TYPENAME_FIRE) ||
@@ -106,26 +108,25 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		}
 	}
 
-	a = uint(float32(a) * lowHealthBonus)
+	a = uint(float64(a) * lowHealthBonus)
 
 	// Calculate the part of the damage function in brackets
-	damageInner := ((((float32(2*attackerLevel) / 5) + 2) * float32(power) * (float32(a) / float32(d))) / 50) + 2
-	randomSpread := float32(global.GokeRand.UintN(15)+85) / 100
-	var stab float32 = 1
+	damageInner := ((((float64(2*attackerLevel) / 5) + 2) * float64(power) * (float64(a) / float64(d))) / 50) + 2
+	randomSpread := float64(global.GokeRand.UintN(15)+85) / 100
+	var stab float64 = 1
 
 	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {
 		stab = 1.5
 	}
 
-	var burn float32 = 1
+	var burn float64 = 1
 	// TODO: Add exception for Guts and Facade
 	if attacker.Status == core.STATUS_BURN && move.DamageClass == core.DAMAGETYPE_PHYSICAL {
 		burn = 0.5
-		damageLogger().Info().Float32("burn", burn).Msg("Attacker is burned and is using a physical move")
+		damageLogger().Info().Float64("burn", burn).Msg("Attacker is burned and is using a physical move")
 	}
 
-	// TODO: Maybe add weather
-	var weatherBonus float32 = 1.0
+	weatherBonus := 1.0
 	if (weather == core.WEATHER_RAIN && move.Type == core.TYPENAME_WATER) || (weather == core.WEATHER_SUN && move.Type == core.TYPENAME_FIRE) {
 		weatherBonus = 1.5
 	}
@@ -138,11 +139,15 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	// TODO: There are about 20 different moves, abilities, and items that have some sort of
 	// random effect to the damage calcs. Maybe implement the most impactful ones?
 
-	// This seems to mostly work, however there are issues when it comes to rounding
-	// and it seems that the lowest possible value in a damage range may not be able
-	// to show up as often because rounding is a bit different
-	// TODO: maybe make a custom rounding function that rounds DOWN at .5
-	damage := uint(math.Round(float64(damageInner * randomSpread * type1Effectiveness * type2Effectiveness * stab * burn * critBoost * weatherBonus)))
+	damage := math.Floor(damageInner)
+	damage = pokeRound(damage * totalTypeEffectiveness)
+	damage = pokeRound(damage * stab)
+	damage = pokeRound(damage * burn)
+	damage = pokeRound(damage * critBoost)
+	damage = pokeRound(damage * weatherBonus)
+	damage = pokeRound(damage * lowHealthBonus)
+
+	finalDamage := uint(damage)
 
 	damageLogger().Debug().
 		Int("power", power).
@@ -152,16 +157,28 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		Uint("defValue", d).
 		Int("defenseChange", dBoost).
 		Str("attackType", move.Type).
-		Float32("lowHealthBonus", lowHealthBonus).
-		Float32("damageInner", damageInner).
-		Float32("randomSpread", randomSpread).
-		Float32("STAB", stab).
-		Float32("Net Type Effectiveness", type1Effectiveness*type2Effectiveness).
-		Float32("crit", critBoost).
-		Float32("weatherBonus", weatherBonus).
+		Float64("lowHealthBonus", lowHealthBonus).
+		Float64("damageInner", damageInner).
+		Float64("randomSpread", randomSpread).
+		Float64("STAB", stab).
+		Float64("Net Type Effectiveness", totalTypeEffectiveness).
+		Float64("crit", critBoost).
+		Float64("weatherBonus", weatherBonus).
 		Float64("flashFire", flashFireBoost).
-		Uint("damage", damage).
+		Uint("damage", finalDamage).
 		Msg("damage calc")
 
-	return damage
+	return finalDamage
+}
+
+func pokeRound(x float64) float64 {
+	intPart := math.Trunc(x)
+	distance := math.Abs(x - intPart)
+
+	if distance > 0.5 {
+		// Would use something like Copysign but this will only deal with positive numbers
+		return intPart + 1
+	} else {
+		return intPart
+	}
 }
