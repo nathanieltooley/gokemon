@@ -67,7 +67,8 @@ var (
 	// Global RNG that can be changed for testing purposes
 	GokeRand = rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 
-	initLogger zerolog.Logger
+	initLogger    zerolog.Logger
+	previousLevel zerolog.Level
 )
 
 func GlobalInit(files fs.FS, shouldLog bool) {
@@ -120,12 +121,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		level = zerolog.DebugLevel
 	}
 
-	// Logging Setup
-	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
-	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
-	fileWriter := zerolog.ConsoleWriter{Out: rollingWriter}
-	// Only used for init logging
-	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, fileWriter)).With().Timestamp().Logger().Level(level)
+	multiLogger := zerolog.New(zerolog.MultiLevelWriter(consoleWriter, createFileWriter(configDir))).With().Timestamp().Logger().Level(level)
 
 	initLogger = multiLogger
 	if !shouldLog {
@@ -133,7 +129,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	}
 
 	// Main global logger
-	log.Logger = zerolog.New(fileWriter).With().Timestamp().Caller().Logger().Level(level)
+	log.Logger = createLogger(configDir, level)
 
 	// Load concurrently
 	var wg sync.WaitGroup
@@ -161,6 +157,26 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	}()
 
 	wg.Wait()
+}
+
+func createFileWriter(configDir string) zerolog.ConsoleWriter {
+	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
+	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
+	return zerolog.ConsoleWriter{Out: rollingWriter}
+}
+
+func createLogger(configDir string, level zerolog.Level) zerolog.Logger {
+	// Main global logger
+	return zerolog.New(createFileWriter(configDir)).With().Timestamp().Caller().Logger().Level(level)
+}
+
+func StopLogging() {
+	previousLevel = log.Logger.GetLevel()
+	log.Logger = zerolog.Nop()
+}
+
+func ContinueLogging() {
+	log.Logger = createLogger(DefaultConfigDir(), previousLevel)
 }
 
 func UpdateLogLevel(level zerolog.Level) {
