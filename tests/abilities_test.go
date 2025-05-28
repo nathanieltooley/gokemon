@@ -227,19 +227,3 @@ func TestFlashFireImmunity(t *testing.T) {
 		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 }
-
-func getDummyPokemon() core.Pokemon {
-	return game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).Build()
-}
-
-func getDummyPokemonWithAbility(ability string) core.Pokemon {
-	pkm := getDummyPokemon()
-	pkm.Ability.Name = ability
-
-	return pkm
-}
-
-func getSimpleState(playerPkm core.Pokemon, enemyPkm core.Pokemon) stateCore.GameState {
-	gameState := state.NewState([]core.Pokemon{playerPkm}, []core.Pokemon{enemyPkm})
-	return gameState
-}
