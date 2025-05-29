@@ -112,7 +112,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	// Calculate the part of the damage function in brackets
 	damageInner := ((((float64(2*attackerLevel) / 5) + 2) * float64(power) * (float64(a) / float64(d))) / 50) + 2
-	randomSpread := float64(global.GokeRand.UintN(15)+85) / 100
+	randomSpread := float64(global.GokeRand.UintN(15)+85) / 100.0
 	var stab float64 = 1
 
 	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {
@@ -141,6 +141,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	damage := math.Floor(damageInner)
 	damage = pokeRound(damage * totalTypeEffectiveness)
+	damage = pokeRound(damage * randomSpread)
 	damage = pokeRound(damage * stab)
 	damage = pokeRound(damage * burn)
 	damage = pokeRound(damage * critBoost)
