@@ -183,6 +183,14 @@ func UpdateLogLevel(level zerolog.Level) {
 	log.Logger = log.Logger.Level(level)
 }
 
+func ForceRng(source rand.Source) {
+	GokeRand = rand.New(source)
+}
+
+func SetNormalRng() {
+	GokeRand = rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
+}
+
 func populateConfig(config GlobalConfig) GlobalConfig {
 	configDir := DefaultConfigDir()
 
