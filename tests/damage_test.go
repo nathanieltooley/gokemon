@@ -8,6 +8,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/game/state"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog/log"
 
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 )
@@ -16,6 +17,7 @@ const iterCount = 1000
 
 func TestDamage(t *testing.T) {
 	global.StopLogging()
+	defer global.ContinueLogging()
 	for range iterCount {
 		pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
 		enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
@@ -26,12 +28,26 @@ func TestDamage(t *testing.T) {
 
 		checkDamageRange(t, damage, 29, 35)
 	}
+}
 
-	global.ContinueLogging()
+func TestDamageLow(t *testing.T) {
+	log.Debug().Msg("====damage low test====")
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+
+	global.ForceRng(&global.LowSource{})
+	defer global.SetNormalRng()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	// NOTE: I really don't want to deal with random rounding bullshit to get this 100% accurate
+	// so all high and low damage checks are gonna have a variation of +-1
+	checkDamageRange(t, damage, 28, 30)
 }
 
 func TestCritDamage(t *testing.T) {
 	global.StopLogging()
+	defer global.ContinueLogging()
 
 	for range iterCount {
 		pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
@@ -43,7 +59,6 @@ func TestCritDamage(t *testing.T) {
 
 		checkDamageRange(t, damage, 44, 52)
 	}
-	global.ContinueLogging()
 }
 
 func TestSandstormChip(t *testing.T) {
