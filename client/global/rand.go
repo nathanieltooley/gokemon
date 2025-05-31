@@ -11,5 +11,5 @@ func (f *HighSource) Uint64() uint64 {
 type LowSource struct{}
 
 func (f *LowSource) Uint64() uint64 {
-	return 1
+	return 0
 }
