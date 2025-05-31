@@ -114,7 +114,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	// TODO: still has rounding issues. not sure if its here in the order of floors and rounds
 	// or if later on where a certain value is supposed to be floored or rounded. its really dumb and confusing
 	damageInner := math.Floor(math.Floor(math.Floor((float64(2*attackerLevel)/5+2)*float64(power))*(float64(a)/float64(d)))/50 + 2)
-	randomSpread := float64(global.GokeRand.UintN(15)+85) / 100.0
+	randomSpread := float64(global.GokeRand.UintN(16)+85) / 100.0
 	var stab float64 = 1
 
 	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {
