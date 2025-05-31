@@ -41,7 +41,21 @@ func TestDamageLow(t *testing.T) {
 	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
 
 	if damage != 29 {
-		t.Skipf("low damage incorrect: expected 29, got %d", damage)
+		t.Fatalf("low damage incorrect: expected 29, got %d", damage)
+	}
+}
+
+func TestDamageHigh(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+
+	global.ForceRng(&global.HighSource{})
+	defer global.SetNormalRng()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	if damage != 35 {
+		t.Fatalf("high damage incorrect: expected 35, got %d", damage)
 	}
 }
 
