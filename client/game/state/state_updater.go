@@ -80,7 +80,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
-	states = append(states, commonSwitching(gameState, switches)...)
+	states = append(states, syncState(gameState, commonSwitching(gameState, switches))...)
 
 	// Properly end turn after force switches are dealt with
 	if host.ActiveKOed || client.ActiveKOed {
@@ -114,7 +114,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 	}
 
-	states = append(states, commonOtherActionHandling(gameState, otherActions)...)
+	states = append(states, syncState(gameState, commonOtherActionHandling(gameState, otherActions))...)
 
 	gameOverValue := gameState.GameOver()
 	switch gameOverValue {
@@ -146,7 +146,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
-	states = append(states, commonEndOfTurn(gameState)...)
+	states = append(states, syncState(gameState, commonEndOfTurn(gameState))...)
 
 	gameState.Turn++
 

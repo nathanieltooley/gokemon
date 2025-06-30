@@ -455,8 +455,8 @@ func healHandler(state *GameState, attackPokemon *core.Pokemon, move core.Move) 
 }
 
 func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
-	if len(defPlayer.GetAllAlivePokemon()) <= 1 {
-		return NewMessageOnlySnapshot(fmt.Sprintf("%s has no other Pokemon to switch into", defPlayer.Name), "Roar failed!")
+	if defPlayer.GetActivePokemon().Ability.Name == "suction-cups" {
+		return NewMessageOnlySnapshot(fmt.Sprintf("%s stays in with it's suction cups!", defPlayer.GetActivePokemon().Nickname))
 	}
 
 	// since the active pokemon is determined by the position
@@ -477,6 +477,10 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 	alivePokemon := lo.Filter(enumeratedPkm, func(e enumPokemon, _ int) bool {
 		return e.Pokemon.Alive() && e.Index != defPlayer.ActivePokeIndex
 	})
+
+	if len(alivePokemon) == 0 {
+		return NewMessageOnlySnapshot(fmt.Sprintf("%s has no Pokemon left to switch!", defPlayer.Name))
+	}
 
 	choiceIndex := global.GokeRand.IntN(len(alivePokemon))
 
