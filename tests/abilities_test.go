@@ -250,3 +250,18 @@ func TestFlashFire(t *testing.T) {
 
 	checkDamageRange(t, damage, 108, 128)
 }
+
+func TestIntimidate(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("intimidate")
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)})
+
+	intimidatedPokemon := gameState.ClientPlayer.GetActivePokemon()
+
+	if intimidatedPokemon.Attack.Stage != -1 {
+		t.Fatalf("pokemon was not intimidated: attack stage = %d", intimidatedPokemon.Attack.Stage)
+	}
+}
