@@ -265,3 +265,28 @@ func TestIntimidate(t *testing.T) {
 		t.Fatalf("pokemon was not intimidated: attack stage = %d", intimidatedPokemon.Attack.Stage)
 	}
 }
+
+func TestOwnTempo(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("intimidate")
+	enemyPokemon := getDummyPokemonWithAbility("own-tempo")
+
+	pokemon.Moves[0] = *global.MOVES.GetMove("teeter-dance")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)})
+
+	ownTempoPokemon := gameState.ClientPlayer.GetActivePokemon()
+
+	if ownTempoPokemon.Attack.Stage != 0 {
+		t.Fatalf("own-tempo pokemon was intimidated: attack stage = %d", ownTempoPokemon.Attack.Stage)
+	}
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)})
+
+	ownTempoPokemon = gameState.ClientPlayer.GetActivePokemon()
+
+	if ownTempoPokemon.ConfusionCount != 0 {
+		t.Fatalf("own-tempo pokemon was confused, count = %d", ownTempoPokemon.ConfusionCount)
+	}
+}
