@@ -227,3 +227,26 @@ func TestFlashFireImmunity(t *testing.T) {
 		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 }
+
+func TestFlashFire(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("vulpix")).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+
+	pokemon.Ability.Name = "flash-fire"
+	pokemon.Moves[0] = *global.MOVES.GetMove("ember")
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 108, 128)
+}
