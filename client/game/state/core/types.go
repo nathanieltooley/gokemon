@@ -131,6 +131,20 @@ func (p Player) GetPokemon(index int) *core.Pokemon {
 	return &p.Team[index]
 }
 
+func (p Player) GetAllAlivePokemon() []*core.Pokemon {
+	alivePokemon := make([]*core.Pokemon, 0)
+
+	for i, pokemon := range p.Team {
+		if pokemon.Hp.Value > 0 {
+			// grab pointer directly from team slice
+			// loop var pokemon should be a copy and thus a pointer would do nothing
+			alivePokemon = append(alivePokemon, &p.Team[i])
+		}
+	}
+
+	return alivePokemon
+}
+
 // Create a new StateSnapshot. Takes in a pointer to avoid a second copy
 func NewStateSnapshot(state *GameState, messages ...string) StateSnapshot {
 	return StateSnapshot{

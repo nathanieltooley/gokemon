@@ -455,6 +455,10 @@ func healHandler(state *GameState, attackPokemon *core.Pokemon, move core.Move) 
 }
 
 func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
+	if len(defPlayer.GetAllAlivePokemon()) <= 1 {
+		return NewMessageOnlySnapshot(fmt.Sprintf("%s has no other Pokemon to switch into", defPlayer.Name), "Roar failed!")
+	}
+
 	// since the active pokemon is determined by the position
 	// of the pokemon in the Player.Team slice, we have to store
 	// that position which makes this clunky
