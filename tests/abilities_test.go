@@ -290,3 +290,19 @@ func TestOwnTempo(t *testing.T) {
 		t.Fatalf("own-tempo pokemon was confused, count = %d", ownTempoPokemon.ConfusionCount)
 	}
 }
+
+func TestSuctionCups(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("suction-cups")
+	pokemon2 := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("roar")
+	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon})
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	activeIndex := gameState.HostPlayer.ActivePokeIndex
+	if activeIndex != 0 {
+		t.Fatalf("pokemon with suction cups was switched out! index = %d", activeIndex)
+	}
+}
