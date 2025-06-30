@@ -1,3 +1,4 @@
+// Package tests contains integration tests between different packages
 package tests
 
 import (
