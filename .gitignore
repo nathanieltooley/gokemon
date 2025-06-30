@@ -3,3 +3,4 @@ logs/
 *.log
 # Added by goreleaser init:
 dist/
+cover*
