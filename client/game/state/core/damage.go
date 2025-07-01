@@ -88,6 +88,10 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		}
 	}
 
+	if defendent.Ability.Name == "levitate" && move.Type == core.TYPENAME_GROUND {
+		return 0
+	}
+
 	var critBoost float64 = 1
 	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5
