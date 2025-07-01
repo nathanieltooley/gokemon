@@ -306,3 +306,36 @@ func TestSuctionCups(t *testing.T) {
 		t.Fatalf("pokemon with suction cups was switched out! index = %d", activeIndex)
 	}
 }
+
+func TestWonderGuard(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(5).SetPerfectIvs().Build()
+	pokemon.Ability.Name = "wonder-guard"
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	enemyPokemon.Moves[1] = *global.MOVES.GetMove("water-gun")
+	enemyPokemon.Moves[2] = *global.MOVES.GetMove("ember")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 2)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value == pokemon.MaxHp {
+		t.Fatalf("pokemon with wonder guard did not take damage from super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
