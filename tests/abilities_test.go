@@ -339,3 +339,19 @@ func TestWonderGuard(t *testing.T) {
 		t.Fatalf("pokemon with wonder guard did not take damage from super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 }
+
+func TestLevitate(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("levitate")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("earthquake")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with levitate took damage from ground type move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
