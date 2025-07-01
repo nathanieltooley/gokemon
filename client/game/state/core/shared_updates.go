@@ -20,6 +20,8 @@ const (
 	STAT_EVASION  = "evasion"
 )
 
+// StatChangeHandler is a function that applies a stat change, statChance% of the time. Peforms it's own RNG check to see if statChance is reached.
+// Should be used as a way to centralize all stat changes.
 func StatChangeHandler(state *GameState, pokemon *core.Pokemon, statChange core.StatChange, statChance int) StateSnapshot {
 	statCheck := global.GokeRand.IntN(100)
 	if statChance == 0 {
@@ -40,6 +42,8 @@ func StatChangeHandler(state *GameState, pokemon *core.Pokemon, statChange core.
 	return statChangeState
 }
 
+// ChangeStat applies a stat change based on the string passed in. Should be the lowest level function to handle stat changes.
+// An exception might be to avoid an ability check for a mechanic it does not cover. Returns messages that communicate to the user what changed and how.
 func ChangeStat(pokemon *core.Pokemon, statName string, change int) []string {
 	messages := make([]string, 0)
 
@@ -71,6 +75,7 @@ func ChangeStat(pokemon *core.Pokemon, statName string, change int) []string {
 	return messages
 }
 
+// FlinchHandler makes a pokemon "flinch" making it so that the pokemon can no longer attack for the turn.
 func FlinchHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	pokemon.CanAttackThisTurn = false
 	return StateSnapshot{
@@ -79,6 +84,7 @@ func FlinchHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// SleepHandler updates a pokemon's sleep counter and communicates to the user whether the pokemon woke up or stayed asleep.
 func SleepHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	message := ""
 
@@ -100,6 +106,8 @@ func SleepHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// ParaHandler determines whether a pokemon who is paralyzed will be able to attack this turn.
+// Handles it's own RNG call to check for para activation.
 func ParaHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	paraChance := 0.5
 	paraCheck := global.GokeRand.Float64()
@@ -120,6 +128,7 @@ func ParaHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// BurnHandler deals burn damage to a pokemon.
 func BurnHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	damage := pokemon.MaxHp / 16
 	pokemon.Damage(damage)
@@ -131,6 +140,7 @@ func BurnHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// PoisonHandler deals poison damage to a pokemon.
 func PoisonHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	// for future reference, this is MaxHp / 16 in gen 1
 	damage := pokemon.MaxHp / 8
@@ -143,6 +153,7 @@ func PoisonHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// ToxicHandler deals toxic poison damage to a pokemon and increments it's toxic poison counter.
 func ToxicHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	damage := (pokemon.MaxHp / 16) * uint(pokemon.ToxicCount)
 	pokemon.Damage(damage)
@@ -158,6 +169,7 @@ func ToxicHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// FreezeHandler determines whether a frozen pokemon stays frozen or thaws. Thawing resets the pokemon's status to NONE.
 func FreezeHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	thawChance := .20
 	thawCheck := global.GokeRand.Float64()
@@ -184,6 +196,8 @@ func FreezeHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
+// ConfuseHandler determines whether a pokemon hits itself in confusion. If the pokemon does hit itself, that damage calc is performed here and the pokemon takes damage.
+// ConfuseHandler also decrements the pokemon's confusion count.
 func ConfuseHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	pokemon.ConfusionCount--
 	log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion lowered")
@@ -222,7 +236,7 @@ func ConfuseHandler(state *GameState, pokemon *core.Pokemon) StateSnapshot {
 	}
 }
 
-// Single place to apply ailment so that all abilities can be checked
+// ApplyAilment acts as a single place to apply ailments so that all abilities / items can be checked
 func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSnapshot {
 	// If pokemon already has ailment, return early
 	if pokemon.Status != core.STATUS_NONE {
@@ -272,14 +286,15 @@ func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSna
 	return NewStateSnapshot(state)
 }
 
+// SandstormDamage deals sandstorm chip damage to a pokemon, checking for immunities in abilities, types and items
 func SandstormDamage(state *GameState, pokemon *core.Pokemon) StateSnapshot {
-	non_damage_types := []*core.PokemonType{&core.TYPE_ROCK, &core.TYPE_STEEL, &core.TYPE_GROUND}
-	non_damage_abilities := []string{"sand-force", "sand-rush", "sand-veil", "magic-guard", "overcoat"}
-	if slices.Contains(non_damage_types, pokemon.Base.Type1) || slices.Contains(non_damage_types, pokemon.Base.Type2) {
+	nonDamageTypes := []*core.PokemonType{&core.TYPE_ROCK, &core.TYPE_STEEL, &core.TYPE_GROUND}
+	nonDamageAbilities := []string{"sand-force", "sand-rush", "sand-veil", "magic-guard", "overcoat"}
+	if slices.Contains(nonDamageTypes, pokemon.Base.Type1) || slices.Contains(nonDamageTypes, pokemon.Base.Type2) {
 		return NewEmptyStateSnapshot()
 	}
 
-	if slices.Contains(non_damage_abilities, pokemon.Ability.Name) {
+	if slices.Contains(nonDamageAbilities, pokemon.Ability.Name) {
 		return NewEmptyStateSnapshot()
 	}
 
