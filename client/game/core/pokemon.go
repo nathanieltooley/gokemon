@@ -1,3 +1,6 @@
+// Package core (thereafter refered to as game.core to avoid confusion with state.core) contains all foundational data,
+// types and functions for dealing with game data. game.core CANNOT have dependencies with other packages in this project (some expections may apply).
+// This is a hard rule due to cyclic dependencies, the reason this package was separated in the first place.
 package core
 
 import (
@@ -40,7 +43,8 @@ type PokemonType struct {
 	Effectiveness map[string]float64
 }
 
-// The effectiveness of this type against some defense type
+// AttackEffectiveness gives the type effectiveness of an attack of this type compared to a given defense type, given as a string of the name of the type.
+// For instance, if self's type is Grass, this function gets the type effectiveness of a Grass attack against a given type (i.e Water would 2X effective, Fire would 1/2 effective)
 func (t PokemonType) AttackEffectiveness(defenseType string) float64 {
 	effectiveness, ok := t.Effectiveness[defenseType]
 
@@ -52,6 +56,7 @@ func (t PokemonType) AttackEffectiveness(defenseType string) float64 {
 	}
 }
 
+// BasePokemon is the base stats, possible abilities, and type information of a Pokemon, as if it were a PokeDex entry.
 type BasePokemon struct {
 	PokedexNumber uint
 	Name          string
@@ -66,6 +71,7 @@ type BasePokemon struct {
 	Speed         uint
 }
 
+// DefenseEffectiveness gets the type effectiveness of an attackType against this BasePokemon's one or two types
 func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
 	effectiveness1 := attackType.AttackEffectiveness(b.Type1.Name)
 
@@ -77,10 +83,12 @@ func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
 	return effectiveness1 * effectiveness2
 }
 
+// HasType returns whether a BasePokemon is either of these types
 func (b BasePokemon) HasType(t *PokemonType) bool {
 	return b.Type1 == t || b.Type2 == t
 }
 
+// Stat represents one of a Pokemon's stats, keeping track of the raw values and also stage modifers.
 type Stat struct {
 	RawValue uint
 	Ev       uint
@@ -88,6 +96,7 @@ type Stat struct {
 	Stage    int `json:"-"`
 }
 
+// HpStat is a special version of Stat that does not contain stage info as HP cannot be increased in stages like other stats.
 type HpStat struct {
 	Value uint
 	Ev    uint
@@ -149,20 +158,26 @@ var accuracyStageMult = map[int]float32{
 	-6: 3.0 / 9.0,
 }
 
+// StageIncrease increases a stat's stage, keeping in mind the max value for the stat.
+// Generalized for a stat with any given max value as crit chance stages only go up to 4.
 func StageIncrease(inc int, currentStage int, maxStage int) int {
 	inc = int(math.Abs(float64(inc)))
 	return int(math.Min(float64(maxStage), float64(currentStage+inc)))
 }
 
+// StageDecrease decreases a stat's stage, keeping in mind the min value for the stat.
+// Generalized for a stat with any given min value.
 func StageDecrease(dec int, currentStage int, minStage int) int {
 	dec = int(math.Abs(float64(dec)))
 	return int(math.Max(float64(minStage), float64(currentStage-dec)))
 }
 
+// CalcValue gets the final, actual value of a Pokemon's stat after being modified by it's stage.
 func (s Stat) CalcValue() int {
 	return int(float32(s.RawValue) * StageMultipliers[s.Stage])
 }
 
+// ChangeStat is a automatic version of Stat.IncreaseStage and Stat.DecreaseStage, calling StageIncrease when change is positive and StageDecrease when change is negative.
 func (s *Stat) ChangeStat(change int) {
 	if change > 0 {
 		s.IncreaseStage(change)
@@ -171,10 +186,12 @@ func (s *Stat) ChangeStat(change int) {
 	}
 }
 
+// IncreaseStage calls StageIncrease with a max stage of 6
 func (s *Stat) IncreaseStage(inc int) {
 	s.Stage = StageIncrease(inc, s.Stage, 6)
 }
 
+// DecreaseStage calls StageDecrease with a min stage of -6
 func (s *Stat) DecreaseStage(dec int) {
 	s.Stage = StageDecrease(dec, s.Stage, -6)
 }
@@ -188,6 +205,8 @@ type Nature struct {
 	StatModifiers [5]float32
 }
 
+// Pokemon is a mixture of an edited Pokemon on a team, and a version of that Pokemon in a battle.
+// Certain values that are only relevant to battles (like stat stages, counters for sleep and toxic, or PP [lol] for a move) are not saved as team data.
 type Pokemon struct {
 	Base               *BasePokemon
 	Nickname           string
@@ -260,7 +279,7 @@ func (p *Pokemon) HealPerc(heal float64) {
 	p.Heal(uint(healAmount))
 }
 
-// Get the speed of the Pokemon, accounting for effects like paralysis
+// Speed gets the speed of the Pokemon, accounting for effects like paralysis
 func (p *Pokemon) Speed() int {
 	if p.Status == STATUS_PARA {
 		return p.RawSpeed.CalcValue() / 2
@@ -269,6 +288,7 @@ func (p *Pokemon) Speed() int {
 	}
 }
 
+// CritChance gets the chance for a Pokemon's move to crit based on the Pokemon's current crit change stage
 func (p *Pokemon) CritChance() float32 {
 	mult, ok := critStateMultipliers[p.CritStage]
 
