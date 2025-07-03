@@ -355,3 +355,15 @@ func TestLevitate(t *testing.T) {
 		t.Fatalf("pokemon with levitate took damage from ground type move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 }
+
+func TestHugePower(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon.Ability.Name = "huge-power"
+	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 58, 69)
+}
