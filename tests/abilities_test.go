@@ -367,3 +367,15 @@ func TestHugePower(t *testing.T) {
 
 	checkDamageRange(t, damage, 58, 69)
 }
+
+func TestPurePower(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon.Ability.Name = "pure-power"
+	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 58, 69)
+}
