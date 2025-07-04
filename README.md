@@ -3,7 +3,7 @@
 </div>
 
 # Gokemon
-Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be an fairly accurate, if feature-lacking, simulation of newer-gen Pokemon battle mechanics.
+Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be a fairly accurate, if feature-lacking, simulation of newer-gen Pokemon battle mechanics.
 Gokemon will not feature previous generations' mechanics, abilities, stats, or bugs the way a battle simulator like Pokemon Showdown does.
 
 > [!WARNING]
