@@ -379,3 +379,20 @@ func TestPurePower(t *testing.T) {
 
 	checkDamageRange(t, damage, 58, 69)
 }
+
+func TestVitalSpirit(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("vital-spirit")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spore")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status == core.STATUS_SLEEP {
+		t.Fatalf("pokemon with vital spirit fell asleep")
+	}
+}
