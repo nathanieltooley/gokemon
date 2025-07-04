@@ -396,3 +396,21 @@ func TestVitalSpirit(t *testing.T) {
 		t.Fatalf("pokemon with vital spirit fell asleep")
 	}
 }
+
+func TestWaterVeil(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("water-veil")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("will-o-wisp")
+	enemyPokemon.Moves[0].Accuracy = 100
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status == core.STATUS_BURN {
+		t.Fatalf("pokemon with water-veil burned")
+	}
+}
