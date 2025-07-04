@@ -267,6 +267,11 @@ func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSna
 		randTime := global.GokeRand.IntN(2) + 1
 		pokemon.SleepCount = randTime
 		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
+	case core.STATUS_BURN:
+		if pokemon.Ability.Name == "water-veil" {
+			pokemon.Status = core.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s cannot be burned!", pokemon.Nickname))
+		}
 	case core.STATUS_POISON:
 		if pokemon.Ability.Name == "immunity" {
 			pokemon.Status = core.STATUS_NONE
