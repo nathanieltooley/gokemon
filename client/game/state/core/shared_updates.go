@@ -259,6 +259,11 @@ func ApplyAilment(state *GameState, pokemon *core.Pokemon, ailment int) StateSna
 			return NewMessageOnlySnapshot(fmt.Sprintf("%s has Insomnia and can not fall asleep!", pokemon.Nickname))
 		}
 
+		if pokemon.Ability.Name == "vital-spirit" {
+			pokemon.Status = core.STATUS_NONE
+			return NewMessageOnlySnapshot(fmt.Sprintf("%s's Vital Spirit kept it from falling asleep!", pokemon.Nickname))
+		}
+
 		randTime := global.GokeRand.IntN(2) + 1
 		pokemon.SleepCount = randTime
 		attackActionLogger().Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
