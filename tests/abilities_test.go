@@ -429,3 +429,21 @@ func TestThickFat(t *testing.T) {
 
 	checkDamageRange(t, damage, 80, 96)
 }
+
+func TestChloro(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon.Ability.Name = "chlorophyll"
+
+	if pokemon.Speed(core.WEATHER_SUN) != 252 {
+		t.Fatalf("pokemon with chlorophyll has the incorrect speed: %d", pokemon.Speed(core.WEATHER_SUN))
+	}
+}
+
+func TestSwiftSwim(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon.Ability.Name = "swift-swim"
+
+	if pokemon.Speed(core.WEATHER_RAIN) != 252 {
+		t.Fatalf("pokemon with swift-swim has the incorrect speed: %d", pokemon.Speed(core.WEATHER_RAIN))
+	}
+}
