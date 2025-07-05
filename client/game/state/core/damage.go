@@ -114,6 +114,12 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	a = uint(float64(a) * lowHealthBonus)
 
+	if defendent.Ability.Name == "thick-fat" {
+		if move.Type == core.TYPENAME_ICE || move.Type == core.TYPENAME_FIRE {
+			a = uint(float64(a) * 0.5)
+		}
+	}
+
 	// Calculate the part of the damage function in brackets
 	// TODO: still has rounding issues. not sure if its here in the order of floors and rounds
 	// or if later on where a certain value is supposed to be floored or rounded. its really dumb and confusing
