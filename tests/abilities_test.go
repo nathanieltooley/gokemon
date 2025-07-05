@@ -447,3 +447,24 @@ func TestSwiftSwim(t *testing.T) {
 		t.Fatalf("pokemon with swift-swim has the incorrect speed: %d", pokemon.Speed(core.WEATHER_RAIN))
 	}
 }
+
+func TestMagmaArmor(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("magma-armor")
+	enemyPokemon := getDummyPokemon()
+
+	modIceBeam := *global.MOVES.GetMove("ice-beam")
+	modIceBeam.Meta.AilmentChance = 100
+	modIceBeam.EffectChance = 100
+
+	enemyPokemon.Moves[0] = modIceBeam
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status == core.STATUS_FROZEN {
+		t.Fatalf("pokemon with magma armor froze")
+	}
+}
