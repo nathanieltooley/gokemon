@@ -92,6 +92,10 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		return 0
 	}
 
+	if defendent.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
+		return 0
+	}
+
 	var critBoost float64 = 1
 	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5

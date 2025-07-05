@@ -268,6 +268,10 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 		}
 	}
 
+	if defPokemon.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
+		states = append(states, StatChangeHandler(state, defPokemon, core.StatChange{Change: 1, StatName: STAT_SPATTACK}, 100))
+	}
+
 	defPokemon.Damage(damage)
 
 	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
