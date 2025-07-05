@@ -236,9 +236,14 @@ type Pokemon struct {
 }
 
 func (p *Pokemon) ReCalcStats() {
-	hpNumerator := (2*p.Base.Hp + p.Hp.Iv + (p.Hp.Ev / 4)) * (p.Level)
-	p.Hp.Value = (hpNumerator / 100) + p.Level + 10
-	p.MaxHp = p.Hp.Value
+	if p.Base.Name == "shedinja" {
+		p.Hp.Value = 1
+		p.MaxHp = 1
+	} else {
+		hpNumerator := (2*p.Base.Hp + p.Hp.Iv + (p.Hp.Ev / 4)) * (p.Level)
+		p.Hp.Value = (hpNumerator / 100) + p.Level + 10
+		p.MaxHp = p.Hp.Value
+	}
 
 	p.Attack.RawValue = calcStat(p.Base.Attack, p.Level, p.Attack.Iv, p.Attack.Ev, p.Nature.StatModifiers[0])
 	p.Def.RawValue = calcStat(p.Base.Def, p.Level, p.Def.Iv, p.Def.Ev, p.Nature.StatModifiers[0])
