@@ -468,3 +468,24 @@ func TestMagmaArmor(t *testing.T) {
 		t.Fatalf("pokemon with magma armor froze")
 	}
 }
+
+func TestLightningRod(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("lightning-rod")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("thunderbolt")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with lightning-rod took damage from an electric-type attack. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+
+	if pokemon.SpAttack.Stage != 1 {
+		t.Fatalf("pokemon with lightning-rod does not have the right SpAttack stage: got %d, expected 1", pokemon.SpAttack.Stage)
+	}
+}
