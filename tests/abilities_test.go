@@ -414,3 +414,18 @@ func TestWaterVeil(t *testing.T) {
 		t.Fatalf("pokemon with water-veil burned")
 	}
 }
+
+func TestThickFat(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+
+	pokemon.Ability.Name = "thick-fat"
+
+	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("flamethrower"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 66, 78)
+
+	damage = stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("blizzard"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 80, 96)
+}
