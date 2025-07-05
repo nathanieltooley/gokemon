@@ -15,7 +15,7 @@ func commonSwitching(gameState *stateCore.GameState, switches []stateCore.Switch
 
 	// Sort switching order by speed
 	slices.SortFunc(switches, func(a, b stateCore.SwitchAction) int {
-		return cmp.Compare(a.Poke.Speed(), b.Poke.Speed())
+		return cmp.Compare(a.Poke.Speed(gameState.Weather), b.Poke.Speed(gameState.Weather))
 	})
 
 	// Reverse for desc order
@@ -48,7 +48,7 @@ func commonOtherActionHandling(gameState *stateCore.GameState, actions []stateCo
 		var bPriority int
 
 		activePokemon := gameState.GetPlayer(a.GetCtx().PlayerId).GetActivePokemon()
-		aSpeed = activePokemon.Speed()
+		aSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch a := a.(type) {
 		case *stateCore.AttackAction:
@@ -61,7 +61,7 @@ func commonOtherActionHandling(gameState *stateCore.GameState, actions []stateCo
 		}
 
 		activePokemon = gameState.GetPlayer(b.GetCtx().PlayerId).GetActivePokemon()
-		bSpeed = activePokemon.Speed()
+		bSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch b := b.(type) {
 		case *stateCore.AttackAction:
@@ -108,7 +108,7 @@ func commonOtherActionHandling(gameState *stateCore.GameState, actions []stateCo
 			player := gameState.GetPlayer(a.GetCtx().PlayerId)
 
 			log.Info().Int("attackIndex", i).
-				Int("attackerSpeed", player.GetActivePokemon().Speed()).
+				Int("attackerSpeed", player.GetActivePokemon().Speed(gameState.Weather)).
 				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
 				Int("attackerConfCount", player.GetActivePokemon().ConfusionCount).
 				Msg("Attack state update")

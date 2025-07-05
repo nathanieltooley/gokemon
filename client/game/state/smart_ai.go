@@ -26,7 +26,7 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 
 		bestMoveIndex := -1
 
-		if aiPokemon.Speed() < playerPokemon.Speed() {
+		if aiPokemon.Speed(gameState.Weather) < playerPokemon.Speed(gameState.Weather) {
 			bestMoveIndex = bestSlowingMove(gameState)
 		} else {
 			bestMoveIndex = bestAttackingMove(gameState)

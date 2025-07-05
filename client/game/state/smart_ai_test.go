@@ -56,7 +56,7 @@ func TestSlowMove(t *testing.T) {
 	aiResult := BestAiAction(&gameState)
 
 	if aiResult != stateCore.NewAttackAction(AI, 3) {
-		t.Logf("pSpeed: %d | aSpeed: %d", playerPokemon.Speed(), aiPokemon.Speed())
+		t.Logf("pSpeed: %d | aSpeed: %d", playerPokemon.Speed(0), aiPokemon.Speed(0))
 		t.Fatalf("Attack move should be scary-face, got: %+v", aiPokemon.Moves[aiResult.(stateCore.AttackAction).AttackerMove])
 	}
 }

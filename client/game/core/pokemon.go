@@ -279,13 +279,22 @@ func (p *Pokemon) HealPerc(heal float64) {
 	p.Heal(uint(healAmount))
 }
 
-// Speed gets the speed of the Pokemon, accounting for effects like paralysis
-func (p *Pokemon) Speed() int {
+func (p *Pokemon) Speed(weather int) int {
+	calcedSpeed := p.RawSpeed.CalcValue()
+
 	if p.Status == STATUS_PARA {
-		return p.RawSpeed.CalcValue() / 2
-	} else {
-		return p.RawSpeed.CalcValue()
+		calcedSpeed = calcedSpeed / 2
 	}
+
+	if p.Ability.Name == "swift-swim" && weather == WEATHER_RAIN {
+		calcedSpeed = calcedSpeed * 2
+	}
+
+	if p.Ability.Name == "chlorophyll" && weather == WEATHER_SUN {
+		calcedSpeed = calcedSpeed * 2
+	}
+
+	return calcedSpeed
 }
 
 // CritChance gets the chance for a Pokemon's move to crit based on the Pokemon's current crit change stage
