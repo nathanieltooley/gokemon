@@ -507,3 +507,16 @@ func TestPressure(t *testing.T) {
 		t.Fatalf("pressure did not take an extra PP (lol) from enemy pokemon: expected %d, got %d", startingPP-2, endingPP)
 	}
 }
+
+func TestSandStream(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("sand-stream")
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+
+	if gameState.Weather != core.WEATHER_SANDSTORM {
+		t.Fatalf("pokemon with sand-stream did not setup sandstorm weather")
+	}
+}
