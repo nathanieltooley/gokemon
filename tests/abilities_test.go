@@ -520,3 +520,16 @@ func TestSandStream(t *testing.T) {
 		t.Fatalf("pokemon with sand-stream did not setup sandstorm weather")
 	}
 }
+
+func TestDrought(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("drought")
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+
+	if gameState.Weather != core.WEATHER_SUN {
+		t.Fatalf("pokemon with drought did not setup harsh sunlight")
+	}
+}
