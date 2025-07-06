@@ -105,5 +105,5 @@ func (m Move) IsNil() bool {
 
 type BattleMove struct {
 	Info Move
-	PP   uint
+	PP   int
 }

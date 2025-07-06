@@ -61,7 +61,7 @@ func NewState(localTeam []core.Pokemon, opposingTeam []core.Pokemon) stateCore.G
 			if !m.IsNil() {
 				p.InGameMoveInfo[i] = core.BattleMove{
 					Info: m,
-					PP:   uint(m.PP),
+					PP:   m.PP,
 				}
 			}
 		}
@@ -76,7 +76,7 @@ func NewState(localTeam []core.Pokemon, opposingTeam []core.Pokemon) stateCore.G
 			if !m.IsNil() {
 				p.InGameMoveInfo[i] = core.BattleMove{
 					Info: m,
-					PP:   uint(m.PP),
+					PP:   m.PP,
 				}
 			}
 		}

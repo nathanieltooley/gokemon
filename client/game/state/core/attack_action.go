@@ -59,7 +59,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 
 	var move core.Move
 	var moveVars core.BattleMove
-	var pp uint
+	var pp int
 
 	if a.AttackerMove == -1 {
 		move = struggleMove
@@ -217,7 +217,7 @@ func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
 				ppModifier = 2
 			}
 
-			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - uint(ppModifier)
+			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - ppModifier
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")
