@@ -489,3 +489,21 @@ func TestLightningRod(t *testing.T) {
 		t.Fatalf("pokemon with lightning-rod does not have the right SpAttack stage: got %d, expected 1", pokemon.SpAttack.Stage)
 	}
 }
+
+func TestPressure(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("pressure")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+
+	startingPP := enemyPokemon.Moves[0].PP
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+
+	endingPP := gameState.ClientPlayer.GetActivePokemon().InGameMoveInfo[0].PP
+	if endingPP != (startingPP - 2) {
+		t.Fatalf("pressure did not take an extra PP (lol) from enemy pokemon: expected %d, got %d", startingPP-2, endingPP)
+	}
+}
