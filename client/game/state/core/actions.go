@@ -64,6 +64,9 @@ func (a SwitchAction) UpdateState(state GameState) []StateSnapshot {
 	case "drizzle":
 		state.Weather = core.WEATHER_RAIN
 		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
+	case "sand-stream":
+		state.Weather = core.WEATHER_SANDSTORM
+		states = append(states, NewStateSnapshot(&state, newActivePkm.AbilityText()))
 	case "intimidate":
 		opPokemon := state.GetPlayer(invertPlayerIndex(a.Ctx.PlayerId)).GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
