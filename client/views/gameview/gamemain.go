@@ -244,17 +244,22 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case nextNotifMsg:
 		// For when we still have messages in the queue
-		if m.nextStateMsg() {
-			delay := _MESSAGE_TIME
-			cmds = append(cmds, tea.Tick(delay, func(t time.Time) tea.Msg {
+		moreMessagesToRender := m.nextStateMsg()
+		if moreMessagesToRender {
+			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
 				return nextNotifMsg{}
 			}))
 		} else {
 			// Go to the next event once we run out of messages
 			if m.nextEvent() {
 				// TODO: Add case for if there is no msg here
-				m.nextStateMsg()
-				cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+				msgToShow := m.nextStateMsg()
+				delay := _MESSAGE_TIME
+				if !msgToShow {
+					delay = 0
+				}
+
+				cmds = append(cmds, tea.Tick(delay, func(t time.Time) tea.Msg {
 					return nextNotifMsg{}
 				}))
 			} else {
@@ -425,9 +430,15 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.nextEvent()
 		m.nextStateMsg()
 
-		cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
-			return nextNotifMsg{}
-		}))
+		if len(m.messageQueue) == 0 {
+			cmds = append(cmds, func() tea.Msg {
+				return nextNotifMsg{}
+			})
+		} else {
+			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+				return nextNotifMsg{}
+			}))
+		}
 
 		m.ctx.currentSmState = SM_SHOWING_EVENTS
 	}
