@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	HOST = iota
+	HOST = iota + 1
 	PEER
 )
 
 // Renamed HOST and PEER constants
 const (
-	PLAYER = iota
+	PLAYER = iota + 1
 	AI
 )
 
