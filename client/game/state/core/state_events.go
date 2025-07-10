@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
@@ -76,6 +77,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	} else {
 		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Nickname))
 	}
+
+	log.Debug().Strs("switchEventMessages", messages).Msg("")
 
 	return followUpEvents, messages
 }
@@ -821,10 +824,18 @@ func (iter *EventIter) Next(state *GameState) ([]string, bool) {
 	}
 
 	headEvent := iter.events[0]
+	log.Debug().Str("eventIterHeadType", reflect.TypeOf(headEvent).Name()).Msg("")
 	followUpEvents, messages := headEvent.Update(state)
 
+	log.Debug().Strs("eventIterMessages", messages).Msg("")
+
 	// pop queue
-	iter.events = iter.events[0 : len(iter.events)-1]
+	iter.events = iter.events[1:len(iter.events)]
+
+	log.Debug().Msg("====== New Event Iter Queue ======")
+	for _, event := range iter.events {
+		log.Debug().Str("eventIterInQueue", reflect.TypeOf(event).Name()).Msg("")
+	}
 
 	if len(followUpEvents) != 0 {
 		// create new queue with follow_up_events prepended to the front

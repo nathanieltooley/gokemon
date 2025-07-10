@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -188,11 +189,15 @@ type (
 	nextStateMsg struct{}
 )
 
+// TODO: redo this and nextStateMsg i really don't like how i did these
 func (m *MainGameModel) nextState() bool {
 	messages, ok := m.eventQueue.Next(m.ctx.state)
 	if !ok {
+		log.Info().Msg("no more events")
 		return false
 	}
+
+	log.Info().Strs("event messages", messages).Msg("")
 
 	m.messageQueue = append(m.messageQueue, messages...)
 
@@ -237,7 +242,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case nextNotifMsg:
 		// For when we still have messages in the queue
 		if m.nextStateMsg() {
-			cmds = append(cmds, tea.Tick(_MESSAGE_TIME, func(t time.Time) tea.Msg {
+			delay := _MESSAGE_TIME
+			if len(m.messageQueue) == 0 {
+				delay = 0
+			}
+			cmds = append(cmds, tea.Tick(delay, func(t time.Time) tea.Msg {
 				return nextNotifMsg{}
 			}))
 		} else {
@@ -319,9 +328,14 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 	case networking.TurnResolvedMessage:
+		log.Info().Msg("game main has received turn resolved message")
 		m.panel = newActionPanel(m.ctx)
 		m.ctx.chosenAction = nil
 		m.ctx.forcedSwitch = false
+
+		for _, event := range msg.Events {
+			log.Info().Str("eventType", reflect.TypeOf(event).Name()).Msg("")
+		}
 
 		m.eventQueue.AddEvents(msg.Events)
 
