@@ -112,17 +112,17 @@ func acceptAction(reader io.Reader) (stateCore.Action, error) {
 	// However, when sending actions, i only have a pointer to the interface, not the actual concrete type.
 	// So I would end up having to do this anyway somewhere else (unless there is a better way to get around gob's lack of support for interfaces)
 	switch concreteName {
-	case "state.SwitchAction":
+	case "core.SwitchAction":
 		a := &stateCore.SwitchAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
-	case "state.SkipAction":
+	case "core.SkipAction":
 		a := &stateCore.SkipAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
-	case "state.AttackAction":
+	case "core.AttackAction":
 		a := &stateCore.AttackAction{}
 
 		err := decoder.Decode(a)
