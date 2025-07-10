@@ -99,7 +99,7 @@ func bestSlowingMove(gameState *stateCore.GameState) int {
 
 		moveCanSlow := false
 		for _, statChange := range move.StatChanges {
-			if statChange.StatName == stateCore.STAT_SPEED {
+			if statChange.StatName == core.STAT_SPEED {
 				moveCanSlow = true
 			}
 		}

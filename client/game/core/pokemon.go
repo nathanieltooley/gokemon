@@ -12,32 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	STATUS_NONE = iota
-	STATUS_BURN
-	// idea for both para and sleep:
-	// when a move gets sent as an action
-	// theres a chance the move action turns into
-	// a para or sleep action (functionally same as skip but with different messages)
-	STATUS_PARA
-	STATUS_SLEEP
-	STATUS_FROZEN
-	// will have to check at the end of a turn for damage
-	STATUS_POISON
-	STATUS_TOXIC
-)
-
-const (
-	WEATHER_NONE = iota
-	WEATHER_RAIN
-	WEATHER_SUN
-	WEATHER_SANDSTORM
-)
-
-const (
-	EFFECT_CONFUSION = iota
-)
-
 type PokemonType struct {
 	Name          string
 	Effectiveness map[string]float64

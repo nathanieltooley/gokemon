@@ -10,8 +10,8 @@ import (
 	"github.com/samber/lo"
 )
 
-func commonSwitching(gameState *stateCore.GameState, switches []stateCore.SwitchAction) []stateCore.StateSnapshot {
-	states := make([]stateCore.StateSnapshot, 0)
+func commonSwitching(gameState stateCore.GameState, switches []stateCore.SwitchAction) []stateCore.StateEvent {
+	events := make([]stateCore.StateEvent, 0)
 
 	// Sort switching order by speed
 	slices.SortFunc(switches, func(a, b stateCore.SwitchAction) int {
@@ -23,24 +23,32 @@ func commonSwitching(gameState *stateCore.GameState, switches []stateCore.Switch
 
 	// Process switches first
 	lo.ForEach(switches, func(a stateCore.SwitchAction, i int) {
-		states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
+		events = append(events, a.UpdateState(gameState)...)
 	})
 
-	return states
+	return events
 }
 
-func commonOtherActionHandling(gameState *stateCore.GameState, actions []stateCore.Action) []stateCore.StateSnapshot {
-	states := make([]stateCore.StateSnapshot, 0)
+func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCore.Action) []stateCore.StateEvent {
+	events := make([]stateCore.StateEvent, 0)
 
-	// Reset turn flags
-	// eventually this will have to change for double battles
-	gameState.HostPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.HostPlayer.GetActivePokemon().SwitchedInThisTurn = false
+	events = append(events, stateCore.CustomEvent{
+		Updater: func(gs *stateCore.GameState) ([]stateCore.StateEvent, []string) {
+			// Reset turn flags
+			// eventually this will have to change for double battles
+			gameState.HostPlayer.GetActivePokemon().CanAttackThisTurn = true
+			gameState.HostPlayer.GetActivePokemon().SwitchedInThisTurn = false
 
-	gameState.ClientPlayer.GetActivePokemon().CanAttackThisTurn = true
-	gameState.ClientPlayer.GetActivePokemon().SwitchedInThisTurn = false
+			gameState.ClientPlayer.GetActivePokemon().CanAttackThisTurn = true
+			gameState.ClientPlayer.GetActivePokemon().SwitchedInThisTurn = false
+
+			return nil, nil
+		},
+	})
 
 	// Sort Other Actions
+	// TODO: Fix this so that instead of sorting ahead of time, whenever an action is processed, it grabs the "fastest" action next.
+	// This way, previous actions that change speed can affect the order of following actions. This will mainly be important for double battles.
 	slices.SortFunc(actions, func(a, b stateCore.Action) int {
 		var aSpeed int
 		var bSpeed int
@@ -124,89 +132,121 @@ func commonOtherActionHandling(gameState *stateCore.GameState, actions []stateCo
 
 			// Skip attack with para
 			if pokemon.Status == core.STATUS_PARA {
-				states = append(states, stateCore.ParaHandler(gameState, pokemon))
+				paraEvent := stateCore.ParaEvent{
+					PlayerIndex:         a.GetCtx().PlayerId,
+					FollowUpAttackEvent: a.UpdateState(gameState)[0],
+				}
+
+				events = append(events, paraEvent)
+				return
 			}
 
 			// Skip attack with sleep
 			if pokemon.Status == core.STATUS_SLEEP {
-				states = append(states, stateCore.SleepHandler(gameState, pokemon))
+				sleepEv := stateCore.SleepEvent{
+					PlayerIndex:         a.GetCtx().PlayerId,
+					FollowUpAttackEvent: a.UpdateState(gameState)[0],
+				}
+				events = append(events, sleepEv)
+				return
 			}
 
 			// Skip attack with frozen
 			if pokemon.Status == core.STATUS_FROZEN {
-				states = append(states, stateCore.FreezeHandler(gameState, pokemon))
+				frzEv := stateCore.FrozenEvent{
+					PlayerIndex:         a.GetCtx().PlayerId,
+					FollowUpAttackEvent: a.UpdateState(gameState)[0],
+				}
+				events = append(events, frzEv)
+				return
 			}
 
 			// Skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
-				states = append(states, stateCore.ConfuseHandler(gameState, pokemon))
-				pokemon.ConfusionCount--
-
-				log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion turn completed")
+				confusionEv := stateCore.ConfusionEvent{
+					PlayerIndex:         a.GetCtx().PlayerId,
+					FollowUpAttackEvent: a.UpdateState(gameState)[0],
+				}
+				events = append(events, confusionEv)
+				return
 			}
 
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
-				states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
+				events = append(events, a.UpdateState(gameState)...)
 			}
 		default:
-			states = append(states, syncState(gameState, a.UpdateState(*gameState))...)
+			events = append(events, a.UpdateState(gameState)...)
 		}
 	})
 
-	return states
+	return events
 }
 
-func commonEndOfTurn(gameState *stateCore.GameState) []stateCore.StateSnapshot {
-	states := make([]stateCore.StateSnapshot, 0)
+func commonEndOfTurn(gameState *stateCore.GameState) []stateCore.StateEvent {
+	events := make([]stateCore.StateEvent, 0)
 
-	applyBurn := func(pokemon *core.Pokemon) {
-		states = append(states, stateCore.BurnHandler(gameState, pokemon))
+	applyBurn := func(index int) {
+		events = append(events, stateCore.BurnEvent{PlayerIndex: index})
 	}
 
-	applyPoison := func(pokemon *core.Pokemon) {
-		states = append(states, stateCore.PoisonHandler(gameState, pokemon))
+	applyPoison := func(index int) {
+		events = append(events, stateCore.PoisonEvent{PlayerIndex: index})
 	}
 
-	applyToxic := func(pokemon *core.Pokemon) {
-		states = append(states, stateCore.ToxicHandler(gameState, pokemon))
+	applyToxic := func(index int) {
+		events = append(events, stateCore.ToxicEvent{PlayerIndex: index})
 	}
 
 	localPokemon := gameState.HostPlayer.GetActivePokemon()
 	switch localPokemon.Status {
 	case core.STATUS_BURN:
-		applyBurn(localPokemon)
+		applyBurn(stateCore.HOST)
 	case core.STATUS_POISON:
-		applyPoison(localPokemon)
+		applyPoison(stateCore.HOST)
 	case core.STATUS_TOXIC:
-		applyToxic(localPokemon)
+		applyToxic(stateCore.HOST)
 	}
 
 	opPokemon := gameState.ClientPlayer.GetActivePokemon()
 	switch opPokemon.Status {
 	case core.STATUS_BURN:
-		applyBurn(opPokemon)
+		applyBurn(stateCore.PEER)
 	case core.STATUS_POISON:
-		applyPoison(opPokemon)
+		applyPoison(stateCore.PEER)
 	case core.STATUS_TOXIC:
-		applyToxic(opPokemon)
+		applyToxic(stateCore.PEER)
 	}
 
 	if gameState.Weather == core.WEATHER_SANDSTORM {
-		states = append(states, stateCore.SandstormDamage(gameState, localPokemon))
-		states = append(states, stateCore.SandstormDamage(gameState, opPokemon))
+		events = append(events, stateCore.SandstormDamageEvent{PlayerIndex: stateCore.HOST})
+		events = append(events, stateCore.SandstormDamageEvent{PlayerIndex: stateCore.PEER})
 	}
 
-	endOfTurnAbilities(gameState, HOST)
-	endOfTurnAbilities(gameState, PEER)
+	events = append(events, endOfTurnAbilities(*gameState, HOST)...)
+	events = append(events, endOfTurnAbilities(*gameState, PEER)...)
 
-	messages := lo.FlatMap(states, func(item stateCore.StateSnapshot, i int) []string {
-		return item.Messages
-	})
+	return events
+}
 
-	log.Info().Msgf("States: %d", len(states))
-	log.Info().Strs("Queued Messages", messages).Msg("")
+// Activates certain end of turn abilities
+func endOfTurnAbilities(gameState stateCore.GameState, player int) []stateCore.StateEvent {
+	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
 
-	gameState.MessageHistory = append(gameState.MessageHistory, messages...)
+	events := make([]stateCore.StateEvent, 0)
 
-	return states
+	switch playerPokemon.Ability.Name {
+	case "speed-boost":
+		if !playerPokemon.SwitchedInThisTurn {
+			events = append(events,
+				stateCore.AbilityActivationEvent{PokeInfo: *playerPokemon},
+				stateCore.NewStatChangeEvent(player, core.STAT_SPEED, 1, 100),
+			)
+		}
+	case "rain-dish":
+		if gameState.Weather == core.WEATHER_RAIN {
+			events = append(events, stateCore.HealPercEvent{HealPerc: 1.0 / 16.0}, stateCore.NewFmtMessageEvent("%s was healed by the rain!", playerPokemon.Nickname))
+		}
+	}
+
+	return events
 }

@@ -7,14 +7,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// plus 1 because Go has made very stupid design decisions
 const (
-	HOST = iota
+	HOST = iota + 1
 	PEER
 )
 
 // Renamed HOST and PEER constants
 const (
-	PLAYER = iota
+	PLAYER = iota + 1
 	AI
 )
 
@@ -44,17 +45,6 @@ type Player struct {
 
 	TimerPaused    bool
 	MultiTimerTick int64
-}
-
-type StateSnapshot struct {
-	// The resulting state from a given action
-	State GameState
-	// The messages that communicate what happened
-	Messages []string
-	// hack for an optional value without using pointers
-	Empty bool
-	// hack for messages that don't have any direct state changes
-	MessagesOnly bool
 }
 
 func (s *GameState) TickPlayerTimers() {
@@ -143,23 +133,4 @@ func (p Player) GetAllAlivePokemon() []*core.Pokemon {
 	}
 
 	return alivePokemon
-}
-
-// Create a new StateSnapshot. Takes in a pointer to avoid a second copy
-func NewStateSnapshot(state *GameState, messages ...string) StateSnapshot {
-	return StateSnapshot{
-		State:    state.Clone(),
-		Messages: messages,
-	}
-}
-
-func NewEmptyStateSnapshot() StateSnapshot {
-	return StateSnapshot{Empty: true}
-}
-
-func NewMessageOnlySnapshot(messages ...string) StateSnapshot {
-	return StateSnapshot{
-		Messages:     messages,
-		MessagesOnly: true,
-	}
 }

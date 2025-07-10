@@ -27,10 +27,10 @@ const (
 type (
 	ForceSwitchMessage struct {
 		ForThisPlayer bool
-		StateUpdates  []stateCore.StateSnapshot
+		Events        []stateCore.StateEvent
 	}
 	TurnResolvedMessage struct {
-		StateUpdates []stateCore.StateSnapshot
+		Events []stateCore.StateEvent
 	}
 	GameOverMessage struct {
 		// The "you" in this sense is the player who is receiving the message

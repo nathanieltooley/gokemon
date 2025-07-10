@@ -41,7 +41,7 @@ type MainGameModel struct {
 	startedTurnResolving bool
 
 	// Intermediate states (in between turns) that need to be displayed to the client
-	stateQueue []stateCore.StateSnapshot
+	eventQueue stateCore.EventIter
 	// State that should be rendered when inbetween turns
 	currentRenderedState stateCore.GameState
 	// Whether we started the state update rendering process
@@ -107,6 +107,7 @@ func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Co
 		turnUpdateHandler:    updater,
 		currentRenderedState: *ctx.state,
 		panel:                newActionPanel(ctx),
+		eventQueue:           stateCore.NewEventIter(),
 
 		netInfo: readerInfo,
 	}
@@ -188,18 +189,14 @@ type (
 )
 
 func (m *MainGameModel) nextState() bool {
-	if len(m.stateQueue) != 0 {
-		// Pop queue
-		stateUpdate := m.stateQueue[0]
-		m.currentRenderedState = stateUpdate.State
-		m.messageQueue = stateUpdate.Messages
-
-		m.stateQueue = m.stateQueue[1:]
-
-		return true
+	messages, ok := m.eventQueue.Next(m.ctx.state)
+	if !ok {
+		return false
 	}
 
-	return false
+	m.messageQueue = append(m.messageQueue, messages...)
+
+	return true
 }
 
 // Returns true if there was a message in the queue
@@ -208,7 +205,7 @@ func (m *MainGameModel) nextStateMsg() bool {
 		m.currentStateMessage = m.messageQueue[0]
 		m.messageQueue = m.messageQueue[1:]
 
-		log.Info().Msgf("Next Message: %s", m.currentStateMessage)
+		log.Info().Msgf("Rendering next message: %s", m.currentStateMessage)
 
 		return true
 	}
@@ -308,15 +305,14 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tick())
 
 	case networking.ForceSwitchMessage:
+		m.eventQueue.AddEvents(msg.Events)
+
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
 			// m.startedTurnResolving = false
 			m.ctx.forcedSwitch = true
 			// m.panel = newPokemonPanel(m.ctx, m.ctx.state.LocalPlayer.Team)
-
-			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 		} else {
-			m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
 			// Do nothing, it's not our turn to move
 			cmds = append(cmds, func() tea.Msg {
 				return m.turnUpdateHandler(nil)
@@ -327,11 +323,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ctx.chosenAction = nil
 		m.ctx.forcedSwitch = false
 
-		if m.ctx.playerSide == state.PEER {
-			*m.ctx.state = msg.StateUpdates[len(msg.StateUpdates)-1].State.Clone()
-		}
-
-		m.stateQueue = append(m.stateQueue, msg.StateUpdates...)
+		m.eventQueue.AddEvents(msg.Events)
 
 	// Game Over Check
 	case networking.GameOverMessage:
@@ -426,7 +418,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Once we get some state updates from the state updater,
 	// start displaying them
-	if len(m.stateQueue) != 0 && !m.renderingPastState {
+	if m.eventQueue.Len() != 0 && !m.renderingPastState {
 		m.renderingPastState = true
 		m.nextState()
 		m.nextStateMsg()
@@ -524,12 +516,12 @@ func hostNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Actio
 		return turnResult
 	case networking.ForceSwitchMessage:
 		if msg.ForThisPlayer { // For Host
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: false, StateUpdates: msg.StateUpdates})
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: false, Events: msg.Events})
 			if err != nil {
 				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
 			}
 		} else { // for client
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: true, StateUpdates: msg.StateUpdates})
+			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: true, Events: msg.Events})
 			if err != nil {
 				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
 			}

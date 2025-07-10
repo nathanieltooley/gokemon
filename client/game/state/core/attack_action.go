@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"math"
-	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/global"
@@ -49,194 +48,12 @@ func NewAttackAction(attacker int, attackMove int) AttackAction {
 
 var targetsAffectedByEvasion = [...]string{"specific-move", "selected-pokemon-me-first", "random-opponent", "all-other-pokemon", "selected-pokemon", "all-opponents", "entire-field", "all-pokemon", "fainting-pokemon"}
 
-func (a AttackAction) UpdateState(state GameState) []StateSnapshot {
-	attacker := state.GetPlayer(a.Ctx.PlayerId)
-	defenderInt := invertPlayerIndex(a.Ctx.PlayerId)
-	defender := state.GetPlayer(defenderInt)
-
-	attackPokemon := attacker.GetActivePokemon()
-	defPokemon := defender.GetActivePokemon()
-
-	var move core.Move
-	var moveVars core.BattleMove
-	var pp int
-
-	if a.AttackerMove == -1 {
-		move = struggleMove
-		pp = 1
-	} else {
-		// TODO: Make sure a.AttackerMove is between 0 -> 3
-		move = attackPokemon.Moves[a.AttackerMove]
-		moveVars = attackPokemon.InGameMoveInfo[a.AttackerMove]
-		pp = moveVars.PP
-	}
-
-	states := make([]StateSnapshot, 0)
-
-	// "hack" to show this message first
-	useMoveState := StateSnapshot{}
-	useMoveState.State = state.Clone()
-	useMoveState.Messages = append(useMoveState.Messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
-
-	states = append(states, useMoveState)
-
-	accuracyCheck := global.GokeRand.IntN(100)
-
-	moveAccuracy := move.Accuracy
-	if moveAccuracy == 0 {
-		moveAccuracy = 100
-	}
-
-	var effectiveEvasion float32 = 1.0
-	if lo.Contains(targetsAffectedByEvasion[0:], move.Target.Name) {
-		effectiveEvasion = defPokemon.Evasion()
-	}
-
-	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * effectiveEvasion))
-
-	if state.Weather == core.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
-		accuracy = int(float32(accuracy) * 0.8)
-	} else if attackPokemon.Ability.Name == "compound-eyes" && move.Meta.Category.Name != "ohko" {
-		accuracy = int(float32(accuracy) * 1.3)
-	}
-
-	if accuracyCheck < accuracy && pp > 0 {
-		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check passed")
-
-		defImmune := false
-
-		// TODO: This doesn't activate through protect!
-		if move.Type == core.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
-			states = append(states, NewMessageOnlySnapshot(
-				fmt.Sprintf("%s activated volt absorb!", defPokemon.Nickname),
-				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
-			)
-
-			defPokemon.HealPerc(.25)
-			defImmune = true
-		}
-
-		// TODO: This doesn't activate through protect!
-		if move.Type == core.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
-			states = append(states, NewMessageOnlySnapshot(
-				fmt.Sprintf("%s activated Water Absorb!", defPokemon.Nickname),
-				fmt.Sprintf("%s healed 25%%!", defPokemon.Nickname)),
-			)
-
-			defPokemon.HealPerc(.25)
-			defImmune = true
-		}
-
-		// TODO: This doesn't activate through protect or while frozen!
-		// TODO: The boost doesn't pass with baton-pass!
-		if move.Type == core.TYPENAME_FIRE && defPokemon.Ability.Name == "flash-fire" {
-			states = append(states, NewMessageOnlySnapshot(
-				fmt.Sprintf("%s activated Flash-Fire", defPokemon.Nickname),
-				fmt.Sprintf("%s boosted it's fire-type attacks!", defPokemon.Nickname),
-			))
-
-			defPokemon.FlashFire = true
-			defImmune = true
-		}
-
-		if defPokemon.Ability.Name == "damp" {
-			if slices.Contains(core.EXPLOSIVE_MOVES, move.Name) {
-				states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s prevented %s with their ability: Damp", defPokemon.Nickname, move.Name)))
-				defImmune = true
-			}
-		}
-
-		if !defImmune {
-			// TODO: handle these categories
-			// - swagger
-			// - unique
-			switch move.Meta.Category.Name {
-			case "damage", "damage+heal":
-				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-			case "ailment":
-				states = append(states, ailmentHandler(&state, defPokemon, move))
-			case "damage+ailment":
-				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				states = append(states, ailmentHandler(&state, defPokemon, move))
-			case "net-good-stats":
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
-					// since its "net-good-stats", the stat change always has to benefit the user
-					affectedPokemon := attackPokemon
-					if statChange.Change < 0 {
-						affectedPokemon = defPokemon
-					}
-
-					states = append(states, StatChangeHandler(&state, affectedPokemon, statChange, move.Meta.StatChance))
-				})
-			// Damages and then CHANGES the targets stats
-			case "damage+lower":
-				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
-					states = append(states, StatChangeHandler(&state, defPokemon, statChange, move.Meta.StatChance))
-				})
-			// Damages and then CHANGES the user's stats
-			// this is different from what pokeapi says (raises instead of changes)
-			// and this is important because moves like draco-meteor and overheat
-			// lower the user's stats but are in this category
-			case "damage+raise":
-				states = append(states, damageMoveHandler(&state, attackPokemon, defPokemon, move)...)
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
-					states = append(states, StatChangeHandler(&state, attackPokemon, statChange, move.Meta.StatChance))
-				})
-			case "heal":
-				states = append(states, healHandler(&state, attackPokemon, move))
-			case "ohko":
-				states = append(states, ohkoHandler(&state, attackPokemon, defPokemon))
-			case "force-switch":
-				states = append(states, forceSwitchHandler(&state, defender))
-			default:
-				attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
-			}
-		}
-
-		flinchChance := move.Meta.FlinchChance
-		if flinchChance == 0 && attackPokemon.Ability.Name == "stench" {
-			flinchChance = 10
-		}
-
-		if defPokemon.Ability.Name == "inner-focus" {
-			flinchChance = 0
-			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s can not be flinched", defPokemon.Nickname)))
-		}
-
-		if global.GokeRand.IntN(100) < flinchChance {
-			states = append(states, FlinchHandler(&state, defPokemon))
-		}
-
-		ppModifier := 1
-
-		// -1 is struggle
-		if a.AttackerMove != -1 {
-			// TODO: this check will have to change for double battles (any opposing pokemon not the defending)
-			if defPokemon.Ability.Name == "pressure" {
-				ppModifier = 2
-			}
-
-			attackPokemon.InGameMoveInfo[a.AttackerMove].PP = pp - ppModifier
-		}
-	} else {
-		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")
-		states = append(states, StateSnapshot{
-			State:    state.Clone(),
-			Messages: []string{"It Missed!"},
-		})
-	}
-
-	finalState := StateSnapshot{
-		State: state.Clone(),
-	}
-	states = append(states, finalState)
-
-	return states
+func (a AttackAction) UpdateState(state GameState) []StateEvent {
+	return []StateEvent{AttackEvent{AttackerId: a.Ctx.PlayerId, MoveId: a.AttackerMove}}
 }
 
-func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core.Pokemon, move core.Move) []StateSnapshot {
-	states := make([]StateSnapshot, 0)
+func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
+	events := make([]StateEvent, 0)
 	crit := false
 
 	if global.GokeRand.Float32() < attackPokemon.CritChance() {
@@ -247,51 +64,45 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 	effectiveness := defPokemon.Base.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
-		states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s cannot be crit!", defPokemon.Nickname)))
+		events = append(events, AbilityActivationEvent{PokeInfo: defPokemon})
 		crit = false
 	}
 
-	damage := Damage(*attackPokemon, *defPokemon, move, crit, state.Weather)
+	damage := Damage(attackPokemon, defPokemon, move, crit, state.Weather)
 
 	if defPokemon.Ability.Name == "sturdy" {
 		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {
 			// set the defending pokemon's hp to 1
 			damage = defPokemon.MaxHp - 1
-			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s activated sturdy and held on!", defPokemon.Nickname)))
+			events = append(events,
+				AbilityActivationEvent{PokeInfo: defPokemon},
+				NewFmtMessageEvent("%s held on!", defPokemon.Nickname),
+			)
 		}
 	}
 
 	if defPokemon.Ability.Name == "wonder-guard" {
 		if effectiveness < 2 {
-			states = append(states, NewMessageOnlySnapshot(fmt.Sprintf("%s is protected by Wonder Guard!", defPokemon.Nickname)))
-			return states
+			events = append(events,
+				AbilityActivationEvent{PokeInfo: defPokemon},
+				NewFmtMessageEvent("%s does not take any damage!", defPokemon.Nickname),
+			)
+
+			return events
 		}
 	}
 
 	if defPokemon.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
-		states = append(states, StatChangeHandler(state, defPokemon, core.StatChange{Change: 1, StatName: STAT_SPATTACK}, 100))
+		events = append(events, AbilityActivationEvent{PokeInfo: defPokemon})
+		events = append(events, NewStatChangeEvent(defIndex, core.STAT_SPATTACK, 1, 100))
 	}
 
-	defPokemon.Damage(damage)
+	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
 
-	log.Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
-
+	attackActionLogger().Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
 	attackActionLogger().Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
-	attackPercent := uint(math.Min(100, (float64(damage)/float64(defPokemon.MaxHp))*100))
-
-	damageState := StateSnapshot{}
-
-	if crit {
-		damageState.Messages = append(damageState.Messages, fmt.Sprintf("%s critically hit!", attackPokemon.Nickname))
-	}
-	damageState.Messages = append(damageState.Messages, fmt.Sprintf("It dealt %d%% damage", attackPercent))
-
-	damageState.State = state.Clone()
-
-	states = append(states, damageState)
 
 	if move.Meta.Drain > 0 {
-		drainState := StateSnapshot{}
 		var drainedHealth uint = 0
 
 		cappedDamage := math.Min(float64(defPokemon.Hp.Value), float64(damage))
@@ -299,7 +110,7 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 		drainPercent := float32(move.Meta.Drain) / float32(100)
 		drainedHealth = uint(float32(cappedDamage) * drainPercent)
 
-		attackPokemon.Heal(drainedHealth)
+		events = append(events, HealEvent{Heal: drainedHealth, PlayerIndex: defIndex})
 
 		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
@@ -308,31 +119,23 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 			Uint("drainedHealth", drainedHealth).
 			Int("drainedHealthPercent", drainedHealthPercent).
 			Msg("Attack health drain")
-
-		drainState.State = state.Clone()
-
-		drainState.Messages = append(drainState.Messages, fmt.Sprintf("%s drained health from %s, healing %d%%", attackPokemon.Nickname, defPokemon.Nickname, drainedHealthPercent))
-		states = append(states, drainState)
 	}
 
 	// Recoil
 	if move.Meta.Drain < 0 {
 		// Recoil will only be blocked by Rock Head (except for struggle)
 		if move.Name == "struggle" || attackPokemon.Ability.Name != "rock-head" {
-			recoilState := StateSnapshot{}
 			recoilPercent := (float32(move.Meta.Drain) / 100)
 			selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
-			attackPokemon.Damage(uint(selfDamage * -1))
+
+			events = append(events, NewFmtMessageEvent("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
+			// flip sign here because recoil is considered negative Drain healing in pokeapi
+			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: attIndex, SupressMessage: true})
 
 			log.Info().
 				Float32("recoilPercent", recoilPercent).
 				Uint("selfDamage", uint(selfDamage)).
 				Msg("Attack recoil")
-
-			recoilState.State = state.Clone()
-
-			recoilState.Messages = append(recoilState.Messages, fmt.Sprintf("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
-			states = append(states, recoilState)
 		}
 	}
 
@@ -349,36 +152,29 @@ func damageMoveHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon
 	}
 
 	if effectivenessText != "" {
-		states = append(states, NewMessageOnlySnapshot(effectivenessText))
+		events = append(events, NewMessageEvent(effectivenessText))
 	}
 
-	return states
+	return events
 }
 
-func ohkoHandler(state *GameState, attackPokemon *core.Pokemon, defPokemon *core.Pokemon) StateSnapshot {
-	ohkoState := StateSnapshot{}
-
+func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.Pokemon, defIndex int) []StateEvent {
 	if defPokemon.Level > attackPokemon.Level {
-		ohkoState.Messages = append(ohkoState.Messages, "It failed!. Opponent's level is too high!")
-		ohkoState.MessagesOnly = true
-		return ohkoState
+		return []StateEvent{NewMessageEvent("It failed!. Opponent's level is too high!")}
 	}
 
-	defPokemon.Damage(defPokemon.Hp.Value)
+	events := make([]StateEvent, 0)
+	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: defPokemon.Hp.Value})
 
 	randCheck := global.GokeRand.Float64()
 	if randCheck < 0.01 {
-		ohkoState.Messages = append(ohkoState.Messages, "%s took calamitous damage!", defPokemon.Nickname)
+		return []StateEvent{NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Nickname)}
 	} else {
-		ohkoState.Messages = append(ohkoState.Messages, "It's a one-hit KO!")
+		return []StateEvent{NewMessageEvent("It's a one-hit KO!")}
 	}
-
-	ohkoState.State = state.Clone()
-
-	return ohkoState
 }
 
-func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) StateSnapshot {
+func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
 	ailment, ok := core.STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	if ok && defPokemon.Status == core.STATUS_NONE {
 		ailmentCheck := global.GokeRand.IntN(100)
@@ -402,7 +198,7 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 				ailment = core.STATUS_TOXIC
 			}
 
-			stateSnap := ApplyAilment(state, defPokemon, ailment)
+			event := AilmentEvent{PlayerIndex: defIndex, Ailment: ailment}
 
 			// Make sure the pokemon didn't avoid ailment with ability or such
 			if defPokemon.Status != core.STATUS_NONE {
@@ -412,7 +208,7 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 				log.Info().Msgf("pokemon removed ailment with ability: %s", defPokemon.Ability.Name)
 			}
 
-			return stateSnap
+			return []StateEvent{event}
 		} else {
 			attackActionLogger().
 				Debug().
@@ -438,29 +234,27 @@ func ailmentHandler(state *GameState, defPokemon *core.Pokemon, move core.Move) 
 				if defPokemon.Ability.Name != "own-tempo" {
 					log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
 
-					confusionDuration := global.GokeRand.IntN(3) + 2
-					defPokemon.ConfusionCount = confusionDuration
-					log.Info().Int("confusionCount", defPokemon.ConfusionCount).Msg("confusion applied")
+					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
 				}
 			}
 		}
 	}
 
-	return StateSnapshot{
-		State: state.Clone(),
-	}
+	return nil
 }
 
-func healHandler(state *GameState, attackPokemon *core.Pokemon, move core.Move) StateSnapshot {
+func healHandler(state *GameState, pokemonIndex int, move core.Move) StateEvent {
 	healPercent := float64(move.Meta.Healing) / 100
-	attackPokemon.HealPerc(healPercent)
-
-	return NewStateSnapshot(state, fmt.Sprintf("%s healed by %d%%", attackPokemon.Nickname, move.Meta.Healing))
+	return HealPercEvent{PlayerIndex: pokemonIndex, HealPerc: healPercent}
 }
 
-func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
-	if defPlayer.GetActivePokemon().Ability.Name == "suction-cups" {
-		return NewMessageOnlySnapshot(fmt.Sprintf("%s stays in with it's suction cups!", defPlayer.GetActivePokemon().Nickname))
+func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []StateEvent {
+	defPokemon := defPlayer.GetActivePokemon()
+	if defPokemon.Ability.Name == "suction-cups" {
+		return []StateEvent{
+			AbilityActivationEvent{PokeInfo: *defPokemon},
+			NewFmtMessageEvent("%s cannot be forced out!", defPokemon.Nickname),
+		}
 	}
 
 	// since the active pokemon is determined by the position
@@ -483,20 +277,13 @@ func forceSwitchHandler(state *GameState, defPlayer *Player) StateSnapshot {
 	})
 
 	if len(alivePokemon) == 0 {
-		return NewMessageOnlySnapshot(fmt.Sprintf("%s has no Pokemon left to switch!", defPlayer.Name))
+		return []StateEvent{NewFmtMessageEvent(fmt.Sprintf("%s has no Pokemon left to switch in!", defPlayer.Name))}
 	}
 
 	choiceIndex := global.GokeRand.IntN(len(alivePokemon))
 
-	ogPokemonName := defPlayer.GetActivePokemon().Nickname
-
-	defPlayer.ActivePokeIndex = alivePokemon[choiceIndex].Index
-	defPlayer.GetActivePokemon().SwitchedInThisTurn = true
-	defPlayer.GetActivePokemon().CanAttackThisTurn = false
-
-	return StateSnapshot{
-		State:    state.Clone(),
-		Messages: []string{fmt.Sprintf("%s was forced to switch out", ogPokemonName)},
+	return []StateEvent{
+		SwitchEvent{PlayerIndex: defIndex, SwitchIndex: alivePokemon[choiceIndex].Index},
 	}
 }
 
