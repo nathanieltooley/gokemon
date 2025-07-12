@@ -326,7 +326,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 		}
 
 		absChange := int(math.Abs(float64(event.Change)))
-		message := []string{}
+		var message []string = nil
 
 		if event.Change > 0 {
 			message = []string{fmt.Sprintf("%s's %s increased by %d stages!", pokemon.Nickname, event.StatName, absChange)}
@@ -477,7 +477,7 @@ func (event DamageEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	}
 
 	if event.Crit {
-		messages = append(messages, fmt.Sprintf("It critically hit!"))
+		messages = append(messages, "It critically hit!")
 	}
 
 	if event.SupressMessage {
@@ -765,7 +765,7 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 	dmg := float64(pokemon.MaxHp) * (1.0 / 16.0)
 	messages := []string{
 		"The sandstorm rages.",
-		fmt.Sprintf("s was damaged by the sandstorm!", pokemon.Nickname),
+		fmt.Sprintf("%s was damaged by the sandstorm!", pokemon.Nickname),
 	}
 	return []StateEvent{
 		DamageEvent{Damage: uint(dmg), PlayerIndex: event.PlayerIndex, SupressMessage: true},
