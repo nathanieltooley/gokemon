@@ -141,8 +141,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		// TODO: This doesn't activate through protect!
 		if move.Type == core.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
 			events = append(events,
-				AbilityActivationEvent{PokeInfo: *defPokemon},
-				HealPercEvent{HealPerc: .25, PlayerIndex: defenderInt},
+				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
 
 			defImmune = true
@@ -151,8 +150,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		// TODO: This doesn't activate through protect!
 		if move.Type == core.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
 			events = append(events,
-				AbilityActivationEvent{PokeInfo: *defPokemon},
-				HealPercEvent{HealPerc: .25, PlayerIndex: defenderInt},
+				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
 
 			defImmune = true
@@ -162,15 +160,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		// TODO: The boost doesn't pass with baton-pass!
 		if move.Type == core.TYPENAME_FIRE && defPokemon.Ability.Name == "flash-fire" {
 			events = append(events,
-				AbilityActivationEvent{PokeInfo: *defPokemon},
-				CustomEvent{
-					Updater: func(gameState *GameState) ([]StateEvent, []string) {
-						pkm := gameState.GetPlayer(defenderInt).GetActivePokemon()
-						pkm.FlashFire = true
-
-						return nil, []string{fmt.Sprintf("%s boosted it's fire-type attacks!", defPokemon.Nickname)}
-					},
-				},
+				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
 
 			defImmune = true
@@ -179,8 +169,9 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		if defPokemon.Ability.Name == "damp" {
 			if slices.Contains(core.EXPLOSIVE_MOVES, move.Name) {
 				events = append(events,
-					AbilityActivationEvent{PokeInfo: *defPokemon},
-					NewFmtMessageEvent("%s prevented %s from activating!", defPokemon.Nickname, move.Name),
+					AbilityActivationEvent{
+						CustomMessage: fmt.Sprintf("%s prevented %s from activating!", defPokemon.Nickname, move.Name),
+					},
 				)
 
 				defImmune = true
@@ -242,7 +233,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 		if defPokemon.Ability.Name == "inner-focus" {
 			flinchChance = 0
-			events = append(events, AbilityActivationEvent{PokeInfo: *defPokemon})
+			events = append(events, SimpleAbilityActivationEvent(gameState, defenderInt))
 		}
 
 		if global.GokeRand.IntN(100) < flinchChance {
@@ -368,9 +359,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 	case core.STATUS_PARA:
 		if pokemon.Ability.Name == "limber" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be paralyzed", pokemon.Nickname),
 			}, nil
 		}
@@ -379,18 +368,14 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		cantSleepMsg := fmt.Sprintf("%s cannot fall asleep", pokemon.Nickname)
 		if pokemon.Ability.Name == "insomnia" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewMessageEvent(cantSleepMsg),
 			}, nil
 		}
 
 		if pokemon.Ability.Name == "vital-spirit" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewMessageEvent(cantSleepMsg),
 			}, nil
 		}
@@ -401,27 +386,21 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 	case core.STATUS_BURN:
 		if pokemon.Ability.Name == "water-veil" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be burned", pokemon.Nickname),
 			}, nil
 		}
 	case core.STATUS_POISON:
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Nickname),
 			}, nil
 		}
 	case core.STATUS_FROZEN:
 		if pokemon.Ability.Name == "magma-armor" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be frozen", pokemon.Nickname),
 			}, nil
 		}
@@ -429,9 +408,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		// Block toxic with immunity
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
-				AbilityActivationEvent{
-					PokeInfo: *pokemon,
-				},
+				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Nickname),
 			}, nil
 		}
@@ -448,15 +425,48 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 // and is only a marker for an ability activating.
 type AbilityActivationEvent struct {
 	CustomMessage string
-	PokeInfo      core.Pokemon
+	AbilityName   string
+	ActivatorInt  int
+}
+
+// SimpleAbilityActivationEvent returns an AbilityActivationEvent with no custom message.
+func SimpleAbilityActivationEvent(gameState *GameState, activatorInt int) AbilityActivationEvent {
+	pkm := gameState.GetPlayer(activatorInt).GetActivePokemon()
+	return AbilityActivationEvent{AbilityName: pkm.Nickname, ActivatorInt: activatorInt}
 }
 
 func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
-	if event.CustomMessage == "" {
-		return nil, []string{fmt.Sprintf("%s activated their ability: %s", event.PokeInfo.Nickname, event.PokeInfo.Ability.Name)}
-	} else {
+	if event.ActivatorInt == 0 && event.CustomMessage != "" {
 		return nil, []string{event.CustomMessage}
 	}
+
+	activatorPkm := gameState.GetPlayer(event.ActivatorInt).GetActivePokemon()
+
+	events := make([]StateEvent, 0)
+	messages := make([]string, 0)
+
+	if event.CustomMessage == "" {
+		messages = append(messages, fmt.Sprintf("%s activated their ability: %s", activatorPkm.Nickname, event.AbilityName))
+	} else {
+		messages = append(messages, event.CustomMessage)
+	}
+
+	// NOTE: This assumes that all abilities have met their conditions to be activated.
+	// This switch is just a way to consolidate all abililty effects.
+	switch event.AbilityName {
+	case "flash-fire":
+		activatorPkm.FlashFire = true
+
+		messages = []string{fmt.Sprintf("%s boosted it's fire-type attacks!", activatorPkm.Nickname)}
+	case "lightning-rod":
+		events = append(events, NewStatChangeEvent(event.ActivatorInt, core.STAT_SPATTACK, 1, 100))
+	case "volt-absorb", "water-absorb":
+		events = append(events, HealPercEvent{HealPerc: .25, PlayerIndex: event.ActivatorInt})
+	case "speed-boost":
+		events = append(events, NewStatChangeEvent(event.ActivatorInt, core.STAT_SPEED, 1, 100))
+	}
+
+	return events, messages
 }
 
 type DamageEvent struct {
@@ -772,12 +782,18 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 	}, messages
 }
 
-type CustomEvent struct {
-	Updater func(*GameState) ([]StateEvent, []string)
-}
+type TurnStartEvent struct{}
 
-func (event CustomEvent) Update(gameState *GameState) ([]StateEvent, []string) {
-	return event.Updater(gameState)
+func (event TurnStartEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	// Reset turn flags
+	// eventually this will have to change for double battles
+	gameState.HostPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.HostPlayer.GetActivePokemon().SwitchedInThisTurn = false
+
+	gameState.ClientPlayer.GetActivePokemon().CanAttackThisTurn = true
+	gameState.ClientPlayer.GetActivePokemon().SwitchedInThisTurn = false
+
+	return nil, nil
 }
 
 // MessageEvent is an event that only shows a message. No state updates occur.

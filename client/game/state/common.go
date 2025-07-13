@@ -32,19 +32,7 @@ func commonSwitching(gameState stateCore.GameState, switches []stateCore.SwitchA
 func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCore.Action) []stateCore.StateEvent {
 	events := make([]stateCore.StateEvent, 0)
 
-	events = append(events, stateCore.CustomEvent{
-		Updater: func(gs *stateCore.GameState) ([]stateCore.StateEvent, []string) {
-			// Reset turn flags
-			// eventually this will have to change for double battles
-			gameState.HostPlayer.GetActivePokemon().CanAttackThisTurn = true
-			gameState.HostPlayer.GetActivePokemon().SwitchedInThisTurn = false
-
-			gameState.ClientPlayer.GetActivePokemon().CanAttackThisTurn = true
-			gameState.ClientPlayer.GetActivePokemon().SwitchedInThisTurn = false
-
-			return nil, nil
-		},
-	})
+	events = append(events, stateCore.TurnStartEvent{})
 
 	// Sort Other Actions
 	// TODO: Fix this so that instead of sorting ahead of time, whenever an action is processed, it grabs the "fastest" action next.
@@ -238,8 +226,7 @@ func endOfTurnAbilities(gameState stateCore.GameState, player int) []stateCore.S
 	case "speed-boost":
 		if !playerPokemon.SwitchedInThisTurn {
 			events = append(events,
-				stateCore.AbilityActivationEvent{PokeInfo: *playerPokemon},
-				stateCore.NewStatChangeEvent(player, core.STAT_SPEED, 1, 100),
+				stateCore.SimpleAbilityActivationEvent(&gameState, player),
 			)
 		}
 	case "rain-dish":

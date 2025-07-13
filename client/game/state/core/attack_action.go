@@ -64,7 +64,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	effectiveness := defPokemon.Base.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
-		events = append(events, AbilityActivationEvent{PokeInfo: defPokemon})
+		events = append(events, AbilityActivationEvent{ActivatorInt: defIndex, AbilityName: defPokemon.Ability.Name})
 		crit = false
 	}
 
@@ -75,7 +75,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 			// set the defending pokemon's hp to 1
 			damage = defPokemon.MaxHp - 1
 			events = append(events,
-				AbilityActivationEvent{PokeInfo: defPokemon},
+				SimpleAbilityActivationEvent(&state, defIndex),
 				NewFmtMessageEvent("%s held on!", defPokemon.Nickname),
 			)
 		}
@@ -84,7 +84,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	if defPokemon.Ability.Name == "wonder-guard" {
 		if effectiveness < 2 {
 			events = append(events,
-				AbilityActivationEvent{PokeInfo: defPokemon},
+				SimpleAbilityActivationEvent(&state, defIndex),
 				NewFmtMessageEvent("%s does not take any damage!", defPokemon.Nickname),
 			)
 
@@ -93,8 +93,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	}
 
 	if defPokemon.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
-		events = append(events, AbilityActivationEvent{PokeInfo: defPokemon})
-		events = append(events, NewStatChangeEvent(defIndex, core.STAT_SPATTACK, 1, 100))
+		events = append(events, SimpleAbilityActivationEvent(&state, defIndex))
 	}
 
 	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
@@ -252,7 +251,7 @@ func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []Sta
 	defPokemon := defPlayer.GetActivePokemon()
 	if defPokemon.Ability.Name == "suction-cups" {
 		return []StateEvent{
-			AbilityActivationEvent{PokeInfo: *defPokemon},
+			SimpleAbilityActivationEvent(state, defIndex),
 			NewFmtMessageEvent("%s cannot be forced out!", defPokemon.Nickname),
 		}
 	}

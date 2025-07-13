@@ -318,7 +318,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tick())
 
 	case networking.ForceSwitchMessage:
-		m.eventQueue.AddEvents(msg.Events)
+		m.eventQueue.AddEvents(msg.Events.Events)
 
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
@@ -339,11 +339,11 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.ctx.currentSmState = SM_RECEIVED_EVENTS
 
-		for _, event := range msg.Events {
+		for _, event := range msg.Events.Events {
 			log.Debug().Str("eventType", reflect.TypeOf(event).Name()).Msg("")
 		}
 
-		m.eventQueue.AddEvents(msg.Events)
+		m.eventQueue.AddEvents(msg.Events.Events)
 
 	// Game Over Check
 	case networking.GameOverMessage:

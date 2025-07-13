@@ -39,7 +39,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		log.Info().Msgf("Events: %d", len(events))
 
 		return networking.TurnResolvedMessage{
-			Events: events,
+			Events: networking.EventSlice{Events: events},
 		}
 	} else {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
@@ -65,7 +65,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		host.ActiveKOed = true
 		return networking.ForceSwitchMessage{
 			ForThisPlayer: true,
-			Events:        events,
+			Events:        networking.EventSlice{Events: events},
 		}
 	}
 
@@ -73,7 +73,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		client.ActiveKOed = true
 		return networking.ForceSwitchMessage{
 			ForThisPlayer: false,
-			Events:        events,
+			Events:        networking.EventSlice{Events: events},
 		}
 	}
 
@@ -82,6 +82,6 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 	gameState.Turn++
 
 	return networking.TurnResolvedMessage{
-		Events: events,
+		Events: networking.EventSlice{Events: events},
 	}
 }

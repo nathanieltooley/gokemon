@@ -151,15 +151,6 @@ func SendMessage(conn net.Conn, msgType messageType, msg tea.Msg) error {
 func AcceptMessage(conn net.Conn) (tea.Msg, error) {
 	var msgType messageType = -1
 
-	// TODO: Resolving messages can be VERY large!!!
-	// Trim down the size of state!!!
-	// Size for two pokemon is about 11kb so times 6 is 66kb round up to 70kb
-	// readBytes := make([]byte, 1024*70)
-	// n, err := conn.Read(readBytes)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	readBytes, err := readAll(conn)
 	if err != nil {
 		return nil, err
