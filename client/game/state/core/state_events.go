@@ -432,7 +432,7 @@ type AbilityActivationEvent struct {
 // SimpleAbilityActivationEvent returns an AbilityActivationEvent with no custom message.
 func SimpleAbilityActivationEvent(gameState *GameState, activatorInt int) AbilityActivationEvent {
 	pkm := gameState.GetPlayer(activatorInt).GetActivePokemon()
-	return AbilityActivationEvent{AbilityName: pkm.Nickname, ActivatorInt: activatorInt}
+	return AbilityActivationEvent{AbilityName: pkm.Ability.Name, ActivatorInt: activatorInt}
 }
 
 func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
