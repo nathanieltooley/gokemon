@@ -777,8 +777,9 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 		"The sandstorm rages.",
 		fmt.Sprintf("%s was damaged by the sandstorm!", pokemon.Nickname),
 	}
+	dmgInt := uint(math.Round(dmg))
 	return []StateEvent{
-		DamageEvent{Damage: uint(dmg), PlayerIndex: event.PlayerIndex, SupressMessage: true},
+		DamageEvent{Damage: dmgInt, PlayerIndex: event.PlayerIndex, SupressMessage: true},
 	}, messages
 }
 
