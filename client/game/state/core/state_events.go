@@ -60,7 +60,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	case "intimidate":
 		opPokemon := opposingPlayer.GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
-			followUpEvents = append(followUpEvents, NewStatChangeEvent(InvertPlayerIndex(event.PlayerIndex), core.STAT_ATTACK, 1, 100))
+			followUpEvents = append(followUpEvents, NewStatChangeEvent(InvertPlayerIndex(event.PlayerIndex), core.STAT_ATTACK, -1, 100))
 		}
 
 	case "natural-cure":
@@ -355,7 +355,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 	}
 
 	// Pre-Ailment checks
-	switch pokemon.Status {
+	switch event.Ailment {
 	case core.STATUS_PARA:
 		if pokemon.Ability.Name == "limber" {
 			return []StateEvent{
