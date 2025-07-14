@@ -82,7 +82,7 @@ func TestSandstormChip(t *testing.T) {
 	gameState := getSimpleState(pokemon, enemyPokemon)
 	gameState.Weather = core.WEATHER_SANDSTORM
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	damage := float64(pokemon.MaxHp) * (1.0 / 16.0)
