@@ -16,21 +16,27 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	events := make([]stateCore.StateEvent, 0)
 
+	backFromForceSwitch := host.ActiveKOed || client.ActiveKOed
+
 	// Sort different actions
 	for _, a := range actions {
 		switch a := a.(type) {
-		case *stateCore.SwitchAction:
-			switches = append(switches, *a)
+		case stateCore.SwitchAction:
+			switches = append(switches, a)
 		default:
 			otherActions = append(otherActions, a)
 		}
 	}
 
+	if !backFromForceSwitch {
+		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
+		events = append(events, stateCore.TurnStartEvent{})
+	}
+
 	events = append(events, commonSwitching(*gameState, switches)...)
 
 	// Properly end turn after force switches are dealt with
-	if host.ActiveKOed || client.ActiveKOed {
-		// wish i didn't have to deal with cleaning up state here
+	if backFromForceSwitch {
 		host.ActiveKOed = false
 		client.ActiveKOed = false
 
@@ -41,8 +47,6 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		return networking.TurnResolvedMessage{
 			Events: networking.EventSlice{Events: events},
 		}
-	} else {
-		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 	}
 
 	events = append(events, commonOtherActionHandling(*gameState, otherActions)...)
@@ -83,5 +87,18 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	return networking.TurnResolvedMessage{
 		Events: networking.EventSlice{Events: events},
+	}
+}
+
+func ApplyEventsToState(gameState *stateCore.GameState, msg tea.Msg) {
+	turnEndMsg := msg.(networking.TurnResolvedMessage)
+	eventIter := stateCore.NewEventIter()
+	eventIter.AddEvents(turnEndMsg.Events.Events)
+
+	for {
+		_, next := eventIter.Next(gameState)
+		if !next {
+			break
+		}
 	}
 }

@@ -32,8 +32,6 @@ func commonSwitching(gameState stateCore.GameState, switches []stateCore.SwitchA
 func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCore.Action) []stateCore.StateEvent {
 	events := make([]stateCore.StateEvent, 0)
 
-	events = append(events, stateCore.TurnStartEvent{})
-
 	// Sort Other Actions
 	// TODO: Fix this so that instead of sorting ahead of time, whenever an action is processed, it grabs the "fastest" action next.
 	// This way, previous actions that change speed can affect the order of following actions. This will mainly be important for double battles.
@@ -210,30 +208,8 @@ func commonEndOfTurn(gameState *stateCore.GameState) []stateCore.StateEvent {
 		events = append(events, stateCore.SandstormDamageEvent{PlayerIndex: stateCore.PEER})
 	}
 
-	events = append(events, endOfTurnAbilities(*gameState, HOST)...)
-	events = append(events, endOfTurnAbilities(*gameState, PEER)...)
-
-	return events
-}
-
-// Activates certain end of turn abilities
-func endOfTurnAbilities(gameState stateCore.GameState, player int) []stateCore.StateEvent {
-	playerPokemon := gameState.GetPlayer(player).GetActivePokemon()
-
-	events := make([]stateCore.StateEvent, 0)
-
-	switch playerPokemon.Ability.Name {
-	case "speed-boost":
-		if !playerPokemon.SwitchedInThisTurn {
-			events = append(events,
-				stateCore.SimpleAbilityActivationEvent(&gameState, player),
-			)
-		}
-	case "rain-dish":
-		if gameState.Weather == core.WEATHER_RAIN {
-			events = append(events, stateCore.HealPercEvent{HealPerc: 1.0 / 16.0}, stateCore.NewFmtMessageEvent("%s was healed by the rain!", playerPokemon.Nickname))
-		}
-	}
+	events = append(events, stateCore.EndOfTurnAbilityCheck{PlayerID: stateCore.HOST})
+	events = append(events, stateCore.EndOfTurnAbilityCheck{PlayerID: stateCore.PEER})
 
 	return events
 }
