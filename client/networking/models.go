@@ -120,6 +120,8 @@ func (es EventSlice) GobEncode() ([]byte, error) {
 			err = gobEncodeEvent(event, innerEncoder)
 		case stateCore.TurnStartEvent:
 			err = gobEncodeEvent(event, innerEncoder)
+		case *stateCore.EndOfTurnAbilityCheck:
+			err = gobEncodeEvent(event, innerEncoder)
 		case stateCore.MessageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
 		case stateCore.FmtMessageEvent:
@@ -201,6 +203,8 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 			ev, err = gobDecodeEvent[stateCore.SandstormDamageEvent](innerDecoder)
 		case "TurnStartEvent":
 			ev, err = gobDecodeEvent[stateCore.TurnStartEvent](innerDecoder)
+		case "EndOfTurnAbilityCheck":
+			ev, err = gobDecodeEvent[stateCore.EndOfTurnAbilityCheck](innerDecoder)
 		case "MessageEvent":
 			ev, err = gobDecodeEvent[stateCore.MessageEvent](innerDecoder)
 		case "FmtMessageEvent":

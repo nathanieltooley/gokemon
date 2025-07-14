@@ -796,6 +796,31 @@ func (event TurnStartEvent) Update(gameState *GameState) ([]StateEvent, []string
 	return nil, nil
 }
 
+type EndOfTurnAbilityCheck struct {
+	PlayerID int
+}
+
+func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, []string) {
+	playerPokemon := gameState.GetPlayer(event.PlayerID).GetActivePokemon()
+
+	events := make([]StateEvent, 0)
+
+	switch playerPokemon.Ability.Name {
+	case "speed-boost":
+		if !playerPokemon.SwitchedInThisTurn {
+			events = append(events,
+				SimpleAbilityActivationEvent(gameState, event.PlayerID),
+			)
+		}
+	case "rain-dish":
+		if gameState.Weather == core.WEATHER_RAIN {
+			events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0}, NewFmtMessageEvent("%s was healed by the rain!", playerPokemon.Nickname))
+		}
+	}
+
+	return events, nil
+}
+
 // MessageEvent is an event that only shows a message. No state updates occur.
 type MessageEvent struct {
 	Message string
