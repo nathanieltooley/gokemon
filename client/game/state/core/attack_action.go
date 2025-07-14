@@ -167,10 +167,12 @@ func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.P
 
 	randCheck := global.GokeRand.Float64()
 	if randCheck < 0.01 {
-		return []StateEvent{NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Nickname)}
+		events = append(events, NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Nickname))
 	} else {
-		return []StateEvent{NewMessageEvent("It's a one-hit KO!")}
+		events = append(events, NewMessageEvent("It's a one-hit KO!"))
 	}
+
+	return events
 }
 
 func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
