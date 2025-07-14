@@ -24,7 +24,7 @@ func TestDrizzle(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_RAIN {
 		t.Fatalf("Expected weather to be rain: got %d", gameState.Weather)
@@ -41,7 +41,7 @@ func TestSpeedBoost(t *testing.T) {
 		t.Fatal("test pokemon has started with incorrect speed stage")
 	}
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
 
 	pokemonSpeedStage := gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -54,7 +54,7 @@ func TestSpeedBoost(t *testing.T) {
 	}
 
 	// Test that pokemon that switch in do not get the speed boost
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
 
 	pokemonSpeedStage = gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -70,7 +70,7 @@ func TestSturdy(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.AI, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.AI, 0)}))
 
 	if gameState.HostPlayer.GetActivePokemon().Hp.Value != 1 {
 		t.Fatalf("pokemon should survive with 1 hp because of sturdy, got %d", pokemon.Hp.Value)
@@ -85,7 +85,7 @@ func TestDamp(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
@@ -102,7 +102,7 @@ func TestLimber(t *testing.T) {
 
 	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	if gameState.HostPlayer.GetActivePokemon().Status == core.STATUS_PARA {
 		t.Fatal("pokemon with limber was paralyzed")
@@ -116,7 +116,7 @@ func TestSandVeilSandstormDamage(t *testing.T) {
 	gameState := getSimpleState(pokemon, enemyPokemon)
 	gameState.Weather = core.WEATHER_SANDSTORM
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -132,7 +132,7 @@ func TestVoltAbsorb(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -141,7 +141,7 @@ func TestVoltAbsorb(t *testing.T) {
 
 	pokemon.DamagePerc(.25)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -158,7 +158,7 @@ func TestWaterAbsorb(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -167,7 +167,7 @@ func TestWaterAbsorb(t *testing.T) {
 
 	pokemon.DamagePerc(.25)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -184,7 +184,7 @@ func TestInsomnia(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -202,7 +202,7 @@ func TestImmunity(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -219,7 +219,7 @@ func TestFlashFireImmunity(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -238,7 +238,7 @@ func TestFlashFire(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -257,7 +257,7 @@ func TestIntimidate(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	intimidatedPokemon := gameState.ClientPlayer.GetActivePokemon()
 
@@ -274,7 +274,7 @@ func TestOwnTempo(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	ownTempoPokemon := gameState.ClientPlayer.GetActivePokemon()
 
@@ -282,7 +282,7 @@ func TestOwnTempo(t *testing.T) {
 		t.Fatalf("own-tempo pokemon was intimidated: attack stage = %d", ownTempoPokemon.Attack.Stage)
 	}
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
 
 	ownTempoPokemon = gameState.ClientPlayer.GetActivePokemon()
 
@@ -299,7 +299,7 @@ func TestSuctionCups(t *testing.T) {
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("roar")
 	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon})
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	activeIndex := gameState.HostPlayer.ActivePokeIndex
 	if activeIndex != 0 {
@@ -318,21 +318,21 @@ func TestWonderGuard(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
 		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
 		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 2)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 2)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value == pokemon.MaxHp {
@@ -348,7 +348,7 @@ func TestLevitate(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -388,7 +388,7 @@ func TestVitalSpirit(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -406,7 +406,7 @@ func TestWaterVeil(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -460,7 +460,7 @@ func TestMagmaArmor(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -477,7 +477,7 @@ func TestLightningRod(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -500,7 +500,7 @@ func TestPressure(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
 
 	endingPP := gameState.ClientPlayer.GetActivePokemon().InGameMoveInfo[0].PP
 	if endingPP != (startingPP - 2) {
@@ -514,7 +514,7 @@ func TestSandStream(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_SANDSTORM {
 		t.Fatalf("pokemon with sand-stream did not setup sandstorm weather")
@@ -527,9 +527,25 @@ func TestDrought(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_SUN {
 		t.Fatalf("pokemon with drought did not setup harsh sunlight")
+	}
+}
+
+func TestRainDish(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("rain-dish")
+	pokemon.Hp.Value = 1
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	gameState.Weather = core.WEATHER_RAIN
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != 2 {
+		t.Fatalf("pokemon with rain-dish did not heal proper amount. got: %d/%d | expected: %d/%d", pokemon.Hp.Value, pokemon.MaxHp, 2, pokemon.MaxHp)
 	}
 }
