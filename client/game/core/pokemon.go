@@ -254,7 +254,7 @@ func (p *Pokemon) Heal(heal uint) {
 }
 
 func (p *Pokemon) HealPerc(heal float64) {
-	healAmount := float64(p.MaxHp) * heal
+	healAmount := math.Ceil(float64(p.MaxHp) * heal)
 	p.Heal(uint(healAmount))
 }
 
