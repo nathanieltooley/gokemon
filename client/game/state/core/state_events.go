@@ -421,8 +421,17 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 	return nil, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Nickname)}
 }
 
-// AbilityActivationEvent occurs when an ability is activated. This event does no state changes on it's own
-// and is only a marker for an ability activating.
+// AbilityActivationEvent occurs when an ability is activated. This can be just the message that an ability has activated
+// or the effects from the ability can also occur here. The idea behind this event is to put as many
+// state changing ability actions here. Basically, an change that can happen outside of its context of activation
+// should happen here.
+//
+// For example, wonder-guard's ability does not activate here. That happens in the Damage function
+// because Damage needs to be able to stop damage because of wonder-guard. Putting the invuln here would make no
+// logistical sense.
+//
+// The largest downside to this system is that 2 switches have to occur, one where the event is created
+// and the one in [AbilityActivationEvent.Update]
 type AbilityActivationEvent struct {
 	CustomMessage string
 	AbilityName   string
@@ -452,7 +461,6 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 	}
 
 	// NOTE: This assumes that all abilities have met their conditions to be activated.
-	// This switch is just a way to consolidate all abililty effects.
 	switch event.AbilityName {
 	case "flash-fire":
 		activatorPkm.FlashFire = true
@@ -464,6 +472,10 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 		events = append(events, HealPercEvent{HealPerc: .25, PlayerIndex: event.ActivatorInt})
 	case "speed-boost":
 		events = append(events, NewStatChangeEvent(event.ActivatorInt, core.STAT_SPEED, 1, 100))
+	case "rain-dish":
+		events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0, PlayerIndex: event.ActivatorInt})
+
+		messages = []string{fmt.Sprintf("%s was healed by the rain!", activatorPkm.Nickname)}
 	}
 
 	return events, messages
@@ -814,9 +826,9 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 			)
 		}
 	case "rain-dish":
-		if gameState.Weather == core.WEATHER_RAIN {
-			events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0}, NewFmtMessageEvent("%s was healed by the rain!", playerPokemon.Nickname))
-		}
+		events = append(events,
+			SimpleAbilityActivationEvent(gameState, event.PlayerID),
+		)
 	}
 
 	return events, nil
