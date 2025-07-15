@@ -526,7 +526,7 @@ func (event HealPercEvent) Update(gameState *GameState) ([]StateEvent, []string)
 	heal := 100 * event.HealPerc
 
 	return nil, []string{
-		fmt.Sprintf("%s took %d%% damage!", pokemon.Nickname, int(heal)),
+		fmt.Sprintf("%s healed by %d%%!", pokemon.Nickname, int(heal)),
 	}
 }
 
