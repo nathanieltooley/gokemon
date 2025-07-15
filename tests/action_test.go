@@ -17,7 +17,7 @@ func TestForceSwitch(t *testing.T) {
 
 	gameState := state.NewState(playerPokemonTeam, []core.Pokemon{enemyPokemon})
 
-	_ = state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)})
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	if gameState.HostPlayer.ActivePokeIndex == 0 {
 		t.Fatalf("Pokemon not switched out")
