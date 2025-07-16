@@ -381,6 +381,11 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		}
 
 		randTime := global.GokeRand.IntN(2) + 1
+
+		if pokemon.Ability.Name == "early-bird" {
+			randTime = int(math.Floor(float64(randTime) / 2.0))
+		}
+
 		pokemon.SleepCount = randTime
 		log.Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
 	case core.STATUS_BURN:
