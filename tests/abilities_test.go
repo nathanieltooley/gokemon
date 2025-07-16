@@ -583,10 +583,16 @@ func TestRockHead(t *testing.T) {
 
 func TestInnerFocus(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("inner-focus")
-	enemyPokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemonWithAbility("intimidate")
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("fake-out")
 	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.PEER, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Attack.Stage != 0 {
+		t.Fatalf("pokemon with inner focus was intimidated")
+	}
 
 	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
 
