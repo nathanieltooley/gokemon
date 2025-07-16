@@ -311,7 +311,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 		case core.STAT_SPEED:
 			pokemon.RawSpeed.ChangeStat(event.Change)
 		case core.STAT_ACCURACY:
-			if pokemon.Ability.Name == "keen-eye" {
+			if pokemon.Ability.Name == "keen-eye" || pokemon.Ability.Name == "illuminate" {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				}, []string{fmt.Sprintf("%s's accuracy cannot be lowered", pokemon.Nickname)}
