@@ -566,3 +566,17 @@ func TestKeenEye(t *testing.T) {
 		t.Fatalf("pokemon with keen eye had accuracy lowered! expected stage 0 got %d", pokemon.AccuracyStage)
 	}
 }
+
+func TestRockHead(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("rock-head")
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Moves[0] = *global.MOVES.GetMove("double-edge")
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.HOST, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with rock head took recoil damage. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
+	}
+}
