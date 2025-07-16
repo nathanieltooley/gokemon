@@ -549,3 +549,20 @@ func TestRainDish(t *testing.T) {
 		t.Fatalf("pokemon with rain-dish did not heal proper amount. got: %d/%d | expected: %d/%d", pokemon.Hp.Value, pokemon.MaxHp, 2, pokemon.MaxHp)
 	}
 }
+
+func TestKeenEye(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("keen-eye")
+	enemyPokemon := getDummyPokemon()
+
+	sattack := *global.MOVES.GetMove("sand-attack")
+	sattack.Accuracy = 100
+	enemyPokemon.Moves[0] = sattack
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.AccuracyStage != 0 {
+		t.Fatalf("pokemon with keen eye had accuracy lowered! expected stage 0 got %d", pokemon.AccuracyStage)
+	}
+}
