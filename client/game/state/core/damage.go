@@ -20,8 +20,13 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	var a, d uint // TODO: Add exception for Beat Up
 	var aBoost, dBoost int
 
-	if attacker.Ability.Name == "huge-power" || attacker.Ability.Name == "pure-power" {
+	// Attack affecting abilities
+	switch attacker.Ability.Name {
+	case "huge-power", "pure-power":
 		attacker.Attack.RawValue *= 2
+	case "hustle":
+		boostedAtt := math.Round(float64(attacker.Attack.RawValue) * 1.5)
+		attacker.Attack.RawValue = uint(boostedAtt)
 	}
 
 	// Determine damage type

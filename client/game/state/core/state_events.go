@@ -120,6 +120,10 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		moveAccuracy = 100
 	}
 
+	if attackPokemon.Ability.Name == "hustle" && move.DamageClass != "status" {
+		moveAccuracy = int(math.Round(float64(moveAccuracy) * .80))
+	}
+
 	var effectiveEvasion float32 = 1.0
 	if lo.Contains(targetsAffectedByEvasion[0:], move.Target.Name) {
 		effectiveEvasion = defPokemon.Evasion()
