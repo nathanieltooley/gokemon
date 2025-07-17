@@ -84,13 +84,13 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 }
 
 type AttackEvent struct {
-	AttackerId int
-	MoveId     int
+	AttackerID int
+	MoveID     int
 }
 
 func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
-	attacker, defender := getPlayerPair(gameState, event.AttackerId)
-	defenderInt := InvertPlayerIndex(event.AttackerId)
+	attacker, defender := getPlayerPair(gameState, event.AttackerID)
+	defenderInt := InvertPlayerIndex(event.AttackerID)
 
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
@@ -99,13 +99,13 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	var moveVars core.BattleMove
 	var pp int
 
-	if event.MoveId == -1 {
+	if event.MoveID == -1 {
 		move = struggleMove
 		pp = 1
 	} else {
 		// TODO: Make sure a.AttackerMove is between 0 -> 3
-		move = attackPokemon.Moves[event.MoveId]
-		moveVars = attackPokemon.InGameMoveInfo[event.MoveId]
+		move = attackPokemon.Moves[event.MoveID]
+		moveVars = attackPokemon.InGameMoveInfo[event.MoveID]
 		pp = moveVars.PP
 	}
 
@@ -184,16 +184,16 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			// - unique
 			switch move.Meta.Category.Name {
 			case "damage", "damage+heal":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerId, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 			case "ailment":
 				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
 			case "damage+ailment":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerId, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
 			case "net-good-stats":
 				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
-					affectedPokemonIndex := event.AttackerId
+					affectedPokemonIndex := event.AttackerID
 					if statChange.Change < 0 {
 						affectedPokemonIndex = InvertPlayerIndex(affectedPokemonIndex)
 					}
@@ -202,7 +202,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 				})
 			// Damages and then CHANGES the targets stats
 			case "damage+lower":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerId, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
 					events = append(events, NewStatChangeEvent(defenderInt, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
@@ -211,12 +211,12 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			// and this is important because moves like draco-meteor and overheat
 			// lower the user's stats but are in this category
 			case "damage+raise":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerId, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
-					events = append(events, NewStatChangeEvent(event.AttackerId, statChange.StatName, statChange.Change, move.Meta.StatChance))
+					events = append(events, NewStatChangeEvent(event.AttackerID, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
 			case "heal":
-				events = append(events, healHandler(gameState, event.AttackerId, move))
+				events = append(events, healHandler(gameState, event.AttackerID, move))
 			case "ohko":
 				events = append(events, ohkoHandler(gameState, *attackPokemon, *defPokemon, defenderInt)...)
 			case "force-switch":
@@ -243,13 +243,13 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		ppModifier := 1
 
 		// -1 is struggle
-		if event.MoveId != -1 {
+		if event.MoveID != -1 {
 			// TODO: this check will have to change for double battles (any opposing pokemon not the defending)
 			if defPokemon.Ability.Name == "pressure" {
 				ppModifier = 2
 			}
 
-			attackPokemon.InGameMoveInfo[event.MoveId].PP = pp - ppModifier
+			attackPokemon.InGameMoveInfo[event.MoveID].PP = pp - ppModifier
 		}
 	} else {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")

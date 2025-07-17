@@ -49,7 +49,7 @@ func NewAttackAction(attacker int, attackMove int) AttackAction {
 var targetsAffectedByEvasion = [...]string{"specific-move", "selected-pokemon-me-first", "random-opponent", "all-other-pokemon", "selected-pokemon", "all-opponents", "entire-field", "all-pokemon", "fainting-pokemon"}
 
 func (a AttackAction) UpdateState(state GameState) []StateEvent {
-	return []StateEvent{AttackEvent{AttackerId: a.Ctx.PlayerId, MoveId: a.AttackerMove}}
+	return []StateEvent{AttackEvent{AttackerID: a.Ctx.PlayerID, MoveID: a.AttackerMove}}
 }
 
 func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {

@@ -14,11 +14,11 @@ type Action interface {
 }
 
 type ActionCtx struct {
-	PlayerId int
+	PlayerID int
 }
 
-func NewActionCtx(playerId int) ActionCtx {
-	return ActionCtx{PlayerId: playerId}
+func NewActionCtx(playerID int) ActionCtx {
+	return ActionCtx{PlayerID: playerID}
 }
 
 type SwitchAction struct {
@@ -28,18 +28,18 @@ type SwitchAction struct {
 	Poke        core.Pokemon
 }
 
-func NewSwitchAction(state *GameState, playerId int, switchIndex int) SwitchAction {
+func NewSwitchAction(state *GameState, playerID int, switchIndex int) SwitchAction {
 	return SwitchAction{
-		Ctx: NewActionCtx(playerId),
+		Ctx: NewActionCtx(playerID),
 		// TODO: OOB Check
 		SwitchIndex: switchIndex,
 
-		Poke: state.GetPlayer(playerId).Team[switchIndex],
+		Poke: state.GetPlayer(playerID).Team[switchIndex],
 	}
 }
 
 func (a SwitchAction) UpdateState(state GameState) []StateEvent {
-	return []StateEvent{SwitchEvent{PlayerIndex: a.Ctx.PlayerId, SwitchIndex: a.SwitchIndex}}
+	return []StateEvent{SwitchEvent{PlayerIndex: a.Ctx.PlayerID, SwitchIndex: a.SwitchIndex}}
 }
 
 func (a SwitchAction) GetCtx() ActionCtx {

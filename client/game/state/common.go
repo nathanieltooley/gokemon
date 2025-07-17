@@ -41,7 +41,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 		var aPriority int
 		var bPriority int
 
-		activePokemon := gameState.GetPlayer(a.GetCtx().PlayerId).GetActivePokemon()
+		activePokemon := gameState.GetPlayer(a.GetCtx().PlayerID).GetActivePokemon()
 		aSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch a := a.(type) {
@@ -54,7 +54,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			return 0
 		}
 
-		activePokemon = gameState.GetPlayer(b.GetCtx().PlayerId).GetActivePokemon()
+		activePokemon = gameState.GetPlayer(b.GetCtx().PlayerID).GetActivePokemon()
 		bSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch b := b.(type) {
@@ -72,8 +72,8 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 		}
 
 		log.Debug().
-			Int("aPlayer", a.GetCtx().PlayerId).
-			Int("bPlayer", b.GetCtx().PlayerId).
+			Int("aPlayer", a.GetCtx().PlayerID).
+			Int("bPlayer", b.GetCtx().PlayerID).
 			Int("aSpeed", aSpeed).
 			Int("bSpeed", bSpeed).
 			Int("aPriority", aPriority).
@@ -99,7 +99,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 	lo.ForEach(actions, func(a stateCore.Action, i int) {
 		switch a.(type) {
 		case *stateCore.AttackAction, *stateCore.SkipAction:
-			player := gameState.GetPlayer(a.GetCtx().PlayerId)
+			player := gameState.GetPlayer(a.GetCtx().PlayerID)
 
 			log.Info().Int("attackIndex", i).
 				Int("attackerSpeed", player.GetActivePokemon().Speed(gameState.Weather)).
@@ -119,7 +119,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			// Skip attack with para
 			if pokemon.Status == core.STATUS_PARA {
 				paraEvent := stateCore.ParaEvent{
-					PlayerIndex:         a.GetCtx().PlayerId,
+					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
@@ -130,7 +130,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			// Skip attack with sleep
 			if pokemon.Status == core.STATUS_SLEEP {
 				sleepEv := stateCore.SleepEvent{
-					PlayerIndex:         a.GetCtx().PlayerId,
+					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 				events = append(events, sleepEv)
@@ -140,7 +140,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			// Skip attack with frozen
 			if pokemon.Status == core.STATUS_FROZEN {
 				frzEv := stateCore.FrozenEvent{
-					PlayerIndex:         a.GetCtx().PlayerId,
+					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 				events = append(events, frzEv)
@@ -150,7 +150,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			// Skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
 				confusionEv := stateCore.ConfusionEvent{
-					PlayerIndex:         a.GetCtx().PlayerId,
+					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 				events = append(events, confusionEv)

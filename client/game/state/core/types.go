@@ -19,9 +19,6 @@ const (
 	AI
 )
 
-// TODO: Lower size of this struct? (mainly for networking purposes)
-// might ignore just cause there haven't been any noticable issues,
-// and this is networked very infrequently, only after the end of turns
 type GameState struct {
 	HostPlayer   Player
 	ClientPlayer Player
@@ -47,13 +44,13 @@ type Player struct {
 	MultiTimerTick int64
 }
 
-func (s *GameState) TickPlayerTimers() {
-	if !s.HostPlayer.TimerPaused {
-		s.HostPlayer.MultiTimerTick--
+func (g *GameState) TickPlayerTimers() {
+	if !g.HostPlayer.TimerPaused {
+		g.HostPlayer.MultiTimerTick--
 	}
 
-	if !s.ClientPlayer.TimerPaused {
-		s.ClientPlayer.MultiTimerTick--
+	if !g.ClientPlayer.TimerPaused {
+		g.ClientPlayer.MultiTimerTick--
 	}
 }
 
@@ -65,7 +62,7 @@ func (g *GameState) GetPlayer(index int) *Player {
 	}
 }
 
-// Returns whether the game should be over (all of a player's pokemon are dead)
+// GameOver returns whether the game should be over (all of a player's pokemon are dead)
 // Value will be -1 for no loser yet, or the winner HOST or PEER
 func (g *GameState) GameOver() int {
 	hostLoss := true
@@ -99,7 +96,7 @@ func (g *GameState) GameOver() int {
 	return -1
 }
 
-// Creates a copy of this state, handling new slice creation and allocation
+// Clone creates a copy of this state, handling new slice creation and allocation
 func (g GameState) Clone() GameState {
 	newState := g
 	newLTeam := slices.Clone(newState.HostPlayer.Team)
@@ -111,12 +108,11 @@ func (g GameState) Clone() GameState {
 	return newState
 }
 
-// TODO: OOB Error handling
 func (p Player) GetActivePokemon() *core.Pokemon {
 	return p.GetPokemon(p.ActivePokeIndex)
 }
 
-// Get a copy of a pokemon on a player's team
+// GetPokemon gets a player's pokemon at some index
 func (p Player) GetPokemon(index int) *core.Pokemon {
 	return &p.Team[index]
 }

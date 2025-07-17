@@ -11,7 +11,7 @@ import (
 )
 
 func TestEncodeDecodeEvents(t *testing.T) {
-	events := []stateCore.StateEvent{stateCore.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, stateCore.AttackEvent{AttackerId: 20, MoveId: 30}}
+	events := []stateCore.StateEvent{stateCore.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, stateCore.AttackEvent{AttackerID: 20, MoveID: 30}}
 	es := networking.EventSlice{Events: events}
 
 	encodeBuf := bytes.Buffer{}
