@@ -601,3 +601,13 @@ func TestInnerFocus(t *testing.T) {
 		t.Fatalf("pokemon with inner focus flinched")
 	}
 }
+
+func TestHustleBoost(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon.Ability.Name = "hustle"
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 44, 52)
+}
