@@ -624,3 +624,19 @@ func TestMarvelScale(t *testing.T) {
 	checkDamageRange(t, damage, 29, 35)
 	checkDamageRange(t, damageStatus, 20, 24)
 }
+
+func TestGuts(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon.Ability.Name = "guts"
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	pokemon.Status = core.STATUS_PARA
+	damageStatus := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	pokemon.Status = core.STATUS_BURN
+	damageBurn := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 29, 35)
+	checkDamageRange(t, damageStatus, 44, 52)
+	checkDamageRange(t, damageBurn, 44, 52)
+}
