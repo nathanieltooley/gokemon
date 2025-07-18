@@ -611,3 +611,16 @@ func TestHustleBoost(t *testing.T) {
 
 	checkDamageRange(t, damage, 44, 52)
 }
+
+func TestMarvelScale(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon.Ability.Name = "marvel-scale"
+	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+
+	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	pokemon.Status = core.STATUS_PARA
+	damageStatus := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+
+	checkDamageRange(t, damage, 29, 35)
+	checkDamageRange(t, damageStatus, 20, 24)
+}
