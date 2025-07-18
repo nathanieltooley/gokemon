@@ -31,14 +31,12 @@ type SwitchEvent struct {
 
 func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	player, opposingPlayer := getPlayerPair(gameState, event.PlayerIndex)
-	switchingInPokemon := player.GetPokemon(event.SwitchIndex)
+	newActivePkm := player.GetPokemon(event.SwitchIndex)
 
-	log.Info().Msgf("%s switches to %s", player.Name, switchingInPokemon.Nickname)
+	log.Info().Msgf("%s switches to %s", player.Name, newActivePkm.Nickname)
 
 	// TODO: OOB Check
 	player.ActivePokeIndex = event.SwitchIndex
-
-	newActivePkm := player.GetActivePokemon()
 
 	followUpEvents := make([]StateEvent, 0)
 
@@ -62,10 +60,9 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
 			followUpEvents = append(followUpEvents, NewStatChangeEvent(InvertPlayerIndex(event.PlayerIndex), core.STAT_ATTACK, -1, 100))
 		}
-
 	case "natural-cure":
 		newActivePkm.Status = core.STATUS_NONE
-	case "pressure":
+		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
