@@ -640,3 +640,17 @@ func TestGuts(t *testing.T) {
 	checkDamageRange(t, damageStatus, 44, 52)
 	checkDamageRange(t, damageBurn, 44, 52)
 }
+
+func TestNaturalCure(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("natural-cure")
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Status = core.STATUS_BURN
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Status != core.STATUS_NONE {
+		t.Fatalf("pokemon with natural cure did not cure it's status (naturally)")
+	}
+}
