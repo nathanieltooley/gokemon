@@ -29,6 +29,11 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		attacker.Attack.RawValue = uint(boostedAtt)
 	}
 
+	if defendent.Ability.Name == "marvel-scale" && defendent.Status != core.STATUS_NONE {
+		boostedDef := math.Round(float64(defendent.Def.RawValue) * 1.5)
+		defendent.Def.RawValue = uint(boostedDef)
+	}
+
 	// Determine damage type
 	switch move.DamageClass {
 	case core.DAMAGETYPE_PHYSICAL:
