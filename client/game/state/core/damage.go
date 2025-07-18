@@ -134,6 +134,21 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		}
 	}
 
+	var burn float64 = 1
+	// TODO: Add exception for Guts and Facade
+	if attacker.Status == core.STATUS_BURN && move.DamageClass == core.DAMAGETYPE_PHYSICAL {
+		burn = 0.5
+		damageLogger().Info().Float64("burn", burn).Msg("Attacker is burned and is using a physical move")
+	}
+
+	if attacker.Ability.Name == "guts" {
+		// remove burn debuff
+		burn = 1
+		if attacker.Status != core.STATUS_NONE {
+			a = uint(float64(a) * 1.5)
+		}
+	}
+
 	// Calculate the part of the damage function in brackets
 	// TODO: still has rounding issues. not sure if its here in the order of floors and rounds
 	// or if later on where a certain value is supposed to be floored or rounded. its really dumb and confusing
@@ -143,13 +158,6 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {
 		stab = 1.5
-	}
-
-	var burn float64 = 1
-	// TODO: Add exception for Guts and Facade
-	if attacker.Status == core.STATUS_BURN && move.DamageClass == core.DAMAGETYPE_PHYSICAL {
-		burn = 0.5
-		damageLogger().Info().Float64("burn", burn).Msg("Attacker is burned and is using a physical move")
 	}
 
 	weatherBonus := 1.0
