@@ -491,6 +491,11 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 		events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0, PlayerIndex: event.ActivatorInt})
 
 		messages = []string{fmt.Sprintf("%s was healed by the rain!", activatorPkm.Nickname)}
+	case "shed-skin":
+		// TODO: actually test this ability
+		activatorPkm.Status = core.STATUS_NONE
+
+		messages = []string{fmt.Sprintf("%s shed it's skin!", activatorPkm.Nickname)}
 	}
 
 	return events, messages
@@ -844,6 +849,13 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 		events = append(events,
 			SimpleAbilityActivationEvent(gameState, event.PlayerID),
 		)
+	case "shed-skin":
+		check := global.GokeRand.Float32()
+		if check <= .33 {
+			events = append(events,
+				SimpleAbilityActivationEvent(gameState, event.PlayerID),
+			)
+		}
 	}
 
 	return events, nil
