@@ -109,6 +109,11 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		pp = moveVars.PP
 	}
 
+	// TODO: hard to test but would be nice to at some point
+	if attackPokemon.Ability.Name == "serene-grace" {
+		move.EffectChance *= 2
+	}
+
 	events := make([]StateEvent, 0)
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
