@@ -63,6 +63,12 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	case "natural-cure":
 		newActivePkm.Status = core.STATUS_NONE
 		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
+	case "trace":
+		opposingPokemon := opposingPlayer.GetActivePokemon()
+		newActivePkm.Ability = opposingPokemon.Ability
+
+		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
+		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s gained %s's ability: %s", newActivePkm.Nickname, opposingPokemon.Nickname, opposingPokemon.Ability.Name))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
