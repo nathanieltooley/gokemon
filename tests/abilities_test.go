@@ -654,3 +654,16 @@ func TestNaturalCure(t *testing.T) {
 		t.Fatalf("pokemon with natural cure did not cure it's status (naturally)")
 	}
 }
+
+func TestTrace(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("trace")
+	enemyPokemon := getDummyPokemonWithAbility("huge-power")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Ability.Name != "huge-power" {
+		t.Fatalf("pokemon with trace did not gain enemy's ability")
+	}
+}
