@@ -98,7 +98,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 	// Process otherActions next
 	lo.ForEach(actions, func(a stateCore.Action, i int) {
 		switch a.(type) {
-		case *stateCore.AttackAction, *stateCore.SkipAction:
+		case stateCore.AttackAction, *stateCore.AttackAction, stateCore.SkipAction, *stateCore.SkipAction:
 			player := gameState.GetPlayer(a.GetCtx().PlayerID)
 
 			log.Info().Int("attackIndex", i).
