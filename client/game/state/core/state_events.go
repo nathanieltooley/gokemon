@@ -73,6 +73,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	newActivePkm.SwitchedInThisTurn = true
 	newActivePkm.CanAttackThisTurn = false
+	// no matter what, pokemon should not truant on the turn they switch in
+	newActivePkm.TruantShouldActivate = false
 
 	messages := make([]string, 0)
 	if gameState.Turn == 0 {
@@ -267,6 +269,8 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")
 		messages = append(messages, fmt.Sprintf("%s missed their attack!", attackPokemon.Nickname))
 	}
+
+	attackPokemon.TruantShouldActivate = true
 
 	return events, messages
 }
@@ -504,6 +508,11 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 		activatorPkm.Status = core.STATUS_NONE
 
 		messages = []string{fmt.Sprintf("%s shed it's skin!", activatorPkm.Nickname)}
+	case "truant":
+		activatorPkm.CanAttackThisTurn = false
+		activatorPkm.TruantShouldActivate = false
+
+		messages = []string{fmt.Sprintf("%s is loafing around!", activatorPkm.Nickname)}
 	}
 
 	return events, messages
@@ -706,6 +715,7 @@ func (event SleepEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		pokemon.Status = core.STATUS_NONE
 		message = fmt.Sprintf("%s woke up!", pokemon.Nickname)
 		pokemon.CanAttackThisTurn = true
+		pokemon.TruantShouldActivate = false
 	} else {
 		message = fmt.Sprintf("%s is asleep", pokemon.Nickname)
 		pokemon.CanAttackThisTurn = false

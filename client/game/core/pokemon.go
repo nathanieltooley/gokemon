@@ -182,31 +182,32 @@ type Nature struct {
 // Pokemon is a mixture of an edited Pokemon on a team, and a version of that Pokemon in a battle.
 // Certain values that are only relevant to battles (like stat stages, counters for sleep and toxic, or PP [lol] for a move) are not saved as team data.
 type Pokemon struct {
-	Base               *BasePokemon
-	Nickname           string
-	Level              uint
-	Hp                 HpStat
-	MaxHp              uint
-	Attack             Stat
-	Def                Stat
-	SpAttack           Stat
-	SpDef              Stat
-	RawSpeed           Stat
-	Moves              [4]Move
-	Nature             Nature
-	Ability            Ability
-	Item               string
-	Status             int           `json:"-"`
-	ConfusionCount     int           `json:"-"`
-	ToxicCount         int           `json:"-"`
-	SleepCount         int           `json:"-"`
-	CanAttackThisTurn  bool          `json:"-"`
-	SwitchedInThisTurn bool          `json:"-"`
-	CritStage          int           `json:"-"`
-	AccuracyStage      int           `json:"-"`
-	EvasionStage       int           `json:"-"`
-	InGameMoveInfo     [4]BattleMove `json:"-"`
-	FlashFire          bool          `json:"-"`
+	Base                 *BasePokemon
+	Nickname             string
+	Level                uint
+	Hp                   HpStat
+	MaxHp                uint
+	Attack               Stat
+	Def                  Stat
+	SpAttack             Stat
+	SpDef                Stat
+	RawSpeed             Stat
+	Moves                [4]Move
+	Nature               Nature
+	Ability              Ability
+	Item                 string
+	Status               int           `json:"-"`
+	ConfusionCount       int           `json:"-"`
+	ToxicCount           int           `json:"-"`
+	SleepCount           int           `json:"-"`
+	CanAttackThisTurn    bool          `json:"-"`
+	SwitchedInThisTurn   bool          `json:"-"`
+	CritStage            int           `json:"-"`
+	AccuracyStage        int           `json:"-"`
+	EvasionStage         int           `json:"-"`
+	InGameMoveInfo       [4]BattleMove `json:"-"`
+	FlashFire            bool          `json:"-"`
+	TruantShouldActivate bool          `json:"-"`
 }
 
 func (p *Pokemon) ReCalcStats() {

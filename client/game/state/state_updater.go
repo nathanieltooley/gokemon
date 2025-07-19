@@ -49,6 +49,20 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
+	hostPokemon := host.GetActivePokemon()
+	if hostPokemon.Ability.Name == "truant" && hostPokemon.TruantShouldActivate {
+		events = append(events, stateCore.SimpleAbilityActivationEvent(gameState, stateCore.HOST))
+		// NOTE: i want to keep updates outside of events like this rare. i will make an exception here there is no visual
+		// for when a pokemon can't attack and it saves us from adding an action that would have to been skipped while iterating through them
+		hostPokemon.CanAttackThisTurn = false
+	}
+
+	clientPokemon := client.GetActivePokemon()
+	if clientPokemon.Ability.Name == "truant" && clientPokemon.TruantShouldActivate {
+		events = append(events, stateCore.SimpleAbilityActivationEvent(gameState, stateCore.PEER))
+		clientPokemon.CanAttackThisTurn = false
+	}
+
 	events = append(events, commonOtherActionHandling(*gameState, otherActions)...)
 
 	gameOverValue := gameState.GameOver()
