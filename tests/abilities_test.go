@@ -667,3 +667,40 @@ func TestTrace(t *testing.T) {
 		t.Fatalf("pokemon with trace did not gain enemy's ability")
 	}
 }
+
+func TestTruant(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("truant")
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	pokemon.Moves[1] = *global.MOVES.GetMove("protect")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.TruantShouldActivate {
+		t.Fatalf("truant should only activate after the pokemon attacks with a move")
+	}
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 1)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+
+	if !pokemon.TruantShouldActivate {
+		t.Fatalf("truant should be primed to activate after a pokemon attacks")
+	}
+
+	if enemyPokemon.Hp.Value < enemyPokemon.MaxHp {
+		t.Fatalf("pokemon took damage from protect")
+	}
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
+
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+	if enemyPokemon.Hp.Value < enemyPokemon.MaxHp {
+		t.Fatalf("opponent of truant took damage on loafing turn!")
+	}
+}
