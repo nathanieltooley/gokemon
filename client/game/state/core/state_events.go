@@ -306,17 +306,27 @@ func NewStatChangeEvent(playerIndex int, statName string, change int, chance int
 func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	statCheck := global.GokeRand.IntN(100)
 	if event.Chance == 0 {
-		event.Change = 100
+		event.Chance = 100
+	}
+
+	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
+	if event.Change < 0 && (pokemon.Ability.Name == "white-smoke" || pokemon.Ability.Name == "clear-body") {
+		return []StateEvent{
+			SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
+		}, []string{fmt.Sprintf("%s's stats cannot be lowered!", pokemon.Nickname)}
 	}
 
 	if statCheck < event.Chance {
 		log.Info().Int("statChance", event.Chance).Int("statCheck", statCheck).Msg("Stat change did pass")
 
-		pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
-
 		// sorry
 		switch event.StatName {
 		case core.STAT_ATTACK:
+			if event.Change < 0 && pokemon.Ability.Name == "hyper-cutter" {
+				return []StateEvent{
+					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
+				}, []string{fmt.Sprintf("%s's attack cannot be lowered!", pokemon.Nickname)}
+			}
 			pokemon.Attack.ChangeStat(event.Change)
 		case core.STAT_DEFENSE:
 			pokemon.Def.ChangeStat(event.Change)
@@ -327,7 +337,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 		case core.STAT_SPEED:
 			pokemon.RawSpeed.ChangeStat(event.Change)
 		case core.STAT_ACCURACY:
-			if pokemon.Ability.Name == "keen-eye" || pokemon.Ability.Name == "illuminate" {
+			if event.Change < 0 && (pokemon.Ability.Name == "keen-eye" || pokemon.Ability.Name == "illuminate") {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				}, []string{fmt.Sprintf("%s's accuracy cannot be lowered", pokemon.Nickname)}

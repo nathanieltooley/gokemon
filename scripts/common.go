@@ -1,3 +1,7 @@
+// Package scripts contains a bunch of scripts to grab data from PokeAPI.
+//
+// TODO: Perhaps remove these scripts and download / build the sqlite db directly from
+// pokeAPI's source code. This would require a lot of changes though.
 package scripts
 
 import (

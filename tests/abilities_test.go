@@ -558,12 +558,18 @@ func TestKeenEye(t *testing.T) {
 	sattack.Accuracy = 100
 	enemyPokemon.Moves[0] = sattack
 
+	posSAttack := *global.MOVES.GetMove("sand-attack")
+	posSAttack.StatChanges = []core.StatChange{{Change: 1, StatName: core.STAT_ACCURACY}}
+	pokemon.Moves[0] = posSAttack
+
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0), stateCore.NewAttackAction(state.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
-	if pokemon.AccuracyStage != 0 {
-		t.Fatalf("pokemon with keen eye had accuracy lowered! expected stage 0 got %d", pokemon.AccuracyStage)
+	if pokemon.AccuracyStage < 0 {
+		t.Fatalf("pokemon with keen eye had accuracy lowered! expected positive change got %d", pokemon.AccuracyStage)
+	} else if pokemon.AccuracyStage == 0 {
+		t.Fatalf("pokemon with keen eye could not raise it's own accuracy")
 	}
 }
 
@@ -702,5 +708,67 @@ func TestTruant(t *testing.T) {
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
 	if enemyPokemon.Hp.Value < enemyPokemon.MaxHp {
 		t.Fatalf("opponent of truant took damage on loafing turn!")
+	}
+}
+
+func TestWhiteSmokeClearBody(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("white-smoke")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("leer")
+	pokemon.Moves[0] = *global.MOVES.GetMove("swords-dance")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0), stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Def.Stage != 0 {
+		t.Fatalf("pokemon with white smoke had it's stats lowered")
+	}
+
+	if pokemon.Attack.Stage <= 0 {
+		t.Fatalf("pokemon with white smoke could not raise it's stats")
+	}
+
+	pokemon.Ability.Name = "clear-body"
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0), stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Def.Stage != 0 {
+		t.Fatalf("pokemon with clear-body had it's stats lowered")
+	}
+
+	if pokemon.Attack.Stage <= 0 {
+		t.Fatalf("pokemon with clear-body could not raise it's stats")
+	}
+}
+
+func TestHyperCutter(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("hyper-cutter")
+	enemyPokemon := getDummyPokemon()
+
+	modLeer := global.MOVES.GetMove("leer")
+	modLeer.StatChanges = []core.StatChange{{Change: -1, StatName: core.STAT_ATTACK}}
+	modLeer.EffectChance = 100
+
+	enemyPokemon.Moves[0] = *modLeer
+	enemyPokemon.Moves[1] = *global.MOVES.GetMove("leer")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Attack.Stage < 0 {
+		t.Fatalf("pokemon with hyper cutter had it's attack lowered")
+	}
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Def.Stage != -1 {
+		t.Fatalf("pokemon with hyper cutter did not have it's defense lowered!")
 	}
 }
