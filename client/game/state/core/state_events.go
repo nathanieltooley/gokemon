@@ -119,6 +119,10 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		move.EffectChance *= 2
 	}
 
+	if defPokemon.Ability.Name == "liquid-ooze" && move.Meta.Drain > 0 {
+		move.Meta.Drain *= -1
+	}
+
 	events := make([]StateEvent, 0)
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))

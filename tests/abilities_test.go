@@ -789,3 +789,20 @@ func TestSynch(t *testing.T) {
 		t.Fatalf("pokemon with synchronize did not sync statuses")
 	}
 }
+
+func TestLiquidOoze(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("liquid-ooze")
+	enemyPokemon := getDummyPokemon()
+
+	drainMove := *global.MOVES.GetMove("tackle")
+	drainMove.Meta.Drain = 100
+	enemyPokemon.Moves[0] = drainMove
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+	if enemyPokemon.Hp.Value == enemyPokemon.MaxHp {
+		t.Fatalf("pokemon attacked with drain a pokemon with liquid-ooze and took no self-damage!")
+	}
+}
