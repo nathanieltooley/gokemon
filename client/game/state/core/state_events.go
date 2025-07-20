@@ -454,8 +454,17 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		pokemon.ToxicCount = 1
 	}
 
+	events := make([]StateEvent, 0)
+
 	pokemon.Status = event.Ailment
-	return nil, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Nickname)}
+	switch pokemon.Status {
+	case core.STATUS_BURN, core.STATUS_POISON, core.STATUS_PARA:
+		events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: pokemon.Status})
+	case core.STATUS_TOXIC:
+		events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: core.STATUS_POISON})
+	}
+
+	return events, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Nickname)}
 }
 
 // AbilityActivationEvent occurs when an ability is activated. This can be just the message that an ability has activated

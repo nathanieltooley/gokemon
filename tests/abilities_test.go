@@ -772,3 +772,20 @@ func TestHyperCutter(t *testing.T) {
 		t.Fatalf("pokemon with hyper cutter did not have it's defense lowered!")
 	}
 }
+
+func TestSynch(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("synchronize")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+
+	if pokemon.Status != enemyPokemon.Status && pokemon.Status == core.STATUS_PARA {
+		t.Fatalf("pokemon with synchronize did not sync statuses")
+	}
+}
