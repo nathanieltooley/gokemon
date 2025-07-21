@@ -806,3 +806,17 @@ func TestLiquidOoze(t *testing.T) {
 		t.Fatalf("pokemon attacked with drain a pokemon with liquid-ooze and took no self-damage!")
 	}
 }
+
+func TestSoundproof(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("soundproof")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("hyper-voice")
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with soundproof took damage from sound-based move")
+	}
+}

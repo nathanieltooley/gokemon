@@ -123,6 +123,12 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		move.Meta.Drain *= -1
 	}
 
+	if defPokemon.Ability.Name == "soundproof" && lo.Contains(core.SOUND_MOVES, move.Name) {
+		return []StateEvent{
+			SimpleAbilityActivationEvent(gameState, defenderInt),
+		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Nickname)}
+	}
+
 	events := make([]StateEvent, 0)
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))

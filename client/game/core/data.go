@@ -68,6 +68,42 @@ const (
 	STAT_EVASION  = "evasion"
 )
 
+var SOUND_MOVES = []string{
+	"growl",
+	"roar",
+	"sing",
+	"supersonic",
+	"screech",
+	"snore",
+	"perish-song",
+	"heal-bell",
+	"uproar",
+	"hyper-voice",
+	"metal-sound",
+	"grass-whistle",
+	"howl",
+	"bug-buzz",
+	"chatter",
+	"round",
+	"echoed-voice",
+	"relic-song",
+	"snarl",
+	"noble-roar",
+	"disarming-voice",
+	"parting-shot",
+	"boomburst",
+	"confide",
+	"sparkling-aria",
+	"clanging-scales",
+	"clangorous-soulblaze",
+	"clangorous-soul",
+	"overdrive",
+	"eerie-spell",
+	"torch-song",
+	"alluring-voice",
+	"psychic-noise",
+}
+
 /// ======== No effect natures ========
 
 var NATURE_HARDY = Nature{
