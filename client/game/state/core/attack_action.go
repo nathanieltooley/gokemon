@@ -61,7 +61,11 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
 	}
 
-	effectiveness := defPokemon.Base.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
+	effectiveness := defPokemon.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
+
+	if defPokemon.Ability.Name == "color-change" {
+		defPokemon.BattleType = core.GetAttackTypeMapping(move.Type)
+	}
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
 		events = append(events, AbilityActivationEvent{ActivatorInt: defIndex, AbilityName: defPokemon.Ability.Name})

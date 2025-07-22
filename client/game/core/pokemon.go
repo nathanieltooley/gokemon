@@ -17,13 +17,13 @@ type PokemonType struct {
 	Effectiveness map[string]float64
 }
 
-// AttackEffectiveness gives the type effectiveness of an attack of this type compared to a given defense type, given as a string of the name of the type.
+// AttackEffectiveness gives the type effectiveness of an attack of this type compared to a given defense type.
 // For instance, if self's type is Grass, this function gets the type effectiveness of a Grass attack against a given type (i.e Water would 2X effective, Fire would 1/2 effective)
-func (t PokemonType) AttackEffectiveness(defenseType string) float64 {
-	effectiveness, ok := t.Effectiveness[defenseType]
+func (t PokemonType) AttackEffectiveness(defenseType PokemonType) float64 {
+	effectiveness, ok := t.Effectiveness[defenseType.Name]
 
 	if !ok {
-		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, defenseType)
+		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, defenseType.Name)
 		return 1
 	} else {
 		return effectiveness
@@ -43,18 +43,6 @@ type BasePokemon struct {
 	SpAttack      uint
 	SpDef         uint
 	Speed         uint
-}
-
-// DefenseEffectiveness gets the type effectiveness of an attackType against this BasePokemon's one or two types
-func (b BasePokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
-	effectiveness1 := attackType.AttackEffectiveness(b.Type1.Name)
-
-	var effectiveness2 float64 = 1
-	if b.Type2 != nil {
-		effectiveness2 = attackType.AttackEffectiveness(b.Type2.Name)
-	}
-
-	return effectiveness1 * effectiveness2
 }
 
 // HasType returns whether a BasePokemon is either of these types
@@ -77,75 +65,6 @@ type HpStat struct {
 	Iv    uint
 }
 
-var StageMultipliers = map[int]float32{
-	-6: 2.0 / 8.0,
-	-5: 2.0 / 7.0,
-	-4: 2.0 / 6.0,
-	-3: 2.0 / 5.0,
-	-2: 2.0 / 4.0,
-	-1: 2.0 / 3.0,
-	0:  1,
-	1:  3.0 / 2.0,
-	2:  4.0 / 2.0,
-	3:  5.0 / 2.0,
-	4:  6.0 / 2.0,
-	5:  7.0 / 2.0,
-	6:  8.0 / 2.0,
-}
-
-var critStateMultipliers = map[int]float32{
-	1: 1.0 / 24.0,
-	2: 1.0 / 8.0,
-	3: 1.0 / 2.0,
-	4: 1.0,
-}
-
-var evasivenessStageMult = map[int]float32{
-	-6: 9.0 / 3.0,
-	-5: 8.0 / 3.0,
-	-4: 7.0 / 3.0,
-	-3: 6.0 / 3.0,
-	-2: 5.0 / 3.0,
-	-1: 4.0 / 3.0,
-	0:  1,
-	1:  3.0 / 4.0,
-	2:  3.0 / 5.0,
-	3:  3.0 / 6.0,
-	4:  3.0 / 7.0,
-	5:  3.0 / 8.0,
-	6:  3.0 / 9.0,
-}
-
-var accuracyStageMult = map[int]float32{
-	6:  9.0 / 3.0,
-	5:  8.0 / 3.0,
-	4:  7.0 / 3.0,
-	3:  6.0 / 3.0,
-	2:  5.0 / 3.0,
-	1:  4.0 / 3.0,
-	0:  1,
-	-1: 3.0 / 4.0,
-	-2: 3.0 / 5.0,
-	-3: 3.0 / 6.0,
-	-4: 3.0 / 7.0,
-	-5: 3.0 / 8.0,
-	-6: 3.0 / 9.0,
-}
-
-// StageIncrease increases a stat's stage, keeping in mind the max value for the stat.
-// Generalized for a stat with any given max value as crit chance stages only go up to 4.
-func StageIncrease(inc int, currentStage int, maxStage int) int {
-	inc = int(math.Abs(float64(inc)))
-	return int(math.Min(float64(maxStage), float64(currentStage+inc)))
-}
-
-// StageDecrease decreases a stat's stage, keeping in mind the min value for the stat.
-// Generalized for a stat with any given min value.
-func StageDecrease(dec int, currentStage int, minStage int) int {
-	dec = int(math.Abs(float64(dec)))
-	return int(math.Max(float64(minStage), float64(currentStage-dec)))
-}
-
 // CalcValue gets the final, actual value of a Pokemon's stat after being modified by it's stage.
 func (s Stat) CalcValue() int {
 	return int(float32(s.RawValue) * StageMultipliers[s.Stage])
@@ -162,12 +81,12 @@ func (s *Stat) ChangeStat(change int) {
 
 // IncreaseStage calls StageIncrease with a max stage of 6
 func (s *Stat) IncreaseStage(inc int) {
-	s.Stage = StageIncrease(inc, s.Stage, 6)
+	s.Stage = stageIncrease(inc, s.Stage, 6)
 }
 
 // DecreaseStage calls StageDecrease with a min stage of -6
 func (s *Stat) DecreaseStage(dec int) {
-	s.Stage = StageDecrease(dec, s.Stage, -6)
+	s.Stage = stageDecrease(dec, s.Stage, -6)
 }
 
 func (s Stat) GetStage() int {
@@ -196,6 +115,7 @@ type Pokemon struct {
 	Nature               Nature
 	Ability              Ability
 	Item                 string
+	BattleType           *PokemonType  `json:"-"`
 	Status               int           `json:"-"`
 	ConfusionCount       int           `json:"-"`
 	ToxicCount           int           `json:"-"`
@@ -290,9 +210,9 @@ func (p *Pokemon) CritChance() float32 {
 
 func (p *Pokemon) ChangeEvasion(change int) {
 	if change < 0 {
-		p.EvasionStage = StageDecrease(change, p.EvasionStage, -6)
+		p.EvasionStage = stageDecrease(change, p.EvasionStage, -6)
 	} else {
-		p.EvasionStage = StageIncrease(change, p.EvasionStage, 6)
+		p.EvasionStage = stageIncrease(change, p.EvasionStage, 6)
 	}
 }
 
@@ -302,9 +222,9 @@ func (p Pokemon) Evasion() float32 {
 
 func (p *Pokemon) ChangeAccuracy(change int) {
 	if change < 0 {
-		p.AccuracyStage = StageDecrease(change, p.AccuracyStage, -6)
+		p.AccuracyStage = stageDecrease(change, p.AccuracyStage, -6)
 	} else {
-		p.AccuracyStage = StageIncrease(change, p.AccuracyStage, 6)
+		p.AccuracyStage = stageIncrease(change, p.AccuracyStage, 6)
 	}
 }
 
@@ -312,7 +232,7 @@ func (p Pokemon) Accuracy() float32 {
 	return accuracyStageMult[p.AccuracyStage]
 }
 
-// Return text that should show when a pokemon's ability is activated
+// AbilityText returns text that should show when a pokemon's ability is activated
 func (p *Pokemon) AbilityText() string {
 	return fmt.Sprintf("%s activated %s!", p.Nickname, p.Ability.Name)
 }
@@ -321,15 +241,20 @@ func (p Pokemon) IsNil() bool {
 	return p.Base == nil
 }
 
-// type PokemonRegistry struct {
-// 	pkm []BasePokemon
-// }
+// DefenseEffectiveness gets the type effectiveness of an attackType against this BasePokemon's one or two types
+func (p Pokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
+	if p.BattleType != nil {
+		return attackType.AttackEffectiveness(*p.BattleType)
+	} else {
+		effectiveness1 := attackType.AttackEffectiveness(*p.Base.Type1)
 
-func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
-	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
-	statValue := (float32(statNumerator)/100 + 5) * natureMod
-	log.Debug().Float32("stat", statValue).Msg("")
-	return uint(statValue)
+		var effectiveness2 float64 = 1
+		if p.Base.Type2 != nil {
+			effectiveness2 = attackType.AttackEffectiveness(*p.Base.Type2)
+		}
+
+		return effectiveness1 * effectiveness2
+	}
 }
 
 func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
@@ -398,4 +323,25 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	ivs[5] = uint8(speed)
 
 	return ivs, nil
+}
+
+func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
+	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
+	statValue := (float32(statNumerator)/100 + 5) * natureMod
+	log.Debug().Float32("stat", statValue).Msg("")
+	return uint(statValue)
+}
+
+// stageIncrease increases a stat's stage, keeping in mind the max value for the stat.
+// Generalized for a stat with any given max value as crit chance stages only go up to 4.
+func stageIncrease(inc int, currentStage int, maxStage int) int {
+	inc = int(math.Abs(float64(inc)))
+	return int(math.Min(float64(maxStage), float64(currentStage+inc)))
+}
+
+// stageDecrease decreases a stat's stage, keeping in mind the min value for the stat.
+// Generalized for a stat with any given min value.
+func stageDecrease(dec int, currentStage int, minStage int) int {
+	dec = int(math.Abs(float64(dec)))
+	return int(math.Max(float64(minStage), float64(currentStage-dec)))
 }

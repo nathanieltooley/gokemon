@@ -79,10 +79,10 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	var type2Effectiveness float64 = 1
 
 	if attackType != nil {
-		type1Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type1.Name)
+		type1Effectiveness = attackType.AttackEffectiveness(*defendent.Base.Type1)
 
 		if defendent.Base.Type2 != nil {
-			type2Effectiveness = attackType.AttackEffectiveness(defendent.Base.Type2.Name)
+			type2Effectiveness = attackType.AttackEffectiveness(*defendent.Base.Type2)
 		}
 	}
 
