@@ -75,25 +75,14 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	attackType := core.GetAttackTypeMapping(move.Type)
 
-	var type1Effectiveness float64 = 1
-	var type2Effectiveness float64 = 1
+	effectiveness := defendent.DefenseEffectiveness(attackType)
 
-	if attackType != nil {
-		type1Effectiveness = attackType.AttackEffectiveness(*defendent.Base.Type1)
-
-		if defendent.Base.Type2 != nil {
-			type2Effectiveness = attackType.AttackEffectiveness(*defendent.Base.Type2)
-		}
-	}
-
-	totalTypeEffectiveness := type1Effectiveness * type2Effectiveness
-
-	if totalTypeEffectiveness == 0 {
+	if effectiveness == 0 {
 		return 0
 	}
 
 	if defendent.Ability.Name == "wonder_guard" {
-		if totalTypeEffectiveness <= 1 {
+		if effectiveness <= 1 {
 			return 0
 		}
 	}
@@ -178,7 +167,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	damage = math.Floor(damage * critBoost)
 	damage = math.Floor(damage * randomSpread)
 	damage = pokeRound(damage * stab)
-	damage = math.Floor(damage * totalTypeEffectiveness)
+	damage = math.Floor(damage * effectiveness)
 	damage = pokeRound(damage * burn)
 	damage = pokeRound(damage * lowHealthBonus)
 
@@ -196,7 +185,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		Float64("damageInner", damageInner).
 		Float64("randomSpread", randomSpread).
 		Float64("STAB", stab).
-		Float64("Net Type Effectiveness", totalTypeEffectiveness).
+		Float64("Net Type Effectiveness", effectiveness).
 		Float64("crit", critBoost).
 		Float64("weatherBonus", weatherBonus).
 		Float64("flashFire", flashFireBoost).
