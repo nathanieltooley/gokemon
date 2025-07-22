@@ -908,6 +908,18 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 	return events, nil
 }
 
+type TypeChangeEvent struct {
+	ChangerInt  int
+	PokemonType core.PokemonType
+}
+
+func (event TypeChangeEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	pokemon := gameState.GetPlayer(event.ChangerInt).GetActivePokemon()
+	pokemon.BattleType = &event.PokemonType
+
+	return nil, []string{fmt.Sprintf("%s changed its type to %s!", pokemon.Nickname, event.PokemonType.Name)}
+}
+
 // MessageEvent is an event that only shows a message. No state updates occur.
 type MessageEvent struct {
 	Message string
