@@ -19,7 +19,7 @@ var attackActionLogger = func() *zerolog.Logger {
 var struggleMove = core.Move{
 	Accuracy:    100,
 	DamageClass: "physical",
-	Meta: &core.MoveMeta{
+	Meta: core.MoveMeta{
 		Category: struct {
 			Id   int
 			Name string

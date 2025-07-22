@@ -803,7 +803,7 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	confMove := core.Move{
 		Name:  "Confusion",
 		Power: 40,
-		Meta: &core.MoveMeta{
+		Meta: core.MoveMeta{
 			Category: struct {
 				Id   int
 				Name string

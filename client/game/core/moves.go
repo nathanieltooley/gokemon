@@ -88,7 +88,7 @@ type Move struct {
 	DamageClass  string `json:"damage_class"`
 	EffectChance int
 	EffectEntry  EffectEntry
-	Meta         *MoveMeta
+	Meta         MoveMeta
 	// What is checked for nil-ness
 	Name        string
 	Power       int
