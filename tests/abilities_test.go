@@ -820,3 +820,17 @@ func TestSoundproof(t *testing.T) {
 		t.Fatalf("pokemon with soundproof took damage from sound-based move")
 	}
 }
+
+func TestColorChange(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("color-change")
+	enemyPokemon := getDummyPokemon()
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.BattleType.Name != core.TYPENAME_NORMAL {
+		t.Fatalf("pokemon with color change did not change it's type to the attack type of NORMAL")
+	}
+}
