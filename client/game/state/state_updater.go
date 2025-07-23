@@ -30,9 +30,18 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
+	hostPokemon := host.GetActivePokemon()
+	clientPokemon := client.GetActivePokemon()
+
 	if !backFromForceSwitch {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
-		events = append(events, stateCore.TurnStartEvent{})
+		// Reset turn flags
+		// eventually this will have to change for double battles
+		hostPokemon.CanAttackThisTurn = true
+		hostPokemon.SwitchedInThisTurn = false
+
+		clientPokemon.CanAttackThisTurn = true
+		clientPokemon.SwitchedInThisTurn = false
 	}
 
 	for _, action := range actions {
@@ -55,15 +64,13 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
-	hostPokemon := host.GetActivePokemon()
 	if hostPokemon.Ability.Name == "truant" && hostPokemon.TruantShouldActivate {
 		events = append(events, stateCore.SimpleAbilityActivationEvent(gameState, stateCore.HOST))
 		// NOTE: i want to keep updates outside of events like this rare. i will make an exception here there is no visual
-		// for when a pokemon can't attack and it saves us from adding an action that would have to been skipped while iterating through them
+		// for when a pokemon can't attack and it saves us from adding an attack action that would have to been skipped while iterating through them
 		hostPokemon.CanAttackThisTurn = false
 	}
 
-	clientPokemon := client.GetActivePokemon()
 	if clientPokemon.Ability.Name == "truant" && clientPokemon.TruantShouldActivate {
 		events = append(events, stateCore.SimpleAbilityActivationEvent(gameState, stateCore.PEER))
 		clientPokemon.CanAttackThisTurn = false
@@ -83,8 +90,6 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
-	// Seems weird but should make sense if or when multiplayer is added
-	// also these checks will have to change if double battles are added
 	if !gameState.HostPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
 		return networking.ForceSwitchMessage{
