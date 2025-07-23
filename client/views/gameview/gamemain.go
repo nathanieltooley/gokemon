@@ -428,9 +428,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// start displaying them
 	if m.ctx.currentSmState == SM_RECEIVED_EVENTS {
 		m.nextEvent()
+		initialEventMsgs := len(m.messageQueue)
 		m.nextStateMsg()
 
-		if len(m.messageQueue) == 0 {
+		if initialEventMsgs == 0 {
 			cmds = append(cmds, func() tea.Msg {
 				return nextNotifMsg{}
 			})
