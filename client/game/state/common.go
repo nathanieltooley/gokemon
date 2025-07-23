@@ -123,6 +123,8 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
+				log.Info().Msgf("%s attack was skipped because of para", pokemon.Nickname)
+
 				events = append(events, paraEvent)
 				return
 			}
@@ -133,6 +135,9 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
+
+				log.Info().Msgf("%s attack was skipped because of sleep", pokemon.Nickname)
+
 				events = append(events, sleepEv)
 				return
 			}
@@ -143,6 +148,9 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
+
+				log.Info().Msgf("%s attack was skipped because of freeze", pokemon.Nickname)
+
 				events = append(events, frzEv)
 				return
 			}
@@ -153,12 +161,19 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
+
+				log.Info().Msgf("%s attack was skipped because of confusion", pokemon.Nickname)
+
 				events = append(events, confusionEv)
 				return
 			}
 
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				events = append(events, a.UpdateState(gameState)...)
+			} else if !pokemon.Alive() {
+				log.Info().Msgf("%s attack was skipped because of dead", pokemon.Nickname)
+			} else if !pokemon.CanAttackThisTurn {
+				log.Info().Msgf("%s attack was skipped because it was marked as unable to attack for the turn", pokemon.Nickname)
 			}
 		default:
 			events = append(events, a.UpdateState(gameState)...)

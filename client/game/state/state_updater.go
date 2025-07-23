@@ -1,6 +1,8 @@
 package state
 
 import (
+	"reflect"
+
 	tea "github.com/charmbracelet/bubbletea"
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/networking"
@@ -31,6 +33,10 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 	if !backFromForceSwitch {
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 		events = append(events, stateCore.TurnStartEvent{})
+	}
+
+	for _, action := range actions {
+		log.Info().Msgf("Player Action: %s", reflect.TypeOf(action).Name())
 	}
 
 	events = append(events, commonSwitching(*gameState, switches)...)
