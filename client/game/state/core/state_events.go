@@ -77,7 +77,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	newActivePkm.TruantShouldActivate = false
 
 	messages := make([]string, 0)
-	if gameState.Turn == 0 {
+	if gameState.Turn == 0 || gameState.Turn == 1 {
 		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Nickname))
 	} else {
 		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Nickname))
