@@ -93,6 +93,24 @@ func TestSandstormChip(t *testing.T) {
 	}
 }
 
+func TestBattleTypes(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.BattleType = &core.TYPE_FLYING
+
+	enemyPokemon.Moves[0] = *global.MOVES.GetMove("earthquake")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Hp.Value != pokemon.MaxHp {
+		t.Fatalf("pokemon with battle type flying took damage from ground attack")
+	}
+}
+
 func checkDamageRange(t *testing.T, damage uint, low uint, high uint) {
 	if damage < low || damage > high {
 		t.Fatalf("outside damage range: should be between %d - %d, got %d", low, high, damage)
