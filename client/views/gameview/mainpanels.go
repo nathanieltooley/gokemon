@@ -142,6 +142,10 @@ func pokemonEffects(pokemon core.Pokemon) string {
 		panels = append(panels, positivePanel.Render(fmt.Sprintf("Evasion: x%.2f", evasion)))
 	}
 
+	if pokemon.BattleType != nil {
+		panels = append(panels, lipgloss.NewStyle().Background(lipgloss.Color(typeColors[pokemon.BattleType.Name])).Render(pokemon.BattleType.Name))
+	}
+
 	return lipgloss.JoinVertical(lipgloss.Center, panels...)
 }
 
