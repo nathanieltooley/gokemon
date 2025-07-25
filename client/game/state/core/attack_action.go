@@ -113,7 +113,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 		drainPercent := float32(move.Meta.Drain) / float32(100)
 		drainedHealth = uint(float32(cappedDamage) * drainPercent)
 
-		events = append(events, HealEvent{Heal: drainedHealth, PlayerIndex: defIndex})
+		events = append(events, HealEvent{Heal: drainedHealth, PlayerIndex: attIndex})
 
 		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
