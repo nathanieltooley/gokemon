@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game"
@@ -52,7 +53,7 @@ func RandomTeam() []core.Pokemon {
 	return team
 }
 
-func NewState(localTeam []core.Pokemon, opposingTeam []core.Pokemon) stateCore.GameState {
+func NewState(localTeam []core.Pokemon, opposingTeam []core.Pokemon, seed rand.PCG) stateCore.GameState {
 	// Make sure pokemon are inited correctly
 	for i, p := range localTeam {
 		p.CanAttackThisTurn = true
@@ -97,6 +98,7 @@ func NewState(localTeam []core.Pokemon, opposingTeam []core.Pokemon) stateCore.G
 		HostPlayer:   localPlayer,
 		ClientPlayer: opposingPlayer,
 		Turn:         0,
+		RngSource:    seed,
 	}
 }
 

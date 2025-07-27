@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -56,7 +55,9 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	events := make([]StateEvent, 0)
 	crit := false
 
-	if global.GokeRand.Float32() < attackPokemon.CritChance() {
+	rng := state.CreateRng()
+
+	if rng.Float32() < attackPokemon.CritChance() {
 		crit = true
 		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
 	}
@@ -72,7 +73,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 		crit = false
 	}
 
-	damage := Damage(attackPokemon, defPokemon, move, crit, state.Weather)
+	damage := Damage(attackPokemon, defPokemon, move, crit, state.Weather, rng)
 
 	if defPokemon.Ability.Name == "sturdy" {
 		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {
@@ -166,10 +167,12 @@ func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.P
 		return []StateEvent{NewMessageEvent("It failed!. Opponent's level is too high!")}
 	}
 
+	rng := state.CreateRng()
+
 	events := make([]StateEvent, 0)
 	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: defPokemon.Hp.Value})
 
-	randCheck := global.GokeRand.Float64()
+	randCheck := rng.Float64()
 	if randCheck < 0.01 {
 		events = append(events, NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Nickname))
 	} else {
@@ -181,8 +184,9 @@ func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.P
 
 func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
 	ailment, ok := core.STATUS_NAME_MAP[move.Meta.Ailment.Name]
+	rng := state.CreateRng()
 	if ok && defPokemon.Status == core.STATUS_NONE {
-		ailmentCheck := global.GokeRand.IntN(100)
+		ailmentCheck := rng.IntN(100)
 		ailmentChance := move.Meta.AilmentChance
 
 		// in pokeapi speak, 0 here means the chance is 100% (at least as it relates to moves like toxic and poison-powder)
@@ -230,7 +234,7 @@ func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move
 		if effectChance == 0 {
 			effectChance = 100
 		}
-		effectCheck := global.GokeRand.IntN(100)
+		effectCheck := rng.IntN(100)
 
 		if effectCheck < effectChance {
 			switch effect {
@@ -285,7 +289,9 @@ func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []Sta
 		return []StateEvent{NewFmtMessageEvent(fmt.Sprintf("%s has no Pokemon left to switch in!", defPlayer.Name))}
 	}
 
-	choiceIndex := global.GokeRand.IntN(len(alivePokemon))
+	rng := state.CreateRng()
+
+	choiceIndex := rng.IntN(len(alivePokemon))
 
 	return []StateEvent{
 		SwitchEvent{PlayerIndex: defIndex, SwitchIndex: alivePokemon[choiceIndex].Index},

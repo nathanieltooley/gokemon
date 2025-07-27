@@ -33,7 +33,7 @@ func TestAttackMove(t *testing.T) {
 	aiPokemon.Moves[2] = mustNotBeNil(global.MOVES.GetMove("tail-whip"))
 	aiPokemon.Moves[3] = mustNotBeNil(global.MOVES.GetMove("scary-face"))
 
-	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon})
+	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon}, stateCore.CreateRandomStateSeed())
 
 	aiResult := BestAiAction(&gameState)
 
@@ -51,7 +51,7 @@ func TestSlowMove(t *testing.T) {
 	aiPokemon.Moves[2] = mustNotBeNil(global.MOVES.GetMove("tail-whip"))
 	aiPokemon.Moves[3] = mustNotBeNil(global.MOVES.GetMove("scary-face"))
 
-	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon})
+	gameState := NewState([]core.Pokemon{playerPokemon}, []core.Pokemon{aiPokemon}, stateCore.CreateRandomStateSeed())
 
 	aiResult := BestAiAction(&gameState)
 

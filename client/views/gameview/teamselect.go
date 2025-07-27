@@ -219,7 +219,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				defaultEnemyTeam := state.RandomTeam()
 
-				gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam)
+				gameState := state.NewState(selectedTeam.Pokemon, defaultEnemyTeam, stateCore.CreateRandomStateSeed())
 				// update the starter to what the player selects in this screen
 				gameState.HostPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 				gameState.HostPlayer.Name = global.Opt.LocalPlayerName
@@ -242,7 +242,7 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case networking.StarterSelectionPacket: // HOST CASE
 		selectedTeam := m.teamList.SelectedItem().(teamItem)
 
-		gameState := state.NewState(selectedTeam.Pokemon, m.opposingTeam)
+		gameState := state.NewState(selectedTeam.Pokemon, m.opposingTeam, stateCore.CreateRandomStateSeed())
 
 		gameState.HostPlayer.ActivePokeIndex = m.teamView.CurrentPokemonIndex
 		gameState.HostPlayer.Name = global.Opt.LocalPlayerName

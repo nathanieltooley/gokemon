@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
@@ -100,6 +99,8 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
+	rng := gameState.CreateRng()
+
 	var move core.Move
 	var moveVars core.BattleMove
 	var pp int
@@ -133,7 +134,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
 
-	accuracyCheck := global.GokeRand.IntN(100)
+	accuracyCheck := rng.IntN(100)
 
 	moveAccuracy := move.Accuracy
 	if moveAccuracy == 0 {
@@ -260,7 +261,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			events = append(events, SimpleAbilityActivationEvent(gameState, defenderInt))
 		}
 
-		if global.GokeRand.IntN(100) < flinchChance {
+		if rng.IntN(100) < flinchChance {
 			events = append(events, FlinchEvent{PlayerIndex: defenderInt})
 		}
 
@@ -314,7 +315,9 @@ func NewStatChangeEvent(playerIndex int, statName string, change int, chance int
 }
 
 func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []string) {
-	statCheck := global.GokeRand.IntN(100)
+	rng := gameState.CreateRng()
+
+	statCheck := rng.IntN(100)
 	if event.Chance == 0 {
 		event.Chance = 100
 	}
@@ -396,6 +399,8 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		return nil, []string{ailmentApplicationMessages[core.STATUS_NONE]}
 	}
 
+	rng := gameState.CreateRng()
+
 	// Pre-Ailment checks
 	switch event.Ailment {
 	case core.STATUS_PARA:
@@ -422,7 +427,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 			}, nil
 		}
 
-		randTime := global.GokeRand.IntN(2) + 1
+		randTime := rng.IntN(2) + 1
 
 		if pokemon.Ability.Name == "early-bird" {
 			randTime = int(math.Floor(float64(randTime) / 2.0))
@@ -663,8 +668,10 @@ type FrozenEvent struct {
 func (event FrozenEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 
+	rng := gameState.CreateRng()
+
 	thawChance := .20
-	thawCheck := global.GokeRand.Float64()
+	thawCheck := rng.Float64()
 
 	message := ""
 
@@ -698,8 +705,10 @@ type ParaEvent struct {
 func (event ParaEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 
+	rng := gameState.CreateRng()
+
 	paraChance := 0.5
-	paraCheck := global.GokeRand.Float64()
+	paraCheck := rng.Float64()
 
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s is paralyzed.", pokemon.Nickname))
@@ -766,9 +775,11 @@ type ApplyConfusionEvent struct {
 func (event ApplyConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 
+	rng := gameState.CreateRng()
+
 	// TODO: add message
 	if pokemon.Ability.Name != "own-tempo" {
-		confusionDuration := global.GokeRand.IntN(3) + 2
+		confusionDuration := rng.IntN(3) + 2
 		pokemon.ConfusionCount = confusionDuration
 
 		log.Info().Int("confusionCount", pokemon.ConfusionCount).Msg("confusion applied")
@@ -787,13 +798,15 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	pokemon.ConfusionCount--
 	log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion lowered")
 
+	rng := gameState.CreateRng()
+
 	confuseText := fmt.Sprintf("%s is confused", pokemon.Nickname)
 
 	messages := make([]string, 0)
 	messages = append(messages, confuseText)
 
 	confChance := .33
-	confCheck := global.GokeRand.Float64()
+	confCheck := rng.Float64()
 
 	// Exit early
 	if confCheck > confChance {
@@ -815,7 +828,7 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	}
 
 	pokemon.CanAttackThisTurn = false
-	dmg := Damage(*pokemon, *pokemon, confMove, false, core.WEATHER_NONE)
+	dmg := Damage(*pokemon, *pokemon, confMove, false, core.WEATHER_NONE, rng)
 
 	messages = append(messages, fmt.Sprintf("%s hit itself in confusion.", pokemon.Nickname))
 
@@ -884,6 +897,7 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 	playerPokemon := gameState.GetPlayer(event.PlayerID).GetActivePokemon()
 
 	events := make([]StateEvent, 0)
+	rng := gameState.CreateRng()
 
 	switch playerPokemon.Ability.Name {
 	case "speed-boost":
@@ -897,7 +911,7 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 			SimpleAbilityActivationEvent(gameState, event.PlayerID),
 		)
 	case "shed-skin":
-		check := global.GokeRand.Float32()
+		check := rng.Float32()
 		if check <= .33 {
 			events = append(events,
 				SimpleAbilityActivationEvent(gameState, event.PlayerID),

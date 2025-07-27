@@ -2,9 +2,9 @@ package core
 
 import (
 	"math"
+	"math/rand/v2"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -14,7 +14,10 @@ var damageLogger = func() *zerolog.Logger {
 	return &logger
 }
 
-func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit bool, weather int) uint {
+// Damage calculates the damage an attacking pokemon should do to a defending pokemon
+//
+// TODO: Rethink this function signature. The amount of arguments is getting a little ridiculous now
+func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit bool, weather int, rng *rand.Rand) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var baseA, baseD uint
 	var a, d uint // TODO: Add exception for Beat Up
@@ -142,7 +145,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	// TODO: still has rounding issues. not sure if its here in the order of floors and rounds
 	// or if later on where a certain value is supposed to be floored or rounded. its really dumb and confusing
 	damageInner := math.Floor(math.Floor(math.Floor((float64(2*attackerLevel)/5+2)*float64(power))*(float64(a)/float64(d)))/50 + 2)
-	randomSpread := float64(global.GokeRand.UintN(16)+85) / 100.0
+	randomSpread := float64(rng.UintN(16)+85) / 100.0
 	var stab float64 = 1
 
 	if move.Type == attacker.Base.Type1.Name || (attacker.Base.Type2 != nil && move.Type == attacker.Base.Type2.Name) {

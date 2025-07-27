@@ -24,7 +24,7 @@ func TestDamage(t *testing.T) {
 
 		pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
 
-		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE)
+		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE, global.GokeRand)
 
 		checkDamageRange(t, damage, 29, 35)
 	}
@@ -38,7 +38,7 @@ func TestDamageLow(t *testing.T) {
 	global.ForceRng(&global.LowSource{})
 	defer global.SetNormalRng()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	if damage != 29 {
 		t.Fatalf("low damage incorrect: expected 29, got %d", damage)
@@ -52,7 +52,7 @@ func TestDamageHigh(t *testing.T) {
 	global.ForceRng(&global.HighSource{})
 	defer global.SetNormalRng()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	if damage != 35 {
 		t.Fatalf("high damage incorrect: expected 35, got %d", damage)
@@ -69,7 +69,7 @@ func TestCritDamage(t *testing.T) {
 
 		pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
 
-		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], true, core.WEATHER_NONE)
+		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], true, core.WEATHER_NONE, global.GokeRand)
 
 		checkDamageRange(t, damage, 44, 52)
 	}

@@ -100,7 +100,7 @@ func TestLimber(t *testing.T) {
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
 
-	gameState := state.NewState([]core.Pokemon{pokemon}, []core.Pokemon{enemyPokemon})
+	gameState := getSimpleState(pokemon, enemyPokemon)
 
 	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
@@ -246,7 +246,7 @@ func TestFlashFire(t *testing.T) {
 		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 108, 128)
 }
@@ -297,7 +297,7 @@ func TestSuctionCups(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("roar")
-	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon})
+	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
 
 	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
@@ -363,7 +363,7 @@ func TestHugePower(t *testing.T) {
 
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 58, 69)
 }
@@ -375,7 +375,7 @@ func TestPurePower(t *testing.T) {
 
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 58, 69)
 }
@@ -421,11 +421,11 @@ func TestThickFat(t *testing.T) {
 
 	pokemon.Ability.Name = "thick-fat"
 
-	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("flamethrower"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("flamethrower"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 66, 78)
 
-	damage = stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("blizzard"), false, core.WEATHER_NONE)
+	damage = stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("blizzard"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 80, 96)
 }
@@ -613,7 +613,7 @@ func TestHustleBoost(t *testing.T) {
 	pokemon.Ability.Name = "hustle"
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 44, 52)
 }
@@ -623,9 +623,9 @@ func TestMarvelScale(t *testing.T) {
 	pokemon.Ability.Name = "marvel-scale"
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 	pokemon.Status = core.STATUS_PARA
-	damageStatus := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damageStatus := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 29, 35)
 	checkDamageRange(t, damageStatus, 20, 24)
@@ -636,11 +636,11 @@ func TestGuts(t *testing.T) {
 	pokemon.Ability.Name = "guts"
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 	pokemon.Status = core.STATUS_PARA
-	damageStatus := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damageStatus := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 	pokemon.Status = core.STATUS_BURN
-	damageBurn := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE)
+	damageBurn := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
 
 	checkDamageRange(t, damage, 29, 35)
 	checkDamageRange(t, damageStatus, 44, 52)

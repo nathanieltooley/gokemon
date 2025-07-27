@@ -1,6 +1,9 @@
 package core
 
 import (
+	cryptoRand "crypto/rand"
+	"encoding/binary"
+	"math/rand/v2"
 	"slices"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
@@ -19,12 +22,32 @@ const (
 	AI
 )
 
+type Seed struct {
+	upper uint64
+	lower uint64
+}
+
+func CreateRandomStateSeed() rand.PCG {
+	var randBytes [16]byte
+	_, err := cryptoRand.Read(randBytes[:])
+	if err != nil {
+		// Is this smart? Probably not. However in this case I really have no clue how it could error
+		panic(err)
+	}
+
+	return *rand.NewPCG(binary.LittleEndian.Uint64(randBytes[0:8]), binary.LittleEndian.Uint64(randBytes[8:]))
+}
+
 type GameState struct {
 	HostPlayer   Player
 	ClientPlayer Player
 	Turn         int
 	Weather      int
 	Networked    bool
+	// An RngSource is stored here directly instead of inside an instance of rand.Rand.
+	// This helps in the case of multiplayer where no pointers or interfaces need to be sent,
+	// the client just creates the rand.Rand struct when they need it
+	RngSource rand.PCG
 
 	MessageHistory []string
 }
@@ -102,6 +125,10 @@ func (g GameState) Clone() GameState {
 	newState.ClientPlayer.Team = newOTeam
 
 	return newState
+}
+
+func (g *GameState) CreateRng() *rand.Rand {
+	return rand.New(&g.RngSource)
 }
 
 func (p Player) GetActivePokemon() *core.Pokemon {

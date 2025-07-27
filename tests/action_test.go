@@ -15,7 +15,7 @@ func TestForceSwitch(t *testing.T) {
 
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("roar")
 
-	gameState := state.NewState(playerPokemonTeam, []core.Pokemon{enemyPokemon})
+	gameState := state.NewState(playerPokemonTeam, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
 
 	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 

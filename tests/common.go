@@ -22,6 +22,6 @@ func getDummyPokemonWithAbility(ability string) core.Pokemon {
 }
 
 func getSimpleState(playerPkm core.Pokemon, enemyPkm core.Pokemon) stateCore.GameState {
-	gameState := state.NewState([]core.Pokemon{playerPkm}, []core.Pokemon{enemyPkm})
+	gameState := state.NewState([]core.Pokemon{playerPkm}, []core.Pokemon{enemyPkm}, stateCore.CreateRandomStateSeed())
 	return gameState
 }
