@@ -44,6 +44,17 @@ type Player struct {
 	MultiTimerTick int64
 }
 
+func (p Player) Lost() bool {
+	for _, pokemon := range p.Team {
+		if pokemon.Alive() {
+			log.Debug().Msgf("%s hasn't lost yet, still has pokemon: %s", p.Name, pokemon.Nickname)
+			return false
+		}
+	}
+
+	return true
+}
+
 func (g *GameState) TickPlayerTimers() {
 	if !g.HostPlayer.TimerPaused {
 		g.HostPlayer.MultiTimerTick--
@@ -65,23 +76,8 @@ func (g *GameState) GetPlayer(index int) *Player {
 // GameOver returns whether the game should be over (all of a player's pokemon are dead)
 // Value will be -1 for no loser yet, or the winner HOST or PEER
 func (g *GameState) GameOver() int {
-	hostLoss := true
-	for _, pokemon := range g.HostPlayer.Team {
-		if pokemon.Hp.Value > 0 {
-			hostLoss = false
-			log.Debug().Msgf("Host hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
-			break
-		}
-	}
-
-	peerLoss := true
-	for _, pokemon := range g.ClientPlayer.Team {
-		if pokemon.Hp.Value > 0 {
-			peerLoss = false
-			log.Debug().Msgf("Peer hasn't lost yet, still has pokemon: %s", pokemon.Nickname)
-			break
-		}
-	}
+	hostLoss := g.HostPlayer.Lost()
+	peerLoss := g.ClientPlayer.Lost()
 
 	if hostLoss {
 		log.Info().Msg("HOST/Player lost")
