@@ -38,11 +38,14 @@ type gameContext struct {
 	// This state is "The One True State", the actual state that dictates how the game is going
 	// If / When multiplayer is added, this will only be true for the host, but it will true be the
 	// actual state of that client
-	state          *stateCore.GameState
-	chosenAction   stateCore.Action
+	state        *stateCore.GameState
+	chosenAction stateCore.Action
+	// Does this user need to switch out their dead pokemon?
 	forcedSwitch   bool
 	playerSide     int
 	currentSmState int
+	// Did the state update end in a force switch?
+	cameFromForceSwitch bool
 }
 
 type MainGameModel struct {
@@ -265,7 +268,23 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				// Reset back to normal when we run out of events
 				m.currentStateMessage = ""
-				m.ctx.currentSmState = SM_WAITING_FOR_USER_ACTION
+
+				if m.ctx.cameFromForceSwitch {
+					m.ctx.cameFromForceSwitch = false
+
+					if m.ctx.forcedSwitch {
+						m.ctx.forcedSwitch = false
+
+						m.ctx.currentSmState = SM_WAITING_FOR_USER_ACTION
+					} else {
+						m.ctx.currentSmState = SM_WAITING_FOR_OP_ACTION
+						cmds = append(cmds, func() tea.Msg {
+							return m.turnUpdateHandler(nil)
+						})
+					}
+				} else {
+					m.ctx.currentSmState = SM_WAITING_FOR_USER_ACTION
+				}
 
 				// TODO: Move these back to when a turnResolvedMsg is sent when i add skipping of UI msgs
 				m.ctx.state.HostPlayer.TimerPaused = false
@@ -319,18 +338,14 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case networking.ForceSwitchMessage:
 		m.eventQueue.AddEvents(msg.Events.Events)
+		m.ctx.cameFromForceSwitch = true
 
 		if msg.ForThisPlayer {
 			m.ctx.chosenAction = nil
 			m.ctx.forcedSwitch = true
-			m.ctx.currentSmState = SM_WAITING_FOR_USER_ACTION
-		} else {
-			// Do nothing, it's not our turn to move
-			m.ctx.currentSmState = SM_WAITING_FOR_OP_ACTION
-			cmds = append(cmds, func() tea.Msg {
-				return m.turnUpdateHandler(nil)
-			})
 		}
+
+		m.ctx.currentSmState = SM_RECEIVED_EVENTS
 	case networking.TurnResolvedMessage:
 		log.Debug().Msg("game main has received turn resolved message")
 		m.panel = newActionPanel(m.ctx)
@@ -470,10 +485,17 @@ func singleplayerHandler(gameState *stateCore.GameState, playerAction stateCore.
 	// Artifical delay
 	time.Sleep(time.Second * 2)
 	aiAction := state.BestAiAction(gameState)
+
 	// Force AI to switch in on "first" turn on battle as happens in a multiplayer game
 	if gameState.Turn == 0 {
 		aiAction = stateCore.NewSwitchAction(gameState, state.AI, gameState.ClientPlayer.ActivePokeIndex)
 	}
+
+	if playerAction == nil {
+		log.Warn().Msg("player sent nil action. this should only happen after opponent's pokemon died")
+		playerAction = stateCore.SkipAction{}
+	}
+
 	return state.ProcessTurn(gameState, []stateCore.Action{playerAction, aiAction})
 }
 
