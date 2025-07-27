@@ -99,6 +99,11 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	attackPokemon := attacker.GetActivePokemon()
 	defPokemon := defender.GetActivePokemon()
 
+	if !attackPokemon.Alive() {
+		log.Info().Msgf("%s's attack was cancelled because they died", attackPokemon.Nickname)
+		return nil, nil
+	}
+
 	rng := gameState.CreateRng()
 
 	var move core.Move
