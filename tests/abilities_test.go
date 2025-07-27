@@ -795,7 +795,7 @@ func TestLiquidOoze(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	drainMove := *global.MOVES.GetMove("tackle")
-	drainMove.Meta.Drain = 100
+	drainMove.Meta.Drain = 50
 	enemyPokemon.Moves[0] = drainMove
 
 	gameState := getSimpleState(pokemon, enemyPokemon)

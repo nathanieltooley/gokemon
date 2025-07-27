@@ -35,7 +35,7 @@ func TestDamageLow(t *testing.T) {
 	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
 
-	global.ForceRng(&global.LowSource{})
+	global.ForceRng(lowSource{})
 	defer global.SetNormalRng()
 
 	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
@@ -49,7 +49,7 @@ func TestDamageHigh(t *testing.T) {
 	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
 	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
 
-	global.ForceRng(&global.HighSource{})
+	global.ForceRng(highSource{})
 	defer global.SetNormalRng()
 
 	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)

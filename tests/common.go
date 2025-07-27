@@ -2,6 +2,8 @@
 package tests
 
 import (
+	"math"
+
 	"github.com/nathanieltooley/gokemon/client/game"
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/client/game/state"
@@ -24,4 +26,16 @@ func getDummyPokemonWithAbility(ability string) core.Pokemon {
 func getSimpleState(playerPkm core.Pokemon, enemyPkm core.Pokemon) stateCore.GameState {
 	gameState := state.NewState([]core.Pokemon{playerPkm}, []core.Pokemon{enemyPkm}, stateCore.CreateRandomStateSeed())
 	return gameState
+}
+
+type lowSource struct{}
+
+func (lowSource) Uint64() uint64 {
+	return 0
+}
+
+type highSource struct{}
+
+func (highSource) Uint64() uint64 {
+	return math.MaxUint64
 }
