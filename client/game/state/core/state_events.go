@@ -472,11 +472,15 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 	events := make([]StateEvent, 0)
 
 	pokemon.Status = event.Ailment
-	switch pokemon.Status {
-	case core.STATUS_BURN, core.STATUS_POISON, core.STATUS_PARA:
-		events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: pokemon.Status})
-	case core.STATUS_TOXIC:
-		events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: core.STATUS_POISON})
+	if pokemon.Ability.Name == "synchronize" {
+		events = append(events, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
+
+		switch pokemon.Status {
+		case core.STATUS_BURN, core.STATUS_POISON, core.STATUS_PARA:
+			events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: pokemon.Status})
+		case core.STATUS_TOXIC:
+			events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: core.STATUS_POISON})
+		}
 	}
 
 	return events, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Nickname)}
