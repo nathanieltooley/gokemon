@@ -64,7 +64,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 
 	effectiveness := defPokemon.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
 
-	if defPokemon.Ability.Name == "color-change" {
+	if defPokemon.Ability.Name == "color-change" && move.Name != "struggle" {
 		events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *core.GetAttackTypeMapping(move.Type)})
 	}
 
