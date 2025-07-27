@@ -268,6 +268,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				// Reset back to normal when we run out of events
 				m.currentStateMessage = ""
+				m.panel = newActionPanel(m.ctx)
 
 				if m.ctx.cameFromForceSwitch {
 					m.ctx.cameFromForceSwitch = false
@@ -351,6 +352,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.panel = newActionPanel(m.ctx)
 		m.ctx.chosenAction = nil
 		m.ctx.forcedSwitch = false
+		m.ctx.cameFromForceSwitch = false
 
 		m.ctx.currentSmState = SM_RECEIVED_EVENTS
 
