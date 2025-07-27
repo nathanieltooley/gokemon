@@ -66,7 +66,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		opposingPokemon := opposingPlayer.GetActivePokemon()
 		newActivePkm.Ability = opposingPokemon.Ability
 
-		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
+		// manual message event used here because AbilityActivationEvent would use the new ability
+		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s activated trace!"))
 		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s gained %s's ability: %s", newActivePkm.Nickname, opposingPokemon.Nickname, opposingPokemon.Ability.Name))
 	}
 
