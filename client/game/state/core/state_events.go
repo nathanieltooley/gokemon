@@ -964,18 +964,11 @@ func (iter *EventIter) Next(state *GameState) ([]string, bool) {
 	}
 
 	headEvent := iter.events[0]
-	log.Debug().Str("eventIterHeadType", reflect.TypeOf(headEvent).Name()).Msg("")
+	log.Debug().Msgf("Updating state with event: %s", reflect.TypeOf(headEvent).Name())
 	followUpEvents, messages := headEvent.Update(state)
-
-	log.Debug().Strs("eventIterMessages", messages).Msg("")
 
 	// pop queue
 	iter.events = iter.events[1:len(iter.events)]
-
-	log.Debug().Msg("====== New Event Iter Queue ======")
-	for _, event := range iter.events {
-		log.Debug().Str("eventIterInQueue", reflect.TypeOf(event).Name()).Msg("")
-	}
 
 	if len(followUpEvents) != 0 {
 		// create new queue with follow_up_events prepended to the front
