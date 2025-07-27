@@ -4,6 +4,7 @@ import (
 	"github.com/nathanieltooley/gokemon/client/game/core"
 	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/rs/zerolog/log"
 )
 
 // Determines the best AI Action. Failsafes to skip action
@@ -30,6 +31,11 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 			bestMoveIndex = bestSlowingMove(gameState)
 		} else {
 			bestMoveIndex = bestAttackingMove(gameState)
+		}
+
+		if bestMoveIndex == -1 {
+			log.Warn().Msgf("pokemon %s has no moves and / or is dead and should not be here in the first place", aiPokemon.Nickname)
+			return &stateCore.SkipAction{}
 		}
 
 		bestMove := core.Move{}
@@ -75,7 +81,7 @@ func bestAttackingMove(gameState *stateCore.GameState) int {
 		}
 
 		// assume no crits
-		moveDamage := stateCore.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather)
+		moveDamage := stateCore.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather, global.GokeRand)
 		if moveDamage > bestMoveDamage {
 			bestMoveIndex = i
 			bestMoveDamage = moveDamage
