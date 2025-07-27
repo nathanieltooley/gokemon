@@ -37,6 +37,8 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		log.Info().Msgf("\n\n======== TURN %d =========", gameState.Turn)
 		// Reset turn flags
 		// eventually this will have to change for double battles
+		// NOTE: i want to keep updates outside of events like this rare. i will make an exception here there is no visual
+		// for when a pokemon can't attack and it saves us from adding an attack action that would have to been skipped while iterating through them
 		hostPokemon.CanAttackThisTurn = true
 		hostPokemon.SwitchedInThisTurn = false
 
@@ -52,6 +54,8 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	// Properly end turn after force switches are dealt with
 	if backFromForceSwitch {
+		log.Info().Msg("coming back from force switch")
+		// TODO: Force updater to switch out a pokemon if current, and also dead, pokemon is not switched out
 		host.ActiveKOed = false
 		client.ActiveKOed = false
 
@@ -66,8 +70,7 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	if hostPokemon.Ability.Name == "truant" && hostPokemon.TruantShouldActivate {
 		events = append(events, stateCore.SimpleAbilityActivationEvent(gameState, stateCore.HOST))
-		// NOTE: i want to keep updates outside of events like this rare. i will make an exception here there is no visual
-		// for when a pokemon can't attack and it saves us from adding an attack action that would have to been skipped while iterating through them
+		// NOTE: see previous note though im thinking it might end up being fine?
 		hostPokemon.CanAttackThisTurn = false
 	}
 
@@ -78,7 +81,13 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	events = append(events, commonOtherActionHandling(*gameState, otherActions)...)
 
-	gameOverValue := gameState.GameOver()
+	// we don't want to modify the original state just yet but we need play through what events have already happened
+	clonedState := gameState.Clone()
+	ApplyEventsToState(&clonedState, networking.TurnResolvedMessage{
+		Events: networking.EventSlice{Events: events},
+	})
+
+	gameOverValue := clonedState.GameOver()
 	switch gameOverValue {
 	case PLAYER:
 		return networking.GameOverMessage{
@@ -90,16 +99,18 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 		}
 	}
 
-	if !gameState.HostPlayer.GetActivePokemon().Alive() {
+	if !clonedState.HostPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
+		log.Debug().Msg("host's pokemon has been killed. returning force switch")
 		return networking.ForceSwitchMessage{
 			ForThisPlayer: true,
 			Events:        networking.EventSlice{Events: events},
 		}
 	}
 
-	if !gameState.ClientPlayer.GetActivePokemon().Alive() {
+	if !clonedState.ClientPlayer.GetActivePokemon().Alive() {
 		client.ActiveKOed = true
+		log.Debug().Msg("client's pokemon has been killed. returning force switch")
 		return networking.ForceSwitchMessage{
 			ForThisPlayer: false,
 			Events:        networking.EventSlice{Events: events},
