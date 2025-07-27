@@ -156,7 +156,11 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	}
 
 	if defPokemon.Ability.Name == "color-change" && move.Name != "struggle" {
-		events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *core.GetAttackTypeMapping(move.Type)})
+		log.Debug().Msgf("error here: %+v", defPokemon.BattleType)
+		moveType := core.GetAttackTypeMapping(move.Type)
+		if !defPokemon.HasType(moveType) {
+			events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *core.GetAttackTypeMapping(move.Type)})
+		}
 	}
 
 	return events

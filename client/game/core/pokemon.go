@@ -130,6 +130,23 @@ type Pokemon struct {
 	TruantShouldActivate bool          `json:"-"`
 }
 
+func (p Pokemon) HasType(pokemonType *PokemonType) bool {
+	// end early if there is a battle type
+	if p.BattleType != nil {
+		return p.BattleType.Name == pokemonType.Name
+	}
+
+	if p.Base.Type1 != nil && p.Base.Type1.Name == pokemonType.Name {
+		return true
+	}
+
+	if p.Base.Type2 != nil && p.Base.Type2.Name == pokemonType.Name {
+		return true
+	}
+
+	return false
+}
+
 func (p *Pokemon) ReCalcStats() {
 	if p.Base.Name == "shedinja" {
 		p.Hp.Value = 1
