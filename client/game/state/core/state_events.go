@@ -69,6 +69,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		// manual message event used here because AbilityActivationEvent would use the new ability
 		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s activated trace!"))
 		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s gained %s's ability: %s", newActivePkm.Nickname, opposingPokemon.Nickname, opposingPokemon.Ability.Name))
+	case "forecast":
+		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	}
 
 	newActivePkm.SwitchedInThisTurn = true
@@ -306,7 +308,19 @@ var weatherMessageMap = map[int]string{
 func (event WeatherEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	gameState.Weather = event.NewWeather
 
-	return nil, []string{weatherMessageMap[event.NewWeather]}
+	events := make([]StateEvent, 0)
+	hostPoke := gameState.HostPlayer.GetActivePokemon()
+	clientPoke := gameState.ClientPlayer.GetActivePokemon()
+
+	if hostPoke.Ability.Name == "forecast" {
+		events = append(events, SimpleAbilityActivationEvent(gameState, HOST))
+	}
+
+	if clientPoke.Ability.Name == "forecast" {
+		events = append(events, SimpleAbilityActivationEvent(gameState, PEER))
+	}
+
+	return events, []string{weatherMessageMap[event.NewWeather]}
 }
 
 type StatChangeEvent struct {
@@ -557,6 +571,17 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 		activatorPkm.TruantShouldActivate = false
 
 		messages = []string{fmt.Sprintf("%s is loafing around!", activatorPkm.Nickname)}
+	case "forecast":
+		switch gameState.Weather {
+		case core.WEATHER_RAIN:
+			activatorPkm.BattleType = &core.TYPE_WATER
+		case core.WEATHER_SUN:
+			activatorPkm.BattleType = &core.TYPE_FIRE
+		default:
+			activatorPkm.BattleType = &core.TYPE_NORMAL
+		}
+
+		messages = append(messages, fmt.Sprintf("%s changed type to %s", activatorPkm.Nickname, activatorPkm.BattleType.Name))
 	}
 
 	return events, messages

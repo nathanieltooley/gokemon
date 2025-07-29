@@ -834,3 +834,17 @@ func TestColorChange(t *testing.T) {
 		t.Fatalf("pokemon with color change did not change it's type to the attack type of NORMAL")
 	}
 }
+
+func TestForecast(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("forecast")
+	enemyPokemon := getDummyPokemon()
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	gameState.Weather = core.WEATHER_RAIN
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.BattleType == nil || pokemon.BattleType.Name != core.TYPENAME_WATER {
+		t.Fatalf("pokemon with forecast did not change type")
+	}
+}
