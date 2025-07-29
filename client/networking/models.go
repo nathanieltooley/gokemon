@@ -40,6 +40,7 @@ type (
 	GameOverMessage struct {
 		// The "you" in this sense is the player who is receiving the message
 		YouLost bool
+		Events  EventSlice
 	}
 	ContinueUpdaterMessage struct {
 		Actions []stateCore.Action

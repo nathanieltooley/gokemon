@@ -46,6 +46,8 @@ type gameContext struct {
 	currentSmState int
 	// Did the state update end in a force switch?
 	cameFromForceSwitch bool
+	cameFromGameOver    bool
+	lost                bool
 }
 
 type MainGameModel struct {
@@ -283,6 +285,12 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m.turnUpdateHandler(nil)
 						})
 					}
+				} else if m.ctx.cameFromGameOver {
+					if m.ctx.lost {
+						return newEndScreen("You Lost :("), nil
+					} else {
+						return newEndScreen("You Won!"), nil
+					}
 				} else {
 					m.ctx.currentSmState = SM_WAITING_FOR_USER_ACTION
 				}
@@ -364,11 +372,12 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Game Over Check
 	case networking.GameOverMessage:
-		if msg.YouLost {
-			return newEndScreen("You Lost :("), nil
-		} else {
-			return newEndScreen("You Won!"), nil
-		}
+		m.eventQueue.AddEvents(msg.Events.Events)
+		m.ctx.cameFromGameOver = true
+		m.ctx.lost = msg.YouLost
+
+		m.ctx.currentSmState = SM_RECEIVED_EVENTS
+
 	case networking.NetworkingErrorMsg:
 		m.showError = true
 		m.currentErr = msg

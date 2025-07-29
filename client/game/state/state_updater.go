@@ -92,10 +92,12 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 	case PLAYER:
 		return networking.GameOverMessage{
 			YouLost: true,
+			Events:  networking.EventSlice{Events: events},
 		}
 	case PEER:
 		return networking.GameOverMessage{
 			YouLost: false,
+			Events:  networking.EventSlice{Events: events},
 		}
 	}
 
