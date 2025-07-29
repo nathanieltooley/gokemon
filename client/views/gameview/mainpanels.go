@@ -162,9 +162,14 @@ func (m playerPanel) View() string {
 		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
 	}
 
+	nameFormat := currentPokemon.Base.Name
+	if currentPokemon.Nickname != "" {
+		nameFormat = fmt.Sprintf("%s (%s)", currentPokemon.Nickname, currentPokemon.Base.Name)
+	}
+
 	pokeInfo := fmt.Sprintf("%s %s\nLevel: %d\n%s",
 		statusText,
-		currentPokemon.Nickname,
+		nameFormat,
 		currentPokemon.Level,
 		pokemonEffects(currentPokemon),
 	)
