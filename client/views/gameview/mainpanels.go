@@ -404,6 +404,15 @@ func (m pokemonPanel) View() string {
 		displayText = "Your Pokemon fainted, please select a new one to switch in"
 	}
 
+	opposingPlayer := m.ctx.state.GetPlayer(stateCore.InvertPlayerIndex(m.ctx.playerSide))
+	opposingPokemon := opposingPlayer.GetActivePokemon()
+
+	if opposingPokemon.Ability.Name == "arena-trap" || opposingPokemon.Ability.Name == "shadow-tag" {
+		displayText = "You cannot switch out."
+	} else if opposingPokemon.Ability.Name == "magnet-pull" && m.ctx.state.GetPlayer(m.ctx.playerSide).GetActivePokemon().HasType(&core.TYPE_STEEL) {
+		displayText = "You cannot switch out."
+	}
+
 	return lipgloss.JoinVertical(lipgloss.Center, displayText, lipgloss.JoinHorizontal(lipgloss.Center, panels[:]...))
 }
 

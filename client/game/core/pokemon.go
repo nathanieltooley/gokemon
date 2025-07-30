@@ -131,6 +131,7 @@ type Pokemon struct {
 }
 
 func (p Pokemon) HasType(pokemonType *PokemonType) bool {
+	// all comparisons have to be against names, Go does not by default compare values but only pointers.
 	// end early if there is a battle type
 	if p.BattleType != nil {
 		return p.BattleType.Name == pokemonType.Name
