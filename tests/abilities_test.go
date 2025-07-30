@@ -24,7 +24,7 @@ func TestDrizzle(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_RAIN {
 		t.Fatalf("Expected weather to be rain: got %d", gameState.Weather)
@@ -54,7 +54,7 @@ func TestSpeedBoost(t *testing.T) {
 	}
 
 	// Test that pokemon that switch in do not get the speed boost
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	pokemonSpeedStage = gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -460,7 +460,7 @@ func TestMagmaArmor(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -477,7 +477,7 @@ func TestLightningRod(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -500,7 +500,7 @@ func TestPressure(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	endingPP := gameState.ClientPlayer.GetActivePokemon().InGameMoveInfo[0].PP
 	if endingPP != (startingPP - 2) {
@@ -514,7 +514,7 @@ func TestSandStream(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_SANDSTORM {
 		t.Fatalf("pokemon with sand-stream did not setup sandstorm weather")
@@ -527,7 +527,7 @@ func TestDrought(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
 
 	if gameState.Weather != core.WEATHER_SUN {
 		t.Fatalf("pokemon with drought did not setup harsh sunlight")
@@ -563,7 +563,7 @@ func TestKeenEye(t *testing.T) {
 	pokemon.Moves[0] = posSAttack
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0), stateCore.NewAttackAction(state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0), stateCore.NewAttackAction(stateCore.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.AccuracyStage < 0 {
@@ -579,7 +579,7 @@ func TestRockHead(t *testing.T) {
 
 	pokemon.Moves[0] = *global.MOVES.GetMove("double-edge")
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.HOST, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -594,13 +594,13 @@ func TestInnerFocus(t *testing.T) {
 	enemyPokemon.Moves[0] = *global.MOVES.GetMove("fake-out")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.PEER, 0)}))
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Attack.Stage != 0 {
 		t.Fatalf("pokemon with inner focus was intimidated")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(state.PEER, 0)}))
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if !pokemon.CanAttackThisTurn {
@@ -846,5 +846,47 @@ func TestForecast(t *testing.T) {
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.BattleType == nil || pokemon.BattleType.Name != core.TYPENAME_WATER {
 		t.Fatalf("pokemon with forecast did not change type")
+	}
+}
+
+func TestTrap(t *testing.T) {
+	pokemon := getDummyPokemon()
+	pokemon2 := getDummyPokemon()
+	enemyPokemon := getDummyPokemonWithAbility("shadow-tag")
+
+	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+
+	if gameState.HostPlayer.ActivePokeIndex == 1 {
+		t.Fatalf("pokemon was able to switch against shadow-tag")
+	}
+
+	enemyPokemon2 := getDummyPokemonWithAbility("arena-trap")
+
+	gameState = state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon2}, stateCore.CreateRandomStateSeed())
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+
+	if gameState.HostPlayer.ActivePokeIndex == 1 {
+		t.Fatalf("pokemon was able to switch against arena-trap")
+	}
+}
+
+func TestMagPull(t *testing.T) {
+	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("magneton")).Build()
+	pokemon2 := getDummyPokemon()
+	enemyPokemon := getDummyPokemonWithAbility("magnet-pull")
+
+	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+
+	if gameState.HostPlayer.ActivePokeIndex == 1 {
+		t.Fatalf("steel-type was able to switch against magnet-pull")
+	}
+
+	gameState = state.NewState([]core.Pokemon{pokemon2, pokemon}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
+	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+
+	if gameState.HostPlayer.ActivePokeIndex != 1 {
+		t.Fatalf("non-steel-type could not switch against magnet-pull")
 	}
 }

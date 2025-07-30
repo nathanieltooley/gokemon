@@ -232,20 +232,20 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.actionFocus {
 			case 0:
 				switch m.ctx.playerSide {
-				case state.HOST:
+				case stateCore.HOST:
 					return movePanel{
 						ctx: m.ctx,
 					}, nil
-				case state.PEER:
+				case stateCore.PEER:
 					return movePanel{
 						ctx: m.ctx,
 					}, nil
 				}
 			case 1:
 				switch m.ctx.playerSide {
-				case state.HOST:
+				case stateCore.HOST:
 					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
-				case state.PEER:
+				case stateCore.PEER:
 					return newPokemonPanel(m.ctx, m.ctx.state.ClientPlayer.Team), nil
 				}
 			}

@@ -30,7 +30,18 @@ type SwitchEvent struct {
 
 func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	player, opposingPlayer := getPlayerPair(gameState, event.PlayerIndex)
+	currentPokemon := player.GetActivePokemon()
 	newActivePkm := player.GetPokemon(event.SwitchIndex)
+
+	opposingPokemon := opposingPlayer.GetActivePokemon()
+	switch opposingPokemon.Ability.Name {
+	case "shadow-tag", "arena-trap":
+		return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
+	case "magnet-pull":
+		if currentPokemon.HasType(&core.TYPE_STEEL) {
+			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
+		}
+	}
 
 	log.Info().Msgf("%s switches to %s", player.Name, newActivePkm.Nickname)
 

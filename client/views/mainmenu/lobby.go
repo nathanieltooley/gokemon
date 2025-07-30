@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
-	"github.com/nathanieltooley/gokemon/client/game/state"
+	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/nathanieltooley/gokemon/client/global"
 	"github.com/nathanieltooley/gokemon/client/networking"
 	"github.com/nathanieltooley/gokemon/client/rendering"
@@ -167,7 +167,7 @@ func connect(address string, playerName string) tea.Msg {
 		return nil
 	}
 
-	if err := networking.SendData(conn, lobbyPlayer{playerName, conn.LocalAddr().String(), state.PEER}); err != nil {
+	if err := networking.SendData(conn, lobbyPlayer{playerName, conn.LocalAddr().String(), stateCore.PEER}); err != nil {
 		lobbyLogger().Err(err).Msg("Error sending client data to host")
 		return nil
 	}
@@ -577,7 +577,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			netInfo := gameview.NetworkingInfo{
 				Conn:         m.conn,
-				ConnId:       state.HOST,
+				ConnId:       stateCore.HOST,
 				OpposingName: m.opponent.Name,
 			}
 
@@ -599,7 +599,7 @@ func (m LobbyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.opponent = msg.clientData
 	case startGameMsg:
-		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: state.PEER, OpposingName: m.host.Name}), nil
+		return gameview.NewTeamSelectModel(components.NewBreadcrumb(), &gameview.NetworkingInfo{Conn: m.conn, ConnId: stateCore.PEER, OpposingName: m.host.Name}), nil
 	}
 
 	return m, tea.Batch(cmds...)

@@ -49,18 +49,18 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 				rMoveIndex := global.GokeRand.IntN(4)
 				randMove := aiPokemon.Moves[rMoveIndex]
 				if !randMove.IsNil() {
-					return stateCore.NewAttackAction(AI, rMoveIndex)
+					return stateCore.NewAttackAction(stateCore.AI, rMoveIndex)
 				}
 			}
 		} else {
-			return stateCore.NewAttackAction(AI, bestMoveIndex)
+			return stateCore.NewAttackAction(stateCore.AI, bestMoveIndex)
 		}
 
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.ClientPlayer.Team {
 			if pokemon.Alive() {
-				return stateCore.NewSwitchAction(gameState, AI, i)
+				return stateCore.NewSwitchAction(gameState, stateCore.AI, i)
 			}
 		}
 	}

@@ -97,12 +97,12 @@ func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Co
 
 	if gameState.Networked {
 		switch playerSide {
-		case state.HOST:
+		case stateCore.HOST:
 			// maybe changing these from interfaces wasn't the best idea
 			updater = func(action stateCore.Action) tea.Msg {
 				return hostNetworkHandler(readerInfo, action, ctx.state)
 			}
-		case state.PEER:
+		case stateCore.PEER:
 			updater = func(action stateCore.Action) tea.Msg {
 				return clientNetworkHandler(readerInfo, action)
 			}
@@ -181,9 +181,9 @@ func (m MainGameModel) View() string {
 
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(*m.ctx.state, m.ctx.state.HostPlayer.Name, m.ctx.state.GetPlayer(state.HOST), &m.ctx.state.HostPlayer.MultiTimerTick).View(),
+				newPlayerPanel(*m.ctx.state, m.ctx.state.HostPlayer.Name, m.ctx.state.GetPlayer(stateCore.HOST), &m.ctx.state.HostPlayer.MultiTimerTick).View(),
 				// TODO: Randomly generate fun trainer names
-				newPlayerPanel(*m.ctx.state, m.ctx.state.ClientPlayer.Name, m.ctx.state.GetPlayer(state.PEER), &m.ctx.state.ClientPlayer.MultiTimerTick).View(),
+				newPlayerPanel(*m.ctx.state, m.ctx.state.ClientPlayer.Name, m.ctx.state.GetPlayer(stateCore.PEER), &m.ctx.state.ClientPlayer.MultiTimerTick).View(),
 			),
 
 			panelView,
@@ -305,7 +305,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.ctx.state.Networked {
 			// Host's timer runs out
-			if m.ctx.playerSide == state.HOST {
+			if m.ctx.playerSide == stateCore.HOST {
 				if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
 					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 						YouLost: false,
@@ -330,7 +330,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// send a sync message every second
-			if m.ctx.playerSide == state.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
+			if m.ctx.playerSide == stateCore.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
 				_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
 					Directive:     networking.DIR_SYNC,
 					NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
@@ -433,10 +433,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// User has submitted an action
 	if m.ctx.currentSmState == SM_USER_ACTION_SENT {
 		switch m.ctx.playerSide {
-		case state.HOST:
+		case stateCore.HOST:
 			m.ctx.state.HostPlayer.TimerPaused = true
 			log.Debug().Msg("host timer should pause")
-		case state.PEER:
+		case stateCore.PEER:
 			m.ctx.state.ClientPlayer.TimerPaused = true
 			log.Debug().Msg("client timer should pause")
 		}
@@ -499,7 +499,7 @@ func singleplayerHandler(gameState *stateCore.GameState, playerAction stateCore.
 
 	// Force AI to switch in on "first" turn on battle as happens in a multiplayer game
 	if gameState.Turn == 0 {
-		aiAction = stateCore.NewSwitchAction(gameState, state.AI, gameState.ClientPlayer.ActivePokeIndex)
+		aiAction = stateCore.NewSwitchAction(gameState, stateCore.AI, gameState.ClientPlayer.ActivePokeIndex)
 	}
 
 	if playerAction == nil {

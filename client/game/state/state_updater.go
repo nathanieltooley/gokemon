@@ -89,12 +89,12 @@ func ProcessTurn(gameState *stateCore.GameState, actions []stateCore.Action) tea
 
 	gameOverValue := clonedState.GameOver()
 	switch gameOverValue {
-	case PLAYER:
+	case stateCore.HOST:
 		return networking.GameOverMessage{
 			YouLost: true,
 			Events:  networking.EventSlice{Events: events},
 		}
-	case PEER:
+	case stateCore.PEER:
 		return networking.GameOverMessage{
 			YouLost: false,
 			Events:  networking.EventSlice{Events: events},

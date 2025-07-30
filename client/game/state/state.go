@@ -11,17 +11,6 @@ import (
 	"github.com/nathanieltooley/gokemon/client/global"
 )
 
-const (
-	HOST = iota + 1
-	PEER
-)
-
-// Renamed HOST and PEER constants
-const (
-	PLAYER = iota + 1
-	AI
-)
-
 func DefaultTeam() []core.Pokemon {
 	defaultTeam := make([]core.Pokemon, 0)
 
