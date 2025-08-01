@@ -1,12 +1,9 @@
-package core
+package golurk
 
 import (
-	cryptoRand "crypto/rand"
-	"encoding/binary"
 	"math/rand/v2"
 	"slices"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,22 +18,6 @@ const (
 	PLAYER = iota + 1
 	AI
 )
-
-type Seed struct {
-	upper uint64
-	lower uint64
-}
-
-func CreateRandomStateSeed() rand.PCG {
-	var randBytes [16]byte
-	_, err := cryptoRand.Read(randBytes[:])
-	if err != nil {
-		// Is this smart? Probably not. However in this case I really have no clue how it could error
-		panic(err)
-	}
-
-	return *rand.NewPCG(binary.LittleEndian.Uint64(randBytes[0:8]), binary.LittleEndian.Uint64(randBytes[8:]))
-}
 
 type GameState struct {
 	HostPlayer   Player
@@ -54,7 +35,7 @@ type GameState struct {
 
 type Player struct {
 	Name            string
-	Team            []core.Pokemon
+	Team            []Pokemon
 	ActivePokeIndex int
 
 	// Whether the player's active pokemon was ko'ed this turn.
@@ -131,17 +112,23 @@ func (g *GameState) CreateRng() *rand.Rand {
 	return rand.New(&g.RngSource)
 }
 
-func (p Player) GetActivePokemon() *core.Pokemon {
+// CreateNewRng creates a new COPY of RngSource such that RNG calls to the copy
+// do not affect the original
+func (g *GameState) CreateNewRng() rand.Rand {
+	return *rand.New(&g.RngSource)
+}
+
+func (p Player) GetActivePokemon() *Pokemon {
 	return p.GetPokemon(p.ActivePokeIndex)
 }
 
 // GetPokemon gets a player's pokemon at some index
-func (p Player) GetPokemon(index int) *core.Pokemon {
+func (p Player) GetPokemon(index int) *Pokemon {
 	return &p.Team[index]
 }
 
-func (p Player) GetAllAlivePokemon() []*core.Pokemon {
-	alivePokemon := make([]*core.Pokemon, 0)
+func (p Player) GetAllAlivePokemon() []*Pokemon {
+	alivePokemon := make([]*Pokemon, 0)
 
 	for i, pokemon := range p.Team {
 		if pokemon.Hp.Value > 0 {

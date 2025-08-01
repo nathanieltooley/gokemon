@@ -1,17 +1,12 @@
-package state
-
-import (
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/rs/zerolog/log"
-)
+package golurk
 
 // Determines the best AI Action. Failsafes to skip action
-func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
+func BestAiAction(gameState *GameState) Action {
 	if gameState.ClientPlayer.GetActivePokemon().Alive() {
 		playerPokemon := gameState.HostPlayer.GetActivePokemon()
 		aiPokemon := gameState.ClientPlayer.GetActivePokemon()
+
+		rngCopy := gameState.CreateNewRng()
 
 		hasAnyMoves := false
 		for _, move := range aiPokemon.Moves {
@@ -22,7 +17,7 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 		}
 
 		if !hasAnyMoves {
-			return &stateCore.SkipAction{}
+			return &SkipAction{}
 		}
 
 		bestMoveIndex := -1
@@ -34,11 +29,11 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 		}
 
 		if bestMoveIndex == -1 {
-			log.Warn().Msgf("pokemon %s has no moves and / or is dead and should not be here in the first place", aiPokemon.Nickname)
-			return &stateCore.SkipAction{}
+			internalLogger.WithName("ai_move_selection").Info("pokemon has no moves and / or is dead and should not be here in the first place", "pokemon_name", aiPokemon.Nickname)
+			return &SkipAction{}
 		}
 
-		bestMove := core.Move{}
+		bestMove := Move{}
 		if bestMoveIndex != -1 && bestMoveIndex < 4 {
 			bestMove = aiPokemon.Moves[bestMoveIndex]
 		}
@@ -46,29 +41,29 @@ func BestAiAction(gameState *stateCore.GameState) stateCore.Action {
 		if bestMove.IsNil() {
 			// Randomly select a non-nil move if no best move available
 			for {
-				rMoveIndex := global.GokeRand.IntN(4)
+				rMoveIndex := rngCopy.IntN(4)
 				randMove := aiPokemon.Moves[rMoveIndex]
 				if !randMove.IsNil() {
-					return stateCore.NewAttackAction(stateCore.AI, rMoveIndex)
+					return NewAttackAction(AI, rMoveIndex)
 				}
 			}
 		} else {
-			return stateCore.NewAttackAction(stateCore.AI, bestMoveIndex)
+			return NewAttackAction(AI, bestMoveIndex)
 		}
 
 	} else {
 		// Switch on death
 		for i, pokemon := range gameState.ClientPlayer.Team {
 			if pokemon.Alive() {
-				return stateCore.NewSwitchAction(gameState, stateCore.AI, i)
+				return NewSwitchAction(gameState, AI, i)
 			}
 		}
 	}
 
-	return &stateCore.SkipAction{}
+	return &SkipAction{}
 }
 
-func bestAttackingMove(gameState *stateCore.GameState) int {
+func bestAttackingMove(gameState *GameState) int {
 	aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 	playerPokemon := gameState.HostPlayer.GetActivePokemon()
 
@@ -80,8 +75,10 @@ func bestAttackingMove(gameState *stateCore.GameState) int {
 			continue
 		}
 
+		rng := gameState.CreateNewRng()
+
 		// assume no crits
-		moveDamage := stateCore.Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather, global.GokeRand)
+		moveDamage := Damage(*aiPokemon, *playerPokemon, move, false, gameState.Weather, &rng)
 		if moveDamage > bestMoveDamage {
 			bestMoveIndex = i
 			bestMoveDamage = moveDamage
@@ -91,7 +88,7 @@ func bestAttackingMove(gameState *stateCore.GameState) int {
 	return bestMoveIndex
 }
 
-func bestSlowingMove(gameState *stateCore.GameState) int {
+func bestSlowingMove(gameState *GameState) int {
 	aiPokemon := gameState.ClientPlayer.GetActivePokemon()
 	playerPokemon := gameState.HostPlayer.GetActivePokemon()
 
@@ -105,7 +102,7 @@ func bestSlowingMove(gameState *stateCore.GameState) int {
 
 		moveCanSlow := false
 		for _, statChange := range move.StatChanges {
-			if statChange.StatName == core.STAT_SPEED {
+			if statChange.StatName == STAT_SPEED {
 				moveCanSlow = true
 			}
 		}
@@ -115,7 +112,7 @@ func bestSlowingMove(gameState *stateCore.GameState) int {
 			if chance > bestSlowChance {
 				bestMove = i
 			}
-		} else if move.Meta.Ailment.Name == "paralysis" && playerPokemon.Status == core.STATUS_NONE { // we make sure the player's pokemon can be para'd
+		} else if move.Meta.Ailment.Name == "paralysis" && playerPokemon.Status == STATUS_NONE { // we make sure the player's pokemon can be para'd
 			chance := move.Meta.AilmentChance
 			if chance > bestSlowChance {
 				bestMove = i

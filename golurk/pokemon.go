@@ -1,7 +1,4 @@
-// Package core (thereafter refered to as game.core to avoid confusion with state.core) contains all foundational data,
-// types and functions for dealing with game data. game.core CANNOT have dependencies with other packages in this project (some expections may apply).
-// This is a hard rule due to cyclic dependencies, the reason this package was separated in the first place.
-package core
+package golurk
 
 import (
 	"fmt"

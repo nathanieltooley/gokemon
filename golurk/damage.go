@@ -1,10 +1,9 @@
-package core
+package golurk
 
 import (
 	"math"
 	"math/rand/v2"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -17,7 +16,7 @@ var damageLogger = func() *zerolog.Logger {
 // Damage calculates the damage an attacking pokemon should do to a defending pokemon
 //
 // TODO: Rethink this function signature. The amount of arguments is getting a little ridiculous now
-func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit bool, weather int, rng *rand.Rand) uint {
+func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather int, rng *rand.Rand) uint {
 	attackerLevel := attacker.Level // TODO: Add exception for Beat Up
 	var baseA, baseD uint
 	var a, d uint // TODO: Add exception for Beat Up
@@ -32,14 +31,14 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		attacker.Attack.RawValue = uint(boostedAtt)
 	}
 
-	if defendent.Ability.Name == "marvel-scale" && defendent.Status != core.STATUS_NONE {
+	if defendent.Ability.Name == "marvel-scale" && defendent.Status != STATUS_NONE {
 		boostedDef := math.Round(float64(defendent.Def.RawValue) * 1.5)
 		defendent.Def.RawValue = uint(boostedDef)
 	}
 
 	// Determine damage type
 	switch move.DamageClass {
-	case core.DAMAGETYPE_PHYSICAL:
+	case DAMAGETYPE_PHYSICAL:
 		baseA = attacker.Attack.RawValue
 		a = uint(attacker.Attack.CalcValue())
 		aBoost = attacker.Attack.Stage
@@ -47,7 +46,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		baseD = defendent.Def.RawValue
 		d = uint(defendent.Def.CalcValue())
 		dBoost = defendent.Def.Stage
-	case core.DAMAGETYPE_SPECIAL:
+	case DAMAGETYPE_SPECIAL:
 		baseA = attacker.SpAttack.RawValue
 		a = uint(attacker.SpAttack.CalcValue())
 		aBoost = attacker.SpAttack.Stage
@@ -63,7 +62,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	}
 
 	// Boost attack or special attack while flash-fire boosted and using fire attack
-	if move.Type == core.TYPENAME_FIRE {
+	if move.Type == TYPENAME_FIRE {
 		a = uint(float64(a) * flashFireBoost)
 	}
 
@@ -76,7 +75,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	damageLogger().Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
 	damageLogger().Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
 
-	attackType := core.GetAttackTypeMapping(move.Type)
+	attackType := GetAttackTypeMapping(move.Type)
 
 	effectiveness := defendent.DefenseEffectiveness(attackType)
 
@@ -90,11 +89,11 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 		}
 	}
 
-	if defendent.Ability.Name == "levitate" && move.Type == core.TYPENAME_GROUND {
+	if defendent.Ability.Name == "levitate" && move.Type == TYPENAME_GROUND {
 		return 0
 	}
 
-	if defendent.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
+	if defendent.Ability.Name == "lightning-rod" && move.Type == TYPENAME_ELECTRIC {
 		return 0
 	}
 
@@ -110,10 +109,10 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 
 	lowHealthBonus := 1.0
 	if float32(attacker.Hp.Value) <= float32(attacker.MaxHp)*0.33 {
-		if (attacker.Ability.Name == "overgrow" && move.Type == core.TYPENAME_GRASS) ||
-			(attacker.Ability.Name == "blaze" && move.Type == core.TYPENAME_FIRE) ||
-			(attacker.Ability.Name == "torrent" && move.Type == core.TYPENAME_WATER) ||
-			(attacker.Ability.Name == "swarm" && move.Type == core.TYPENAME_BUG) {
+		if (attacker.Ability.Name == "overgrow" && move.Type == TYPENAME_GRASS) ||
+			(attacker.Ability.Name == "blaze" && move.Type == TYPENAME_FIRE) ||
+			(attacker.Ability.Name == "torrent" && move.Type == TYPENAME_WATER) ||
+			(attacker.Ability.Name == "swarm" && move.Type == TYPENAME_BUG) {
 			lowHealthBonus = 1.5
 		}
 	}
@@ -121,14 +120,14 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	a = uint(float64(a) * lowHealthBonus)
 
 	if defendent.Ability.Name == "thick-fat" {
-		if move.Type == core.TYPENAME_ICE || move.Type == core.TYPENAME_FIRE {
+		if move.Type == TYPENAME_ICE || move.Type == TYPENAME_FIRE {
 			a = uint(float64(a) * 0.5)
 		}
 	}
 
 	var burn float64 = 1
 	// TODO: Add exception for Guts and Facade
-	if attacker.Status == core.STATUS_BURN && move.DamageClass == core.DAMAGETYPE_PHYSICAL {
+	if attacker.Status == STATUS_BURN && move.DamageClass == DAMAGETYPE_PHYSICAL {
 		burn = 0.5
 		damageLogger().Info().Float64("burn", burn).Msg("Attacker is burned and is using a physical move")
 	}
@@ -136,7 +135,7 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	if attacker.Ability.Name == "guts" {
 		// remove burn debuff
 		burn = 1
-		if attacker.Status != core.STATUS_NONE {
+		if attacker.Status != STATUS_NONE {
 			a = uint(float64(a) * 1.5)
 		}
 	}
@@ -153,10 +152,10 @@ func Damage(attacker core.Pokemon, defendent core.Pokemon, move core.Move, crit 
 	}
 
 	weatherBonus := 1.0
-	if (weather == core.WEATHER_RAIN && move.Type == core.TYPENAME_WATER) || (weather == core.WEATHER_SUN && move.Type == core.TYPENAME_FIRE) {
+	if (weather == WEATHER_RAIN && move.Type == TYPENAME_WATER) || (weather == WEATHER_SUN && move.Type == TYPENAME_FIRE) {
 		weatherBonus = 1.5
 	}
-	if (weather == core.WEATHER_RAIN && move.Type == core.TYPENAME_FIRE) || (weather == core.WEATHER_SUN && move.Type == core.TYPENAME_WATER) {
+	if (weather == WEATHER_RAIN && move.Type == TYPENAME_FIRE) || (weather == WEATHER_SUN && move.Type == TYPENAME_WATER) {
 		weatherBonus = 0.5
 	}
 

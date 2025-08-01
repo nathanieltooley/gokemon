@@ -1,4 +1,4 @@
-package core
+package golurk
 
 type EffectEntry struct {
 	Effect      string

@@ -1,4 +1,4 @@
-package core
+package golurk
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
@@ -15,7 +14,7 @@ import (
 // Single here meaning a high-level of single but should multiple "things" happening in a single event
 // should be strongly related.
 //
-// StateEvents are separate from stateCore.Actions in that Events are the low level changes of state and Actions
+// StateEvents are separate from stateActions in that Events are the low level changes of state and Actions
 // represent higher level changes a user can make that are made of Events
 type StateEvent interface {
 	// Update will update GameState in some way. Follow-up events caused by this update are returned
@@ -38,7 +37,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	case "shadow-tag", "arena-trap":
 		return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
 	case "magnet-pull":
-		if currentPokemon.HasType(&core.TYPE_STEEL) {
+		if currentPokemon.HasType(&TYPE_STEEL) {
 			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
 		}
 	}
@@ -52,7 +51,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	// --- On Switch-In Updates ---
 	// Reset toxic count
-	if newActivePkm.Status == core.STATUS_TOXIC {
+	if newActivePkm.Status == STATUS_TOXIC {
 		newActivePkm.ToxicCount = 1
 		log.Info().Msgf("%s had their toxic count reset to 1", newActivePkm.Nickname)
 	}
@@ -60,18 +59,18 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// --- Activate Abilities
 	switch newActivePkm.Ability.Name {
 	case "drizzle":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: core.WEATHER_RAIN})
+		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_RAIN})
 	case "sand-stream":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: core.WEATHER_SANDSTORM})
+		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SANDSTORM})
 	case "drought":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: core.WEATHER_SUN})
+		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SUN})
 	case "intimidate":
 		opPokemon := opposingPlayer.GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
-			followUpEvents = append(followUpEvents, NewStatChangeEvent(InvertPlayerIndex(event.PlayerIndex), core.STAT_ATTACK, -1, 100))
+			followUpEvents = append(followUpEvents, NewStatChangeEvent(InvertPlayerIndex(event.PlayerIndex), STAT_ATTACK, -1, 100))
 		}
 	case "natural-cure":
-		newActivePkm.Status = core.STATUS_NONE
+		newActivePkm.Status = STATUS_NONE
 		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	case "trace":
 		opposingPokemon := opposingPlayer.GetActivePokemon()
@@ -120,8 +119,8 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	rng := gameState.CreateRng()
 
-	var move core.Move
-	var moveVars core.BattleMove
+	var move Move
+	var moveVars BattleMove
 	var pp int
 
 	if event.MoveID == -1 {
@@ -143,7 +142,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		move.Meta.Drain *= -1
 	}
 
-	if defPokemon.Ability.Name == "soundproof" && lo.Contains(core.SOUND_MOVES, move.Name) {
+	if defPokemon.Ability.Name == "soundproof" && lo.Contains(SOUND_MOVES, move.Name) {
 		return []StateEvent{
 			SimpleAbilityActivationEvent(gameState, defenderInt),
 		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Nickname)}
@@ -171,7 +170,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	accuracy := int(float32(moveAccuracy) * (attackPokemon.Accuracy() * effectiveEvasion))
 
-	if gameState.Weather == core.WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
+	if gameState.Weather == WEATHER_SANDSTORM && defPokemon.Ability.Name == "sand-veil" {
 		accuracy = int(float32(accuracy) * 0.8)
 	} else if attackPokemon.Ability.Name == "compound-eyes" && move.Meta.Category.Name != "ohko" {
 		accuracy = int(float32(accuracy) * 1.3)
@@ -183,7 +182,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		defImmune := false
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == core.TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
+		if move.Type == TYPENAME_ELECTRIC && defPokemon.Ability.Name == "volt-absorb" {
 			events = append(events,
 				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
@@ -192,7 +191,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		}
 
 		// TODO: This doesn't activate through protect!
-		if move.Type == core.TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
+		if move.Type == TYPENAME_WATER && defPokemon.Ability.Name == "water-absorb" {
 			events = append(events,
 				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
@@ -202,7 +201,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 		// TODO: This doesn't activate through protect or while frozen!
 		// TODO: The boost doesn't pass with baton-pass!
-		if move.Type == core.TYPENAME_FIRE && defPokemon.Ability.Name == "flash-fire" {
+		if move.Type == TYPENAME_FIRE && defPokemon.Ability.Name == "flash-fire" {
 			events = append(events,
 				SimpleAbilityActivationEvent(gameState, defenderInt),
 			)
@@ -211,7 +210,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		}
 
 		if defPokemon.Ability.Name == "damp" {
-			if slices.Contains(core.EXPLOSIVE_MOVES, move.Name) {
+			if slices.Contains(EXPLOSIVE_MOVES, move.Name) {
 				events = append(events,
 					AbilityActivationEvent{
 						CustomMessage: fmt.Sprintf("%s prevented %s from activating!", defPokemon.Nickname, move.Name),
@@ -235,7 +234,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
 			case "net-good-stats":
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
 					affectedPokemonIndex := event.AttackerID
 					if statChange.Change < 0 {
@@ -247,7 +246,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			// Damages and then CHANGES the targets stats
 			case "damage+lower":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					events = append(events, NewStatChangeEvent(defenderInt, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
 			// Damages and then CHANGES the user's stats
@@ -256,7 +255,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			// lower the user's stats but are in this category
 			case "damage+raise":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
-				lo.ForEach(move.StatChanges, func(statChange core.StatChange, _ int) {
+				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					events = append(events, NewStatChangeEvent(event.AttackerID, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
 			case "heal":
@@ -310,10 +309,10 @@ type WeatherEvent struct {
 }
 
 var weatherMessageMap = map[int]string{
-	core.WEATHER_NONE:      "The weather has returned to normal",
-	core.WEATHER_RAIN:      "It started to rain!",
-	core.WEATHER_SUN:       "The sunlight turned harsh!",
-	core.WEATHER_SANDSTORM: "A sandstorm kicked up!",
+	WEATHER_NONE:      "The weather has returned to normal",
+	WEATHER_RAIN:      "It started to rain!",
+	WEATHER_SUN:       "The sunlight turned harsh!",
+	WEATHER_SANDSTORM: "A sandstorm kicked up!",
 }
 
 func (event WeatherEvent) Update(gameState *GameState) ([]StateEvent, []string) {
@@ -365,22 +364,22 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 
 		// sorry
 		switch event.StatName {
-		case core.STAT_ATTACK:
+		case STAT_ATTACK:
 			if event.Change < 0 && pokemon.Ability.Name == "hyper-cutter" {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				}, []string{fmt.Sprintf("%s's attack cannot be lowered!", pokemon.Nickname)}
 			}
 			pokemon.Attack.ChangeStat(event.Change)
-		case core.STAT_DEFENSE:
+		case STAT_DEFENSE:
 			pokemon.Def.ChangeStat(event.Change)
-		case core.STAT_SPATTACK:
+		case STAT_SPATTACK:
 			pokemon.SpAttack.ChangeStat(event.Change)
-		case core.STAT_SPDEF:
+		case STAT_SPDEF:
 			pokemon.SpDef.ChangeStat(event.Change)
-		case core.STAT_SPEED:
+		case STAT_SPEED:
 			pokemon.RawSpeed.ChangeStat(event.Change)
-		case core.STAT_ACCURACY:
+		case STAT_ACCURACY:
 			if event.Change < 0 && (pokemon.Ability.Name == "keen-eye" || pokemon.Ability.Name == "illuminate") {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
@@ -388,7 +387,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 			}
 
 			pokemon.ChangeAccuracy(event.Change)
-		case core.STAT_EVASION:
+		case STAT_EVASION:
 			pokemon.ChangeEvasion(event.Change)
 		}
 
@@ -414,27 +413,27 @@ type AilmentEvent struct {
 }
 
 var ailmentApplicationMessages = map[int]string{
-	core.STATUS_NONE:   "%s has been cured of it's afflictions!",
-	core.STATUS_SLEEP:  "%s has fallen asleep!",
-	core.STATUS_PARA:   "%s has been paralyzed!",
-	core.STATUS_FROZEN: "%s has been frozen!",
-	core.STATUS_BURN:   "%s has been burned!",
-	core.STATUS_POISON: "%s has been poisoned!",
-	core.STATUS_TOXIC:  "%s has been badly poisoned!",
+	STATUS_NONE:   "%s has been cured of it's afflictions!",
+	STATUS_SLEEP:  "%s has fallen asleep!",
+	STATUS_PARA:   "%s has been paralyzed!",
+	STATUS_FROZEN: "%s has been frozen!",
+	STATUS_BURN:   "%s has been burned!",
+	STATUS_POISON: "%s has been poisoned!",
+	STATUS_TOXIC:  "%s has been badly poisoned!",
 }
 
 func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 	// If pokemon already has ailment, return early
-	if pokemon.Status != core.STATUS_NONE {
-		return nil, []string{ailmentApplicationMessages[core.STATUS_NONE]}
+	if pokemon.Status != STATUS_NONE {
+		return nil, []string{ailmentApplicationMessages[STATUS_NONE]}
 	}
 
 	rng := gameState.CreateRng()
 
 	// Pre-Ailment checks
 	switch event.Ailment {
-	case core.STATUS_PARA:
+	case STATUS_PARA:
 		if pokemon.Ability.Name == "limber" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
@@ -442,7 +441,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 			}, nil
 		}
 	// Set how many turns the pokemon is asleep for
-	case core.STATUS_SLEEP:
+	case STATUS_SLEEP:
 		cantSleepMsg := fmt.Sprintf("%s cannot fall asleep", pokemon.Nickname)
 		if pokemon.Ability.Name == "insomnia" {
 			return []StateEvent{
@@ -466,28 +465,28 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 
 		pokemon.SleepCount = randTime
 		log.Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
-	case core.STATUS_BURN:
+	case STATUS_BURN:
 		if pokemon.Ability.Name == "water-veil" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be burned", pokemon.Nickname),
 			}, nil
 		}
-	case core.STATUS_POISON:
+	case STATUS_POISON:
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Nickname),
 			}, nil
 		}
-	case core.STATUS_FROZEN:
+	case STATUS_FROZEN:
 		if pokemon.Ability.Name == "magma-armor" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be frozen", pokemon.Nickname),
 			}, nil
 		}
-	case core.STATUS_TOXIC:
+	case STATUS_TOXIC:
 		// Block toxic with immunity
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
@@ -507,10 +506,10 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		events = append(events, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 
 		switch pokemon.Status {
-		case core.STATUS_BURN, core.STATUS_POISON, core.STATUS_PARA:
+		case STATUS_BURN, STATUS_POISON, STATUS_PARA:
 			events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: pokemon.Status})
-		case core.STATUS_TOXIC:
-			events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: core.STATUS_POISON})
+		case STATUS_TOXIC:
+			events = append(events, AilmentEvent{PlayerIndex: InvertPlayerIndex(event.PlayerIndex), Ailment: STATUS_POISON})
 		}
 	}
 
@@ -563,18 +562,18 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 
 		messages = []string{fmt.Sprintf("%s boosted it's fire-type attacks!", activatorPkm.Nickname)}
 	case "lightning-rod":
-		events = append(events, NewStatChangeEvent(event.ActivatorInt, core.STAT_SPATTACK, 1, 100))
+		events = append(events, NewStatChangeEvent(event.ActivatorInt, STAT_SPATTACK, 1, 100))
 	case "volt-absorb", "water-absorb":
 		events = append(events, HealPercEvent{HealPerc: .25, PlayerIndex: event.ActivatorInt})
 	case "speed-boost":
-		events = append(events, NewStatChangeEvent(event.ActivatorInt, core.STAT_SPEED, 1, 100))
+		events = append(events, NewStatChangeEvent(event.ActivatorInt, STAT_SPEED, 1, 100))
 	case "rain-dish":
 		events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0, PlayerIndex: event.ActivatorInt})
 
 		messages = []string{fmt.Sprintf("%s was healed by the rain!", activatorPkm.Nickname)}
 	case "shed-skin":
 		// TODO: actually test this ability
-		activatorPkm.Status = core.STATUS_NONE
+		activatorPkm.Status = STATUS_NONE
 
 		messages = []string{fmt.Sprintf("%s shed it's skin!", activatorPkm.Nickname)}
 	case "truant":
@@ -584,12 +583,12 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 		messages = []string{fmt.Sprintf("%s is loafing around!", activatorPkm.Nickname)}
 	case "forecast":
 		switch gameState.Weather {
-		case core.WEATHER_RAIN:
-			activatorPkm.BattleType = &core.TYPE_WATER
-		case core.WEATHER_SUN:
-			activatorPkm.BattleType = &core.TYPE_FIRE
+		case WEATHER_RAIN:
+			activatorPkm.BattleType = &TYPE_WATER
+		case WEATHER_SUN:
+			activatorPkm.BattleType = &TYPE_FIRE
 		default:
-			activatorPkm.BattleType = &core.TYPE_NORMAL
+			activatorPkm.BattleType = &TYPE_NORMAL
 		}
 
 		messages = append(messages, fmt.Sprintf("%s changed type to %s", activatorPkm.Nickname, activatorPkm.BattleType.Name))
@@ -732,7 +731,7 @@ func (event FrozenEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		message = fmt.Sprintf("%s thawed out!", pokemon.Nickname)
 
 		// No need for a new event really
-		pokemon.Status = core.STATUS_NONE
+		pokemon.Status = STATUS_NONE
 		pokemon.CanAttackThisTurn = true
 	}
 
@@ -796,7 +795,7 @@ func (event SleepEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	// Sleep is over
 	if pokemon.SleepCount <= 0 {
-		pokemon.Status = core.STATUS_NONE
+		pokemon.Status = STATUS_NONE
 		message = fmt.Sprintf("%s woke up!", pokemon.Nickname)
 		pokemon.CanAttackThisTurn = true
 		pokemon.TruantShouldActivate = false
@@ -859,10 +858,10 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 		return []StateEvent{event.FollowUpAttackEvent}, messages
 	}
 
-	confMove := core.Move{
+	confMove := Move{
 		Name:  "Confusion",
 		Power: 40,
-		Meta: core.MoveMeta{
+		Meta: MoveMeta{
 			Category: struct {
 				Id   int
 				Name string
@@ -870,11 +869,11 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 				Name: "damage",
 			},
 		},
-		DamageClass: core.DAMAGETYPE_PHYSICAL,
+		DamageClass: DAMAGETYPE_PHYSICAL,
 	}
 
 	pokemon.CanAttackThisTurn = false
-	dmg := Damage(*pokemon, *pokemon, confMove, false, core.WEATHER_NONE, rng)
+	dmg := Damage(*pokemon, *pokemon, confMove, false, WEATHER_NONE, rng)
 
 	messages = append(messages, fmt.Sprintf("%s hit itself in confusion.", pokemon.Nickname))
 
@@ -891,7 +890,7 @@ type SandstormDamageEvent struct {
 }
 
 var (
-	sandNonDamageTypes     = []*core.PokemonType{&core.TYPE_ROCK, &core.TYPE_STEEL, &core.TYPE_GROUND}
+	sandNonDamageTypes     = []*PokemonType{&TYPE_ROCK, &TYPE_STEEL, &TYPE_GROUND}
 	sandNonDamageAbilities = []string{"sand-force", "sand-rush", "sand-veil", "magic-guard", "overcoat"}
 )
 
@@ -970,7 +969,7 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 
 type TypeChangeEvent struct {
 	ChangerInt  int
-	PokemonType core.PokemonType
+	PokemonType PokemonType
 }
 
 func (event TypeChangeEvent) Update(gameState *GameState) ([]StateEvent, []string) {

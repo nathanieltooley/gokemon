@@ -1,4 +1,4 @@
-package core
+package golurk
 
 const (
 	MAX_IV       = 31

@@ -1,4 +1,4 @@
-package core
+package golurk
 
 type Ability struct {
 	Name     string

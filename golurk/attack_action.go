@@ -1,24 +1,21 @@
-package core
+package golurk
 
 import (
 	"fmt"
 	"math"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/go-logr/logr"
 	"github.com/samber/lo"
 )
 
-var attackActionLogger = func() *zerolog.Logger {
-	logger := log.With().Str("location", "attack-action").Logger()
-	return &logger
+var attackActionLogger = func() logr.Logger {
+	return internalLogger.WithName("")
 }
 
-var struggleMove = core.Move{
+var struggleMove = Move{
 	Accuracy:    100,
 	DamageClass: "physical",
-	Meta: core.MoveMeta{
+	Meta: MoveMeta{
 		Category: struct {
 			Id   int
 			Name string
@@ -51,7 +48,7 @@ func (a AttackAction) UpdateState(state GameState) []StateEvent {
 	return []StateEvent{AttackEvent{AttackerID: a.Ctx.PlayerID, MoveID: a.AttackerMove}}
 }
 
-func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
+func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
 	events := make([]StateEvent, 0)
 	crit := false
 
@@ -59,10 +56,10 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 
 	if rng.Float32() < attackPokemon.CritChance() {
 		crit = true
-		log.Info().Float32("chance", attackPokemon.CritChance()).Msg("Attack crit!")
+		attackActionLogger().Info("Attack Crit!", "chance", attackPokemon.CritChance())
 	}
 
-	effectiveness := defPokemon.DefenseEffectiveness(core.GetAttackTypeMapping(move.Type))
+	effectiveness := defPokemon.DefenseEffectiveness(GetAttackTypeMapping(move.Type))
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
 		events = append(events, AbilityActivationEvent{ActivatorInt: defIndex, AbilityName: defPokemon.Ability.Name})
@@ -93,14 +90,13 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 		}
 	}
 
-	if defPokemon.Ability.Name == "lightning-rod" && move.Type == core.TYPENAME_ELECTRIC {
+	if defPokemon.Ability.Name == "lightning-rod" && move.Type == TYPENAME_ELECTRIC {
 		events = append(events, SimpleAbilityActivationEvent(&state, defIndex))
 	}
 
 	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
 
-	attackActionLogger().Info().Msgf("%s attacked %s, dealing %d damage", attackPokemon.Nickname, defPokemon.Nickname, damage)
-	attackActionLogger().Debug().Msgf("Max Hp: %d", defPokemon.MaxHp)
+	attackActionLogger().Info("Attack Event!", "attacker", attackPokemon.Nickname, "defender", defPokemon.Nickname, "damage", damage)
 
 	if move.Meta.Drain > 0 {
 		var drainedHealth uint = 0
@@ -114,11 +110,7 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 
 		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
-		log.Info().
-			Float32("drainPercent", drainPercent).
-			Uint("drainedHealth", drainedHealth).
-			Int("drainedHealthPercent", drainedHealthPercent).
-			Msg("Attack health drain")
+		attackActionLogger().Info("Drain", "percent", drainPercent, "drained_health", drainedHealth, "drained_health_percent", drainedHealthPercent)
 	}
 
 	// Recoil
@@ -132,14 +124,9 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 			// flip sign here because recoil is considered negative Drain healing in pokeapi
 			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: attIndex, SupressMessage: true})
 
-			log.Info().
-				Float32("recoilPercent", recoilPercent).
-				Uint("selfDamage", uint(selfDamage)).
-				Msg("Attack recoil")
+			attackActionLogger().Info("Recoil", "recoil_percent", recoilPercent, "self_damage", selfDamage)
 		}
 	}
-
-	attackActionLogger().Debug().Float64("effectiveness", effectiveness).Msg("")
 
 	effectivenessText := ""
 
@@ -156,17 +143,16 @@ func damageMoveHandler(state GameState, attackPokemon core.Pokemon, attIndex int
 	}
 
 	if defPokemon.Ability.Name == "color-change" && move.Name != "struggle" {
-		log.Debug().Msgf("error here: %+v", defPokemon.BattleType)
-		moveType := core.GetAttackTypeMapping(move.Type)
+		moveType := GetAttackTypeMapping(move.Type)
 		if !defPokemon.HasType(moveType) {
-			events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *core.GetAttackTypeMapping(move.Type)})
+			events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *GetAttackTypeMapping(move.Type)})
 		}
 	}
 
 	return events
 }
 
-func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.Pokemon, defIndex int) []StateEvent {
+func ohkoHandler(state *GameState, attackPokemon Pokemon, defPokemon Pokemon, defIndex int) []StateEvent {
 	if defPokemon.Level > attackPokemon.Level {
 		return []StateEvent{NewMessageEvent("It failed!. Opponent's level is too high!")}
 	}
@@ -186,10 +172,10 @@ func ohkoHandler(state *GameState, attackPokemon core.Pokemon, defPokemon core.P
 	return events
 }
 
-func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move core.Move) []StateEvent {
-	ailment, ok := core.STATUS_NAME_MAP[move.Meta.Ailment.Name]
+func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
+	ailment, ok := STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	rng := state.CreateRng()
-	if ok && defPokemon.Status == core.STATUS_NONE {
+	if ok && defPokemon.Status == STATUS_NONE {
 		ailmentCheck := rng.IntN(100)
 		ailmentChance := move.Meta.AilmentChance
 
@@ -200,39 +186,30 @@ func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move
 		}
 
 		if ailmentCheck < ailmentChance {
-			attackActionLogger().
-				Debug().
-				Int("ailmentCheck", ailmentCheck).
-				Int("AilmentChance", ailmentChance).
-				Msg("Check succeeded")
+			attackActionLogger().Info("Ailment check succeeded!", "chance", ailmentChance, "ailment_check", ailmentCheck)
 
 			// Manual override of toxic so that it applies toxic and not poison
 			if move.Name == "toxic" {
-				ailment = core.STATUS_TOXIC
+				ailment = STATUS_TOXIC
 			}
 
 			event := AilmentEvent{PlayerIndex: defIndex, Ailment: ailment}
 
 			// Make sure the pokemon didn't avoid ailment with ability or such
-			if defPokemon.Status != core.STATUS_NONE {
-				attackActionLogger().Info().
-					Msgf("%s was afflicted with ailment: %s:%d", defPokemon.Nickname, move.Meta.Ailment.Name, ailment)
+			if defPokemon.Status != STATUS_NONE {
+				attackActionLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Nickname, "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
 			} else {
-				log.Info().Msgf("pokemon removed ailment with ability: %s", defPokemon.Ability.Name)
+				attackActionLogger().Info("Pokemon removed ailment with ability", "ability_name", defPokemon.Ability.Name, "ailment_id", ailment)
 			}
 
 			return []StateEvent{event}
 		} else {
-			attackActionLogger().
-				Debug().
-				Int("ailmentCheck", ailmentCheck).
-				Int("AilmentChance", ailmentChance).
-				Msg("Check failed")
+			attackActionLogger().Info("Ailment check failed.", "ailment_chance", ailmentChance, "ailment_check", ailmentCheck)
 		}
 
 	}
 
-	effect, ok := core.EFFECT_NAME_MAP[move.Meta.Ailment.Name]
+	effect, ok := EFFECT_NAME_MAP[move.Meta.Ailment.Name]
 	if ok {
 		effectChance := move.Meta.AilmentChance
 		if effectChance == 0 {
@@ -242,10 +219,10 @@ func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move
 
 		if effectCheck < effectChance {
 			switch effect {
-			case core.EFFECT_CONFUSION:
+			case EFFECT_CONFUSION:
 				// TODO: add message
 				if defPokemon.Ability.Name != "own-tempo" {
-					log.Info().Int("effectCheck", effectCheck).Int("effectChance", effectChance).Msg("confusion check passed")
+					attackActionLogger().Info("Confusion check passed.", "effect_chance", effectChance, "effect_check", effectCheck)
 
 					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
 				}
@@ -256,7 +233,7 @@ func ailmentHandler(state GameState, defPokemon core.Pokemon, defIndex int, move
 	return nil
 }
 
-func healHandler(state *GameState, pokemonIndex int, move core.Move) StateEvent {
+func healHandler(state *GameState, pokemonIndex int, move Move) StateEvent {
 	healPercent := float64(move.Meta.Healing) / 100
 	return HealPercEvent{PlayerIndex: pokemonIndex, HealPerc: healPercent}
 }
@@ -275,10 +252,10 @@ func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []Sta
 	// that position which makes this clunky
 	type enumPokemon struct {
 		Index   int
-		Pokemon core.Pokemon
+		Pokemon Pokemon
 	}
 
-	enumeratedPkm := lo.Map(defPlayer.Team, func(pokemon core.Pokemon, i int) enumPokemon {
+	enumeratedPkm := lo.Map(defPlayer.Team, func(pokemon Pokemon, i int) enumPokemon {
 		return enumPokemon{
 			Index:   i,
 			Pokemon: pokemon,

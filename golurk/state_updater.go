@@ -1,4 +1,4 @@
-package state
+package golurk
 
 import (
 	"reflect"

@@ -1,20 +1,18 @@
-package state
+package golurk
 
 import (
 	"cmp"
 	"slices"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
-func commonSwitching(gameState stateCore.GameState, switches []stateCore.SwitchAction) []stateCore.StateEvent {
-	events := make([]stateCore.StateEvent, 0)
+func commonSwitching(gameState GameState, switches []SwitchAction) []StateEvent {
+	events := make([]StateEvent, 0)
 
 	// Sort switching order by speed
-	slices.SortFunc(switches, func(a, b stateCore.SwitchAction) int {
+	slices.SortFunc(switches, func(a, b SwitchAction) int {
 		return cmp.Compare(a.Poke.Speed(gameState.Weather), b.Poke.Speed(gameState.Weather))
 	})
 
@@ -22,20 +20,20 @@ func commonSwitching(gameState stateCore.GameState, switches []stateCore.SwitchA
 	slices.Reverse(switches)
 
 	// Process switches first
-	lo.ForEach(switches, func(a stateCore.SwitchAction, i int) {
+	lo.ForEach(switches, func(a SwitchAction, i int) {
 		events = append(events, a.UpdateState(gameState)...)
 	})
 
 	return events
 }
 
-func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCore.Action) []stateCore.StateEvent {
-	events := make([]stateCore.StateEvent, 0)
+func commonOtherActionHandling(gameState GameState, actions []Action) []StateEvent {
+	events := make([]StateEvent, 0)
 
 	// Sort Other Actions
 	// TODO: Fix this so that instead of sorting ahead of time, whenever an action is processed, it grabs the "fastest" action next.
 	// This way, previous actions that change speed can affect the order of following actions. This will mainly be important for double battles.
-	slices.SortFunc(actions, func(a, b stateCore.Action) int {
+	slices.SortFunc(actions, func(a, b Action) int {
 		var aSpeed int
 		var bSpeed int
 		var aPriority int
@@ -45,10 +43,10 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 		aSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch a := a.(type) {
-		case *stateCore.AttackAction:
+		case *AttackAction:
 			move := activePokemon.Moves[a.AttackerMove]
 			aPriority = move.Priority
-		case *stateCore.SkipAction:
+		case *SkipAction:
 			aPriority = -100
 		default:
 			return 0
@@ -58,14 +56,14 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 		bSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch b := b.(type) {
-		case *stateCore.AttackAction:
+		case *AttackAction:
 			if b.AttackerMove < 0 || b.AttackerMove >= len(activePokemon.Moves) {
 				return 0
 			}
 
 			move := activePokemon.Moves[b.AttackerMove]
 			bPriority = move.Priority
-		case *stateCore.SkipAction:
+		case *SkipAction:
 			bPriority = -100
 		default:
 			return 0
@@ -96,9 +94,9 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 	slices.Reverse(actions)
 
 	// Process otherActions next
-	lo.ForEach(actions, func(a stateCore.Action, i int) {
+	lo.ForEach(actions, func(a Action, i int) {
 		switch a.(type) {
-		case stateCore.AttackAction, *stateCore.AttackAction, stateCore.SkipAction, *stateCore.SkipAction:
+		case AttackAction, *AttackAction, SkipAction, *SkipAction:
 			player := gameState.GetPlayer(a.GetCtx().PlayerID)
 
 			log.Info().Int("attackIndex", i).
@@ -117,8 +115,8 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			}
 
 			// Skip attack with para
-			if pokemon.Status == core.STATUS_PARA {
-				paraEvent := stateCore.ParaEvent{
+			if pokemon.Status == STATUS_PARA {
+				paraEvent := ParaEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
@@ -130,8 +128,8 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			}
 
 			// Skip attack with sleep
-			if pokemon.Status == core.STATUS_SLEEP {
-				sleepEv := stateCore.SleepEvent{
+			if pokemon.Status == STATUS_SLEEP {
+				sleepEv := SleepEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
@@ -143,8 +141,8 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 			}
 
 			// Skip attack with frozen
-			if pokemon.Status == core.STATUS_FROZEN {
-				frzEv := stateCore.FrozenEvent{
+			if pokemon.Status == STATUS_FROZEN {
+				frzEv := FrozenEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
@@ -157,7 +155,7 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 
 			// Skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
-				confusionEv := stateCore.ConfusionEvent{
+				confusionEv := ConfusionEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
@@ -183,48 +181,56 @@ func commonOtherActionHandling(gameState stateCore.GameState, actions []stateCor
 	return events
 }
 
-func commonEndOfTurn(gameState *stateCore.GameState) []stateCore.StateEvent {
-	events := make([]stateCore.StateEvent, 0)
+func commonEndOfTurn(gameState *GameState) []StateEvent {
+	events := make([]StateEvent, 0)
 
 	applyBurn := func(index int) {
-		events = append(events, stateCore.BurnEvent{PlayerIndex: index})
+		events = append(events, BurnEvent{PlayerIndex: index})
 	}
 
 	applyPoison := func(index int) {
-		events = append(events, stateCore.PoisonEvent{PlayerIndex: index})
+		events = append(events, PoisonEvent{PlayerIndex: index})
 	}
 
 	applyToxic := func(index int) {
-		events = append(events, stateCore.ToxicEvent{PlayerIndex: index})
+		events = append(events, ToxicEvent{PlayerIndex: index})
 	}
 
 	localPokemon := gameState.HostPlayer.GetActivePokemon()
 	switch localPokemon.Status {
-	case core.STATUS_BURN:
-		applyBurn(stateCore.HOST)
-	case core.STATUS_POISON:
-		applyPoison(stateCore.HOST)
-	case core.STATUS_TOXIC:
-		applyToxic(stateCore.HOST)
+	case STATUS_BURN:
+		applyBurn(HOST)
+	case STATUS_POISON:
+		applyPoison(HOST)
+	case STATUS_TOXIC:
+		applyToxic(HOST)
 	}
 
 	opPokemon := gameState.ClientPlayer.GetActivePokemon()
 	switch opPokemon.Status {
-	case core.STATUS_BURN:
-		applyBurn(stateCore.PEER)
-	case core.STATUS_POISON:
-		applyPoison(stateCore.PEER)
-	case core.STATUS_TOXIC:
-		applyToxic(stateCore.PEER)
+	case STATUS_BURN:
+		applyBurn(PEER)
+	case STATUS_POISON:
+		applyPoison(PEER)
+	case STATUS_TOXIC:
+		applyToxic(PEER)
 	}
 
-	if gameState.Weather == core.WEATHER_SANDSTORM {
-		events = append(events, stateCore.SandstormDamageEvent{PlayerIndex: stateCore.HOST})
-		events = append(events, stateCore.SandstormDamageEvent{PlayerIndex: stateCore.PEER})
+	if gameState.Weather == WEATHER_SANDSTORM {
+		events = append(events, SandstormDamageEvent{PlayerIndex: HOST})
+		events = append(events, SandstormDamageEvent{PlayerIndex: PEER})
 	}
 
-	events = append(events, stateCore.EndOfTurnAbilityCheck{PlayerID: stateCore.HOST})
-	events = append(events, stateCore.EndOfTurnAbilityCheck{PlayerID: stateCore.PEER})
+	events = append(events, EndOfTurnAbilityCheck{PlayerID: HOST})
+	events = append(events, EndOfTurnAbilityCheck{PlayerID: PEER})
 
 	return events
+}
+
+func InvertPlayerIndex(initial int) int {
+	if initial == HOST {
+		return PEER
+	} else {
+		return HOST
+	}
 }
