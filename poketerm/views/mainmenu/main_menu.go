@@ -3,9 +3,9 @@ package mainmenu
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/rendering"
-	"github.com/nathanieltooley/gokemon/client/rendering/components"
-	"github.com/nathanieltooley/gokemon/client/views/teameditor"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering/components"
+	"github.com/nathanieltooley/gokemon/poketerm/views/teameditor"
 )
 
 type MainMenuModel struct {

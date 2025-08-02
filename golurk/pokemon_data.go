@@ -14,7 +14,7 @@ var GlobalData = pokemonDb{}
 type pokemonDb struct {
 	moves            MoveRegistry
 	Pokemon          []BasePokemon
-	abilities        AbilityRegistry
+	Abilities        AbilityRegistry
 	PokemonAbilities map[string][]Ability
 	Items            []string
 }
@@ -84,7 +84,7 @@ func (db pokemonDb) GetRandomPokemon() BasePokemon {
 func (db pokemonDb) GetPokemonAbilities(name string) []Ability {
 	pokemonLowerName := strings.ToLower(name)
 
-	return db.abilities.PokemonAbilities[pokemonLowerName]
+	return db.Abilities.PokemonAbilities[pokemonLowerName]
 }
 
 // loadPokemon takes in the bytes of a csv file with the following columns:

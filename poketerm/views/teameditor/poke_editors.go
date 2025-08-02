@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
 	"github.com/samber/lo"
 )
 
@@ -82,7 +82,7 @@ const (
 	DE_LEN
 )
 
-func newDetailsEditor(pokeInfo core.Pokemon) detailsEditor {
+func newDetailsEditor(pokeInfo golurk.Pokemon) detailsEditor {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Nickname"
 	nameInput.Focus()
@@ -167,7 +167,7 @@ const (
 	EI_SPEEDEV
 )
 
-func newEVIVEditor(pokeInfo core.Pokemon) evivEditor {
+func newEVIVEditor(pokeInfo golurk.Pokemon) evivEditor {
 	barWidth := 35
 
 	hpiv := textinput.New()
@@ -296,7 +296,7 @@ func getValidatedEv(inputString string, allowedTotalEvs int) (int, error) {
 		return 0, error
 	}
 
-	allowedEvs := math.Min(core.MAX_EV, float64(allowedTotalEvs))
+	allowedEvs := math.Min(golurk.MAX_EV, float64(allowedTotalEvs))
 
 	return int(math.Min(allowedEvs, float64(parsedValue))), nil
 }
@@ -308,7 +308,7 @@ func getValidatedIv(inputString string) (int, error) {
 		return 0, error
 	}
 
-	return int(math.Min(core.MAX_IV, float64(parsedValue))), nil
+	return int(math.Min(golurk.MAX_IV, float64(parsedValue))), nil
 }
 
 func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
@@ -327,7 +327,7 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 	e.is, cmd = e.is.Update(msg)
 
 	for i, input := range e.is.inputs {
-		allowedEvs := core.MAX_TOTAL_EV - currentPokemon.GetCurrentEvTotal()
+		allowedEvs := golurk.MAX_TOTAL_EV - currentPokemon.GetCurrentEvTotal()
 		currentInputValue := input.Value()
 
 		if allowedEvs <= 0 {
@@ -427,21 +427,21 @@ func (e evivEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 }
 
 type moveEditor struct {
-	validMoves []core.Move
+	validMoves []golurk.Move
 
 	moveIndex     int
-	selectedMoves [4]core.Move
+	selectedMoves [4]golurk.Move
 	lists         [4]list.Model
 }
 
 type moveItem struct {
-	*core.Move
+	*golurk.Move
 }
 
 func (i moveItem) FilterValue() string { return i.Name }
 func (i moveItem) Value() string       { return i.Name }
 
-func newMoveEditor(pokemon core.Pokemon, validMoves []*core.Move) moveEditor {
+func newMoveEditor(pokemon golurk.Pokemon, validMoves []*golurk.Move) moveEditor {
 	startingMoves := pokemon.Moves
 	var lists [4]list.Model
 
@@ -467,7 +467,7 @@ func newMoveEditor(pokemon core.Pokemon, validMoves []*core.Move) moveEditor {
 	}
 
 	return moveEditor{
-		validMoves: lo.Map(validMoves, func(m *core.Move, _ int) core.Move {
+		validMoves: lo.Map(validMoves, func(m *golurk.Move, _ int) golurk.Move {
 			return *m
 		}),
 		moveIndex:     0,
@@ -552,12 +552,12 @@ type abilityEditor struct {
 	abilityListModel list.Model
 }
 
-type abilityItem core.Ability
+type abilityItem golurk.Ability
 
 func (a abilityItem) FilterValue() string { return a.Name }
 func (a abilityItem) Value() string       { return a.Name }
 
-func newAbilityEditor(validAbilities []core.Ability) abilityEditor {
+func newAbilityEditor(validAbilities []golurk.Ability) abilityEditor {
 	items := make([]list.Item, len(validAbilities))
 	for i, ability := range validAbilities {
 		items[i] = abilityItem(ability)
@@ -580,7 +580,7 @@ func (e abilityEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			ability := e.abilityListModel.VisibleItems()[e.abilityListModel.Index()].(abilityItem)
-			rootModel.currentPokemon.Ability = core.Ability(ability)
+			rootModel.currentPokemon.Ability = golurk.Ability(ability)
 		}
 	}
 

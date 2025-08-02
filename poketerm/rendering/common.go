@@ -2,7 +2,7 @@ package rendering
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
 )
 
 var (

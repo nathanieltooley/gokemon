@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nathanieltooley/gokemon/client/errorutils"
 	"github.com/samber/lo"
 )
 
@@ -205,7 +204,10 @@ func getLogIndex(baseFileName string, filePath string) int64 {
 
 	// TODO: Change this to actual error handling, even though the user shouldn't mess with this for no reason
 	// and if they do they are dumb and stupid and i would dislike them
-	index := errorutils.Must(strconv.ParseInt(indexStr, 10, 32))
+	index, err := strconv.ParseInt(indexStr, 10, 32)
+	if err != nil {
+		panic(err)
+	}
 
 	return index
 }

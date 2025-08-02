@@ -9,11 +9,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/state"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/networking"
-	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/networking"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
 	"github.com/rs/zerolog/log"
 )
 
@@ -38,8 +37,8 @@ type gameContext struct {
 	// This state is "The One True State", the actual state that dictates how the game is going
 	// If / When multiplayer is added, this will only be true for the host, but it will true be the
 	// actual state of that client
-	state        *stateCore.GameState
-	chosenAction stateCore.Action
+	state        *golurk.GameState
+	chosenAction golurk.Action
 	// Does this user need to switch out their dead pokemon?
 	forcedSwitch   bool
 	playerSide     int
@@ -52,10 +51,10 @@ type gameContext struct {
 
 type MainGameModel struct {
 	ctx               *gameContext
-	turnUpdateHandler func(stateCore.Action) tea.Msg
+	turnUpdateHandler func(golurk.Action) tea.Msg
 
 	// Intermediate states (in between turns) that need to be displayed to the client
-	eventQueue stateCore.EventIter
+	eventQueue golurk.EventIter
 	// Whether we started the state update rendering process
 	messageQueue        []string
 	currentStateMessage string
@@ -72,7 +71,7 @@ type MainGameModel struct {
 	netInfo   networking.NetReaderInfo
 }
 
-func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Conn) MainGameModel {
+func NewMainGameModel(gameState golurk.GameState, playerSide int, conn net.Conn) MainGameModel {
 	ctx := &gameContext{
 		state:          &gameState,
 		chosenAction:   nil,
@@ -80,10 +79,10 @@ func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Co
 		currentSmState: SM_WAITING_FOR_USER_ACTION,
 	}
 
-	var updater func(stateCore.Action) tea.Msg
+	var updater func(golurk.Action) tea.Msg
 
 	// Buffer size of 1 here since client should not send more than one per turn
-	actionChan := make(chan stateCore.Action, 1)
+	actionChan := make(chan golurk.Action, 1)
 	timerChan := make(chan networking.UpdateTimerMessage, 5)
 	messageChan := make(chan tea.Msg)
 
@@ -97,18 +96,18 @@ func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Co
 
 	if gameState.Networked {
 		switch playerSide {
-		case stateCore.HOST:
+		case golurk.HOST:
 			// maybe changing these from interfaces wasn't the best idea
-			updater = func(action stateCore.Action) tea.Msg {
+			updater = func(action golurk.Action) tea.Msg {
 				return hostNetworkHandler(readerInfo, action, ctx.state)
 			}
-		case stateCore.PEER:
-			updater = func(action stateCore.Action) tea.Msg {
+		case golurk.PEER:
+			updater = func(action golurk.Action) tea.Msg {
 				return clientNetworkHandler(readerInfo, action)
 			}
 		}
 	} else {
-		updater = func(action stateCore.Action) tea.Msg {
+		updater = func(action golurk.Action) tea.Msg {
 			return singleplayerHandler(ctx.state, action)
 		}
 	}
@@ -117,7 +116,7 @@ func NewMainGameModel(gameState stateCore.GameState, playerSide int, conn net.Co
 		ctx:               ctx,
 		turnUpdateHandler: updater,
 		panel:             newActionPanel(ctx),
-		eventQueue:        stateCore.NewEventIter(),
+		eventQueue:        golurk.NewEventIter(),
 
 		netInfo: readerInfo,
 	}
@@ -181,9 +180,9 @@ func (m MainGameModel) View() string {
 
 			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				newPlayerPanel(*m.ctx.state, m.ctx.state.HostPlayer.Name, m.ctx.state.GetPlayer(stateCore.HOST), &m.ctx.state.HostPlayer.MultiTimerTick).View(),
+				newPlayerPanel(*m.ctx.state, m.ctx.state.HostPlayer.Name, m.ctx.state.GetPlayer(golurk.HOST), &m.ctx.state.HostPlayer.MultiTimerTick).View(),
 				// TODO: Randomly generate fun trainer names
-				newPlayerPanel(*m.ctx.state, m.ctx.state.ClientPlayer.Name, m.ctx.state.GetPlayer(stateCore.PEER), &m.ctx.state.ClientPlayer.MultiTimerTick).View(),
+				newPlayerPanel(*m.ctx.state, m.ctx.state.ClientPlayer.Name, m.ctx.state.GetPlayer(golurk.PEER), &m.ctx.state.ClientPlayer.MultiTimerTick).View(),
 			),
 
 			panelView,
@@ -305,7 +304,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.ctx.state.Networked {
 			// Host's timer runs out
-			if m.ctx.playerSide == stateCore.HOST {
+			if m.ctx.playerSide == golurk.HOST {
 				if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
 					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
 						YouLost: false,
@@ -330,7 +329,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// send a sync message every second
-			if m.ctx.playerSide == stateCore.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
+			if m.ctx.playerSide == golurk.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
 				_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
 					Directive:     networking.DIR_SYNC,
 					NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
@@ -433,10 +432,10 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// User has submitted an action
 	if m.ctx.currentSmState == SM_USER_ACTION_SENT {
 		switch m.ctx.playerSide {
-		case stateCore.HOST:
+		case golurk.HOST:
 			m.ctx.state.HostPlayer.TimerPaused = true
 			log.Debug().Msg("host timer should pause")
-		case stateCore.PEER:
+		case golurk.PEER:
 			m.ctx.state.ClientPlayer.TimerPaused = true
 			log.Debug().Msg("client timer should pause")
 		}
@@ -482,7 +481,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Make the "First turn" switch ins
 		playerInfo := m.ctx.state.GetPlayer(m.ctx.playerSide)
-		m.ctx.chosenAction = stateCore.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
+		m.ctx.chosenAction = golurk.NewSwitchAction(m.ctx.state, m.ctx.playerSide, playerInfo.ActivePokeIndex)
 
 		m.ctx.currentSmState = SM_USER_ACTION_SENT
 
@@ -492,25 +491,25 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func singleplayerHandler(gameState *stateCore.GameState, playerAction stateCore.Action) tea.Msg {
+func singleplayerHandler(gameState *golurk.GameState, playerAction golurk.Action) tea.Msg {
 	// Artifical delay
 	time.Sleep(time.Second * 2)
-	aiAction := state.BestAiAction(gameState)
+	aiAction := golurk.BestAiAction(gameState)
 
 	// Force AI to switch in on "first" turn on battle as happens in a multiplayer game
 	if gameState.Turn == 0 {
-		aiAction = stateCore.NewSwitchAction(gameState, stateCore.AI, gameState.ClientPlayer.ActivePokeIndex)
+		aiAction = golurk.NewSwitchAction(gameState, golurk.AI, gameState.ClientPlayer.ActivePokeIndex)
 	}
 
 	if playerAction == nil {
 		log.Warn().Msg("player sent nil action. this should only happen after opponent's pokemon died")
-		playerAction = stateCore.SkipAction{}
+		playerAction = golurk.SkipAction{}
 	}
 
-	return state.ProcessTurn(gameState, []stateCore.Action{playerAction, aiAction})
+	return golurk.ProcessTurn(gameState, []golurk.Action{playerAction, aiAction})
 }
 
-func clientNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Action) tea.Msg {
+func clientNetworkHandler(netInfo networking.NetReaderInfo, action golurk.Action) tea.Msg {
 	log.Debug().Msgf("client action: %+v", action)
 
 	if action == nil {
@@ -525,20 +524,20 @@ func clientNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Act
 	return <-netInfo.MessageChan
 }
 
-func hostNetworkHandler(netInfo networking.NetReaderInfo, action stateCore.Action, gameState *stateCore.GameState) tea.Msg {
+func hostNetworkHandler(netInfo networking.NetReaderInfo, action golurk.Action, gameState *golurk.GameState) tea.Msg {
 	opAction, ok := <-netInfo.ActionChan
 	if !ok {
 		return networking.NetworkingErrorMsg{Err: errors.New("host failed to listen to action channel")}
 	}
 
-	actions := []stateCore.Action{action, opAction}
+	actions := []golurk.Action{action, opAction}
 	if action == nil {
 		log.Debug().Msg("host's action for this turn is nil, should only happen during force switch")
-		actions = []stateCore.Action{opAction}
+		actions = []golurk.Action{opAction}
 	}
-	turnResult := state.ProcessTurn(gameState, actions)
+	turnResult := golurk.ProcessTurn(gameState, actions)
 
-	switch msg := turnResult.(type) {
+	switch turnResult.Kind {
 	case networking.TurnResolvedMessage:
 		err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_TURNRESOLVE, msg)
 		if err != nil {

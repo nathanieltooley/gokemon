@@ -9,11 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/game/state"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
 	"github.com/rs/zerolog/log"
 )
 
@@ -37,57 +35,57 @@ var (
 )
 
 var statusColors map[int]lipgloss.Color = map[int]lipgloss.Color{
-	core.STATUS_BURN:   lipgloss.Color("#E36D1C"),
-	core.STATUS_PARA:   lipgloss.Color("#FFD400"),
-	core.STATUS_TOXIC:  lipgloss.Color("#A61AE5"),
-	core.STATUS_POISON: lipgloss.Color("#A61AE5"),
-	core.STATUS_FROZEN: lipgloss.Color("#31BBCE"),
-	core.STATUS_SLEEP:  lipgloss.Color("#BCE9EF"),
+	golurk.STATUS_BURN:   lipgloss.Color("#E36D1C"),
+	golurk.STATUS_PARA:   lipgloss.Color("#FFD400"),
+	golurk.STATUS_TOXIC:  lipgloss.Color("#A61AE5"),
+	golurk.STATUS_POISON: lipgloss.Color("#A61AE5"),
+	golurk.STATUS_FROZEN: lipgloss.Color("#31BBCE"),
+	golurk.STATUS_SLEEP:  lipgloss.Color("#BCE9EF"),
 }
 
 var statusTxt map[int]string = map[int]string{
-	core.STATUS_BURN:   "BRN",
-	core.STATUS_PARA:   "PAR",
-	core.STATUS_FROZEN: "FRZ",
-	core.STATUS_TOXIC:  "TOX",
-	core.STATUS_POISON: "PSN",
-	core.STATUS_SLEEP:  "SLP",
+	golurk.STATUS_BURN:   "BRN",
+	golurk.STATUS_PARA:   "PAR",
+	golurk.STATUS_FROZEN: "FRZ",
+	golurk.STATUS_TOXIC:  "TOX",
+	golurk.STATUS_POISON: "PSN",
+	golurk.STATUS_SLEEP:  "SLP",
 }
 
 var typeColors map[string]lipgloss.Color = map[string]lipgloss.Color{
-	core.TYPENAME_NORMAL:   lipgloss.Color("#99a2a5"),
-	core.TYPENAME_FIRE:     lipgloss.Color("#e31c1c"),
-	core.TYPENAME_WATER:    lipgloss.Color("#1461eb"),
-	core.TYPENAME_GRASS:    lipgloss.Color("#26bd45"),
-	core.TYPENAME_ELECTRIC: lipgloss.Color("#FFD400"),
-	core.TYPENAME_PSYCHIC:  lipgloss.Color("#dd228d"),
-	core.TYPENAME_ICE:      lipgloss.Color("#31BBCE"),
-	core.TYPENAME_DRAGON:   lipgloss.Color("#1d3be2"),
-	core.TYPENAME_DARK:     lipgloss.Color("#5c4733"),
-	core.TYPENAME_FAIRY:    lipgloss.Color("#e66fc3"),
-	core.TYPENAME_FIGHTING: lipgloss.Color("#cf8530"),
-	core.TYPENAME_FLYING:   lipgloss.Color("#51b2e8"),
-	core.TYPENAME_POISON:   lipgloss.Color("#A61AE5"),
-	core.TYPENAME_GROUND:   lipgloss.Color("#9a6b25"),
-	core.TYPENAME_ROCK:     lipgloss.Color("#d5c296"),
-	core.TYPENAME_BUG:      lipgloss.Color("#99e14b"),
-	core.TYPENAME_GHOST:    lipgloss.Color("#8606e6"),
+	golurk.TYPENAME_NORMAL:   lipgloss.Color("#99a2a5"),
+	golurk.TYPENAME_FIRE:     lipgloss.Color("#e31c1c"),
+	golurk.TYPENAME_WATER:    lipgloss.Color("#1461eb"),
+	golurk.TYPENAME_GRASS:    lipgloss.Color("#26bd45"),
+	golurk.TYPENAME_ELECTRIC: lipgloss.Color("#FFD400"),
+	golurk.TYPENAME_PSYCHIC:  lipgloss.Color("#dd228d"),
+	golurk.TYPENAME_ICE:      lipgloss.Color("#31BBCE"),
+	golurk.TYPENAME_DRAGON:   lipgloss.Color("#1d3be2"),
+	golurk.TYPENAME_DARK:     lipgloss.Color("#5c4733"),
+	golurk.TYPENAME_FAIRY:    lipgloss.Color("#e66fc3"),
+	golurk.TYPENAME_FIGHTING: lipgloss.Color("#cf8530"),
+	golurk.TYPENAME_FLYING:   lipgloss.Color("#51b2e8"),
+	golurk.TYPENAME_POISON:   lipgloss.Color("#A61AE5"),
+	golurk.TYPENAME_GROUND:   lipgloss.Color("#9a6b25"),
+	golurk.TYPENAME_ROCK:     lipgloss.Color("#d5c296"),
+	golurk.TYPENAME_BUG:      lipgloss.Color("#99e14b"),
+	golurk.TYPENAME_GHOST:    lipgloss.Color("#8606e6"),
 	// bulbapedia has this as a light blue
 	// it does look similar to normal, so maybe change?
 	// but ice and flying already have light blue
-	core.TYPENAME_STEEL: lipgloss.Color("#74868b"),
+	golurk.TYPENAME_STEEL: lipgloss.Color("#74868b"),
 }
 
 type playerPanel struct {
-	gameState stateCore.GameState
+	gameState golurk.GameState
 
-	player    *stateCore.Player
+	player    *golurk.Player
 	name      string
 	healthBar progress.Model
 	timer     *int64
 }
 
-func newPlayerPanel(gameState stateCore.GameState, name string, player *stateCore.Player, timer *int64) playerPanel {
+func newPlayerPanel(gameState golurk.GameState, name string, player *golurk.Player, timer *int64) playerPanel {
 	progressBar := progress.New(progress.WithDefaultGradient())
 	progressBar.Width = playerPanelWidth * .50
 
@@ -101,14 +99,14 @@ func newPlayerPanel(gameState stateCore.GameState, name string, player *stateCor
 	}
 }
 
-func pokemonEffects(pokemon core.Pokemon) string {
+func pokemonEffects(pokemon golurk.Pokemon) string {
 	panels := make([]string, 0)
 
 	negativePanel := lipgloss.NewStyle().Background(lipgloss.Color("#ff2f2f")).Foreground(lipgloss.Color("#ffffff"))
 	positivePanel := lipgloss.NewStyle().Background(lipgloss.Color("#00cf00")).Foreground(lipgloss.Color("#000000"))
 
 	writeStat := func(statName string, statStage int) {
-		statMod := core.StageMultipliers[statStage]
+		statMod := golurk.StageMultipliers[statStage]
 		if statStage > 0 {
 			panels = append(panels, positivePanel.Render(fmt.Sprintf("%s: x%.2f", statName, statMod)))
 		} else if statStage < 0 {
@@ -157,7 +155,7 @@ func (m playerPanel) View() string {
 
 	currentPokemon := m.player.Team[m.player.ActivePokeIndex]
 	statusText := ""
-	if currentPokemon.Status != core.STATUS_NONE {
+	if currentPokemon.Status != golurk.STATUS_NONE {
 		statusStyle := lipgloss.NewStyle().Background(statusColors[currentPokemon.Status])
 		statusText = statusStyle.Render(statusTxt[currentPokemon.Status])
 	}
@@ -180,7 +178,7 @@ func (m playerPanel) View() string {
 	timerView := ""
 
 	if m.gameState.Networked {
-		timerView = fmt.Sprintf("Timer: %s", state.GetTimerString(*m.timer))
+		timerView = fmt.Sprintf("Timer: %s", golurk.GetTimerString(*m.timer))
 	}
 
 	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, timerView, pokeInfo))
@@ -232,20 +230,20 @@ func (m actionPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.actionFocus {
 			case 0:
 				switch m.ctx.playerSide {
-				case stateCore.HOST:
+				case golurk.HOST:
 					return movePanel{
 						ctx: m.ctx,
 					}, nil
-				case stateCore.PEER:
+				case golurk.PEER:
 					return movePanel{
 						ctx: m.ctx,
 					}, nil
 				}
 			case 1:
 				switch m.ctx.playerSide {
-				case stateCore.HOST:
+				case golurk.HOST:
 					return newPokemonPanel(m.ctx, m.ctx.state.HostPlayer.Team), nil
-				case stateCore.PEER:
+				case golurk.PEER:
 					return newPokemonPanel(m.ctx, m.ctx.state.ClientPlayer.Team), nil
 				}
 			}
@@ -339,7 +337,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			pp := poke.InGameMoveInfo[m.moveGridFocus].PP
 
 			if !move.IsNil() && pp > 0 {
-				attack := stateCore.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
+				attack := golurk.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
 				m.ctx.chosenAction = attack
 				m.ctx.currentSmState = SM_USER_ACTION_SENT
 			}
@@ -353,7 +351,7 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if outOfMoves {
-				attack := stateCore.NewAttackAction(m.ctx.playerSide, -1)
+				attack := golurk.NewAttackAction(m.ctx.playerSide, -1)
 				m.ctx.chosenAction = attack
 				m.ctx.currentSmState = SM_USER_ACTION_SENT
 			}
@@ -365,13 +363,13 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type pokemonPanel struct {
 	ctx     *gameContext
-	pokemon []core.Pokemon
+	pokemon []golurk.Pokemon
 
 	selectedPokemon int
 	currentSubtext  string
 }
 
-func newPokemonPanel(ctx *gameContext, pokemon []core.Pokemon) pokemonPanel {
+func newPokemonPanel(ctx *gameContext, pokemon []golurk.Pokemon) pokemonPanel {
 	panel := pokemonPanel{
 		ctx:     ctx,
 		pokemon: pokemon,
@@ -404,12 +402,12 @@ func (m pokemonPanel) View() string {
 		displayText = "Your Pokemon fainted, please select a new one to switch in"
 	}
 
-	opposingPlayer := m.ctx.state.GetPlayer(stateCore.InvertPlayerIndex(m.ctx.playerSide))
+	opposingPlayer := m.ctx.state.GetPlayer(golurk.InvertPlayerIndex(m.ctx.playerSide))
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 
 	if opposingPokemon.Ability.Name == "arena-trap" || opposingPokemon.Ability.Name == "shadow-tag" {
 		displayText = "You cannot switch out."
-	} else if opposingPokemon.Ability.Name == "magnet-pull" && m.ctx.state.GetPlayer(m.ctx.playerSide).GetActivePokemon().HasType(&core.TYPE_STEEL) {
+	} else if opposingPokemon.Ability.Name == "magnet-pull" && m.ctx.state.GetPlayer(m.ctx.playerSide).GetActivePokemon().HasType(&golurk.TYPE_STEEL) {
 		displayText = "You cannot switch out."
 	}
 
@@ -455,7 +453,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Only allow switches to alive and existing pokemon
 			if currentValidPokemon.Alive() {
-				action := stateCore.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
+				action := golurk.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
 
 				m.ctx.chosenAction = action
 				m.ctx.currentSmState = SM_USER_ACTION_SENT

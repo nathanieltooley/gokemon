@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/rendering"
-	"github.com/nathanieltooley/gokemon/client/rendering/components"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering/components"
 	"github.com/rs/zerolog/log"
 )
 

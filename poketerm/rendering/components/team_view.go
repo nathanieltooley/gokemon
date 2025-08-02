@@ -6,11 +6,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
 type TeamView struct {
-	Team    []core.Pokemon
+	Team    []golurk.Pokemon
 	Focused bool
 
 	CurrentPokemonIndex int
@@ -29,7 +29,7 @@ var (
 	)
 )
 
-func NewTeamView(team []core.Pokemon) TeamView {
+func NewTeamView(team []golurk.Pokemon) TeamView {
 	return TeamView{
 		Team:    team,
 		Focused: false,

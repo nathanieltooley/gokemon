@@ -3,7 +3,7 @@ package gameview
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/rendering"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
 )
 
 type endModel struct {

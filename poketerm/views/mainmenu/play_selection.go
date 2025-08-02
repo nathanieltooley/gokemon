@@ -2,9 +2,9 @@ package mainmenu
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/rendering"
-	"github.com/nathanieltooley/gokemon/client/rendering/components"
-	"github.com/nathanieltooley/gokemon/client/views/gameview"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering/components"
+	"github.com/nathanieltooley/gokemon/poketerm/views/gameview"
 )
 
 type PlaySelection struct {

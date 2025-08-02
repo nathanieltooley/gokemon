@@ -11,7 +11,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/term"
@@ -25,11 +25,6 @@ type GlobalConfig struct {
 
 var (
 	TERM_WIDTH, TERM_HEIGHT, _ = term.GetSize(int(os.Stdout.Fd()))
-
-	POKEMON   PokemonRegistry
-	MOVES     *MoveRegistry
-	ABILITIES map[string][]core.Ability
-	ITEMS     []string
 
 	SelectKey = key.NewBinding(
 		key.WithKeys("enter"),
@@ -125,6 +120,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 
 	// Main global logger
 	log.Logger = createLogger(configDir, level)
+	golurk.SetInternalLogger()
 
 	// Load concurrently
 	var wg sync.WaitGroup

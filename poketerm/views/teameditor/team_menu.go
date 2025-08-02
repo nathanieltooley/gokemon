@@ -7,11 +7,11 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/rendering"
-	"github.com/nathanieltooley/gokemon/client/rendering/components"
-	"github.com/nathanieltooley/gokemon/client/shared/teamfs"
+	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering"
+	"github.com/nathanieltooley/gokemon/poketerm/rendering/components"
+	"github.com/nathanieltooley/gokemon/poketerm/shared/teamfs"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,7 +30,7 @@ type teamSelectionMenu struct {
 
 type teamItem struct {
 	Name    string
-	Pokemon []core.Pokemon
+	Pokemon []golurk.Pokemon
 }
 
 func (t teamItem) FilterValue() string { return t.Name }
@@ -43,7 +43,7 @@ func newTeamMainMenu(backtrace components.Breadcrumbs) startTeamMenu {
 			Name: "Create New Team",
 			OnClick: func() (tea.Model, tea.Cmd) {
 				backtrace.Push(startMenu)
-				return NewTeamEditorModel(backtrace, make([]core.Pokemon, 0)), nil
+				return NewTeamEditorModel(backtrace, make([]golurk.Pokemon, 0)), nil
 			},
 		},
 		{
