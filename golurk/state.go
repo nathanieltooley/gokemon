@@ -8,9 +8,9 @@ import (
 func DefaultTeam() []Pokemon {
 	defaultTeam := make([]Pokemon, 0)
 
-	defaultMove := internalData.GetMove("tackle")
-	defaultTeam = append(defaultTeam, NewPokeBuilder(internalData.GetPokemonByPokedex(1), internalRng).Build())
-	defaultTeam = append(defaultTeam, NewPokeBuilder(internalData.GetPokemonByPokedex(2), internalRng).Build())
+	defaultMove := GlobalData.GetMove("tackle")
+	defaultTeam = append(defaultTeam, NewPokeBuilder(GlobalData.GetPokemonByPokedex(1), internalRng).Build())
+	defaultTeam = append(defaultTeam, NewPokeBuilder(GlobalData.GetPokemonByPokedex(2), internalRng).Build())
 
 	defaultTeam[0].Moves[0] = *defaultMove
 
@@ -21,14 +21,14 @@ func RandomTeam() []Pokemon {
 	team := make([]Pokemon, 6)
 
 	for i := range 6 {
-		rndBasePkm := internalData.GetRandomPokemon()
+		rndBasePkm := GlobalData.GetRandomPokemon()
 		rndPkm := NewPokeBuilder(&rndBasePkm, rand.New(internalRng)).
 			SetRandomEvs().
 			SetRandomIvs().
 			SetRandomLevel(80, 100).
 			SetRandomNature().
-			SetRandomMoves(internalData.GetFullMovesForPokemon(rndBasePkm.Name)).
-			SetRandomAbility(internalData.GetPokemonAbilities(strings.ToLower(rndBasePkm.Name))).
+			SetRandomMoves(GlobalData.GetFullMovesForPokemon(rndBasePkm.Name)).
+			SetRandomAbility(GlobalData.GetPokemonAbilities(strings.ToLower(rndBasePkm.Name))).
 			Build()
 		team[i] = rndPkm
 	}

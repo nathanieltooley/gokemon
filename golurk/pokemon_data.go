@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var internalData = pokemonDb{}
+var GlobalData = pokemonDb{}
 
 type pokemonDb struct {
 	moves            MoveRegistry
@@ -90,7 +90,7 @@ func (db pokemonDb) GetPokemonAbilities(name string) []Ability {
 // loadPokemon takes in the bytes of a csv file with the following columns:
 // PokedexNumber, HP, Attack, Defense, SpecialAttack, SpecialDefense, Speed
 // in that order. All values must be valid integers
-func loadPokemon(fileBytes []byte) ([]BasePokemon, error) {
+func LoadPokemon(fileBytes []byte) ([]BasePokemon, error) {
 	// fileReader, err := files.Open(filePath)
 	// if err != nil {
 	// 	internalLogger.Error(err, "Couldn't open Pokemon data file")
@@ -121,14 +121,38 @@ func loadPokemon(fileBytes []byte) ([]BasePokemon, error) {
 		var speed int64
 
 		pokedexNumber, err = strconv.ParseInt(row[0], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid pokedex number")
+			return nil, err
+		}
 		hp, err = strconv.ParseInt(row[4], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid hp")
+			return nil, err
+		}
 		attack, err = strconv.ParseInt(row[5], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid attack")
+			return nil, err
+		}
 		def, err = strconv.ParseInt(row[6], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid defense")
+			return nil, err
+		}
 		spAttack, err = strconv.ParseInt(row[7], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid special attack")
+			return nil, err
+		}
 		spDef, err = strconv.ParseInt(row[8], 10, 16)
+		if err != nil {
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid special defense")
+			return nil, err
+		}
 		speed, err = strconv.ParseInt(row[9], 10, 16)
 		if err != nil {
-			internalLogger.Error(err, "Failed to load Pokemon data")
+			internalLogger.WithName("pokemon_parsing").Error(err, "invalid speed")
 			return nil, err
 		}
 
@@ -164,8 +188,8 @@ func loadPokemon(fileBytes []byte) ([]BasePokemon, error) {
 	return pokemonList, nil
 }
 
-// loadMoves takes in json that lists out move information and json that maps pokemon names to what moves they can learn
-func loadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
+// LoadMoves takes in json that lists out move information and json that maps pokemon names to what moves they can learn
+func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 	internalLogger.Info("Loading Move Data")
 
 	// movesPath := "data/moves.json"
@@ -214,9 +238,9 @@ func loadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 	return moveRegistry, nil
 }
 
-// loadAbilities takes in json that lists ability info and json that maps pokemon names to abilities
+// LoadAbilities takes in json that lists ability info and json that maps pokemon names to abilities
 // (this is different from loadMoves because info about Moves is much larger than info about abiltiies)
-func loadAbilities(abilitiesListBytes []byte, abilitiesMapBytes []byte) AbilityRegistry {
+func LoadAbilities(abilitiesListBytes []byte, abilitiesMapBytes []byte) AbilityRegistry {
 	// abilityFile := "data/abilities.json"
 	// file, err := files.Open(abilityFile)
 	// if err != nil {
@@ -244,7 +268,7 @@ func loadAbilities(abilitiesListBytes []byte, abilitiesMapBytes []byte) AbilityR
 	return AbilityRegistry{Abilities: abilitiesList, PokemonAbilities: abilityMap}
 }
 
-func loadItems(itemBytes []byte) []string {
+func LoadItems(itemBytes []byte) []string {
 	// itemsFile := "data/items.json"
 	// file, err := files.Open(itemsFile)
 	// if err != nil {

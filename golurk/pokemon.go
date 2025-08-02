@@ -5,8 +5,6 @@ import (
 	"math"
 
 	err "errors"
-
-	"github.com/rs/zerolog/log"
 )
 
 type PokemonType struct {
@@ -20,7 +18,7 @@ func (t PokemonType) AttackEffectiveness(defenseType PokemonType) float64 {
 	effectiveness, ok := t.Effectiveness[defenseType.Name]
 
 	if !ok {
-		log.Warn().Msgf("Could not find type effectiveness relationship: %s -> %s", t.Name, defenseType.Name)
+		internalLogger.Info(fmt.Sprintf("Could not find type effectiveness relationship: %s -> %s", t.Name, defenseType.Name))
 		return 1
 	} else {
 		return effectiveness
@@ -173,7 +171,12 @@ func (p Pokemon) Alive() bool {
 func (p *Pokemon) Damage(dmg uint) {
 	cappedNewHealth := uint(math.Max(0, float64(int(p.Hp.Value)-int(dmg))))
 
-	log.Debug().Uint("dmg", dmg).Uint("oldHealth", p.Hp.Value).Uint("cappedNewHealth", cappedNewHealth).Msg("pkm damage")
+	internalLogger.Info("pkm damage",
+		"dmg", dmg,
+		"oldHealth", p.Hp.Value,
+		"cappedNewHealth", cappedNewHealth,
+		"pkm damage",
+	)
 
 	p.Hp.Value = cappedNewHealth
 }
@@ -343,7 +346,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
 	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
 	statValue := (float32(statNumerator)/100 + 5) * natureMod
-	log.Debug().Float32("stat", statValue).Msg("")
+	internalLogger.V(2).Info("", "stat", statValue)
 	return uint(statValue)
 }
 

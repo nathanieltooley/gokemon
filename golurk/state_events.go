@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
@@ -42,7 +41,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		}
 	}
 
-	log.Info().Msgf("%s switches to %s", player.Name, newActivePkm.Nickname)
+	internalLogger.WithName("switch_event").Info("", "player_name", player.Name, "pokemon_name", newActivePkm.Nickname)
 
 	// TODO: OOB Check
 	player.ActivePokeIndex = event.SwitchIndex
@@ -53,7 +52,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// Reset toxic count
 	if newActivePkm.Status == STATUS_TOXIC {
 		newActivePkm.ToxicCount = 1
-		log.Info().Msgf("%s had their toxic count reset to 1", newActivePkm.Nickname)
+		internalLogger.WithName("switch_event").Info("pokemon switched in and reset their toxic count", "pokemon_name", newActivePkm.Nickname)
 	}
 
 	// --- Activate Abilities
@@ -95,8 +94,6 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Nickname))
 	}
 
-	log.Debug().Strs("switchEventMessages", messages).Msg("")
-
 	return followUpEvents, messages
 }
 
@@ -113,7 +110,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	defPokemon := defender.GetActivePokemon()
 
 	if !attackPokemon.Alive() {
-		log.Info().Msgf("%s's attack was cancelled because they died", attackPokemon.Nickname)
+		attackEventLogger().Info("attack was cancelled because they died", "pokemon_name", attackPokemon.Nickname)
 		return nil, nil
 	}
 
@@ -177,7 +174,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	}
 
 	if accuracyCheck < accuracy && pp > 0 {
-		attackActionLogger().Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check passed")
+		attackEventLogger().Info("accuracy check passed", "accuracy_check", accuracyCheck, "accuracy_chance", accuracy)
 
 		defImmune := false
 
@@ -265,7 +262,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			case "force-switch":
 				events = append(events, forceSwitchHandler(gameState, defender, defenderInt)...)
 			default:
-				attackActionLogger().Warn().Msgf("Move, %s (%s category), has no handler!!!", move.Name, move.Meta.Category.Name)
+				attackEventLogger().Info("Move has no handler!!!", "move_name", move.Name, "move_category", move.Meta.Category.Name)
 			}
 		}
 
@@ -295,7 +292,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			attackPokemon.InGameMoveInfo[event.MoveID].PP = pp - ppModifier
 		}
 	} else {
-		log.Debug().Int("accuracyCheck", accuracyCheck).Int("Accuracy", accuracy).Msg("Check failed")
+		attackEventLogger().Info("accuracy check failed", "accuracy_check", accuracyCheck, "accuracy_chance", accuracy, "pokemon_name", attackPokemon.Nickname)
 		messages = append(messages, fmt.Sprintf("%s missed their attack!", attackPokemon.Nickname))
 	}
 
@@ -360,7 +357,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 	}
 
 	if statCheck < event.Chance {
-		log.Info().Int("statChance", event.Chance).Int("statCheck", statCheck).Msg("Stat change did pass")
+		internalLogger.WithName("stat_change_event").Info("stat change check passed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Nickname)
 
 		// sorry
 		switch event.StatName {
@@ -402,7 +399,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 
 		return nil, message
 	} else {
-		log.Info().Int("statChance", event.Chance).Int("statCheck", statCheck).Msg("Stat change did not pass")
+		internalLogger.WithName("stat_change_event").Info("stat change check failed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Nickname)
 		return nil, nil
 	}
 }
@@ -464,7 +461,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		}
 
 		pokemon.SleepCount = randTime
-		log.Debug().Msgf("%s is now asleep for %d turns", pokemon.Nickname, pokemon.SleepCount)
+		internalLogger.WithName("ailment_event").Info("Pokemon fell asleep", "pokemon_name", pokemon.Nickname, "sleep_turns", pokemon.SleepCount)
 	case STATUS_BURN:
 		if pokemon.Ability.Name == "water-veil" {
 			return []StateEvent{
@@ -696,9 +693,9 @@ func (event ToxicEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 
 	damage := (pokemon.MaxHp / 16) * uint(pokemon.ToxicCount)
-	log.Info().Int("toxicCount", pokemon.ToxicCount).Uint("damage", damage).Msg("toxic event")
-
 	pokemon.ToxicCount++
+
+	internalLogger.WithName("toxic_event").Info("toxic updated", "damage", damage, "toxic_count", pokemon.ToxicCount, "pokemon_name", pokemon.Nickname)
 
 	return []StateEvent{DamageEvent{Damage: damage, PlayerIndex: event.PlayerIndex}}, []string{
 		fmt.Sprintf("%s is badly poisoned!", pokemon.Nickname),
@@ -722,12 +719,12 @@ func (event FrozenEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	// pokemon stays frozen
 	if thawCheck > thawChance {
-		log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check failed")
+		internalLogger.WithName("frozen_event").Info("Thaw check failed", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Nickname)
 		message = fmt.Sprintf("%s is frozen and cannot move", pokemon.Nickname)
 
 		pokemon.CanAttackThisTurn = false
 	} else {
-		log.Info().Float64("thawCheck", thawCheck).Msg("Thaw check succeeded!")
+		internalLogger.WithName("frozen_event").Info("thaw check passed!", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Nickname)
 		message = fmt.Sprintf("%s thawed out!", pokemon.Nickname)
 
 		// No need for a new event really
@@ -760,11 +757,11 @@ func (event ParaEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	if paraCheck > paraChance {
 		// don't get para'd
-		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check passed")
+		internalLogger.WithName("para_event").Info("Para Check passed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Nickname)
 		return []StateEvent{event.FollowUpAttackEvent}, messages
 	} else {
 		// do get para'd
-		log.Info().Float64("paraCheck", paraCheck).Msg("Para Check failed")
+		internalLogger.WithName("para_event").Info("Para Check failed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Nickname)
 		pokemon.CanAttackThisTurn = false
 
 		messages = append(messages, fmt.Sprintf("%s is paralyzed and cannot move.", pokemon.Nickname))
@@ -827,7 +824,7 @@ func (event ApplyConfusionEvent) Update(gameState *GameState) ([]StateEvent, []s
 		confusionDuration := rng.IntN(3) + 2
 		pokemon.ConfusionCount = confusionDuration
 
-		log.Info().Int("confusionCount", pokemon.ConfusionCount).Msg("confusion applied")
+		internalLogger.WithName("apply_confusion_event").Info("confusion applied", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Nickname)
 	}
 
 	return nil, []string{fmt.Sprintf("%s is now confused!", pokemon.Nickname)}
@@ -841,7 +838,7 @@ type ConfusionEvent struct {
 func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 	pokemon.ConfusionCount--
-	log.Debug().Int("newConfCount", pokemon.ConfusionCount).Msg("confusion lowered")
+	internalLogger.WithName("confusion_event").Info("confusion updated", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Nickname)
 
 	rng := gameState.CreateRng()
 
@@ -880,7 +877,7 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	events := make([]StateEvent, 0)
 	events = append(events, DamageEvent{Damage: dmg, PlayerIndex: event.PlayerIndex})
 
-	log.Info().Uint("damage", dmg).Msgf("%s hit itself in confusion", pokemon.Nickname)
+	internalLogger.WithName("confusion_event").Info("pokemon hit itself in confusion", "pokemon_name", pokemon.Nickname)
 
 	return events, messages
 }
@@ -1023,7 +1020,7 @@ func (iter *EventIter) Next(state *GameState) ([]string, bool) {
 	}
 
 	headEvent := iter.events[0]
-	log.Debug().Msgf("Updating state with event: %s", reflect.TypeOf(headEvent).Name())
+	internalLogger.WithName("event_iter").Info("Updating state", "event_name", reflect.TypeOf(headEvent))
 	followUpEvents, messages := headEvent.Update(state)
 
 	// pop queue

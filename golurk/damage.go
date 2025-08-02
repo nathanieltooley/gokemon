@@ -4,13 +4,11 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/go-logr/logr"
 )
 
-var damageLogger = func() *zerolog.Logger {
-	logger := log.With().Str("location", "pokemon-damage").Logger()
-	return &logger
+var damageLogger = func() logr.Logger {
+	return internalLogger.WithName("damage")
 }
 
 // Damage calculates the damage an attacking pokemon should do to a defending pokemon
@@ -72,8 +70,8 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 		return 0
 	}
 
-	damageLogger().Debug().Msgf("Type 1: %#v", defendent.Base.Type1)
-	damageLogger().Debug().Msgf("Type 2: %#v", defendent.Base.Type2)
+	damageLogger().V(2).Info("Type 1", "type", defendent.Base.Type1)
+	damageLogger().V(2).Info("Type 2", "type", defendent.Base.Type2)
 
 	attackType := GetAttackTypeMapping(move.Type)
 
@@ -104,7 +102,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 		d = baseD
 
 	} else if crit && (defendent.Ability.Name == "battle-armor" || defendent.Ability.Name == "shell-armor") {
-		damageLogger().Info().Msgf("Defending pokemon blocked crits with %s", defendent.Ability.Name)
+		damageLogger().Info("Defending pokemon blocked crit", "pokemon_name", defendent.Nickname, "ability_name", defendent.Ability.Name)
 	}
 
 	lowHealthBonus := 1.0
@@ -129,7 +127,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 	// TODO: Add exception for Guts and Facade
 	if attacker.Status == STATUS_BURN && move.DamageClass == DAMAGETYPE_PHYSICAL {
 		burn = 0.5
-		damageLogger().Info().Float64("burn", burn).Msg("Attacker is burned and is using a physical move")
+		damageLogger().V(2).Info("Attacker is burned and is using a physical move", "attacker_name", attacker.Nickname)
 	}
 
 	if attacker.Ability.Name == "guts" {
@@ -175,24 +173,23 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 
 	finalDamage := uint(damage)
 
-	damageLogger().Debug().
-		Int("power", power).
-		Uint("attackerLevel", attackerLevel).
-		Uint("attackValue", a).
-		Int("attackChange", aBoost).
-		Uint("defValue", d).
-		Int("defenseChange", dBoost).
-		Str("attackType", move.Type).
-		Float64("lowHealthBonus", lowHealthBonus).
-		Float64("damageInner", damageInner).
-		Float64("randomSpread", randomSpread).
-		Float64("STAB", stab).
-		Float64("Net Type Effectiveness", effectiveness).
-		Float64("crit", critBoost).
-		Float64("weatherBonus", weatherBonus).
-		Float64("flashFire", flashFireBoost).
-		Uint("damage", finalDamage).
-		Msg("damage calc")
+	damageLogger().Info("final damage",
+		"power", power,
+		"attackerLevel", attackerLevel,
+		"attackValue", a,
+		"attackChange", aBoost,
+		"defValue", d,
+		"defenseChange", dBoost,
+		"attackType", move.Type,
+		"lowHealthBonus", lowHealthBonus,
+		"damageInner", damageInner,
+		"randomSpread", randomSpread,
+		"STAB", stab,
+		"Net Type Effectiveness", effectiveness,
+		"crit", critBoost,
+		"weatherBonus", weatherBonus,
+		"flashFire", flashFireBoost,
+		"damage", finalDamage)
 
 	return finalDamage
 }

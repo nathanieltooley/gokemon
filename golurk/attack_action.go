@@ -8,8 +8,8 @@ import (
 	"github.com/samber/lo"
 )
 
-var attackActionLogger = func() logr.Logger {
-	return internalLogger.WithName("")
+var attackEventLogger = func() logr.Logger {
+	return internalLogger.WithName("attack_event")
 }
 
 var struggleMove = Move{
@@ -56,7 +56,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 
 	if rng.Float32() < attackPokemon.CritChance() {
 		crit = true
-		attackActionLogger().Info("Attack Crit!", "chance", attackPokemon.CritChance())
+		attackEventLogger().Info("Attack Crit!", "chance", attackPokemon.CritChance())
 	}
 
 	effectiveness := defPokemon.DefenseEffectiveness(GetAttackTypeMapping(move.Type))
@@ -96,7 +96,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 
 	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
 
-	attackActionLogger().Info("Attack Event!", "attacker", attackPokemon.Nickname, "defender", defPokemon.Nickname, "damage", damage)
+	attackEventLogger().Info("Attack Event!", "attacker", attackPokemon.Nickname, "defender", defPokemon.Nickname, "damage", damage)
 
 	if move.Meta.Drain > 0 {
 		var drainedHealth uint = 0
@@ -110,7 +110,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 
 		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
-		attackActionLogger().Info("Drain", "percent", drainPercent, "drained_health", drainedHealth, "drained_health_percent", drainedHealthPercent)
+		attackEventLogger().Info("Drain", "percent", drainPercent, "drained_health", drainedHealth, "drained_health_percent", drainedHealthPercent)
 	}
 
 	// Recoil
@@ -124,7 +124,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 			// flip sign here because recoil is considered negative Drain healing in pokeapi
 			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: attIndex, SupressMessage: true})
 
-			attackActionLogger().Info("Recoil", "recoil_percent", recoilPercent, "self_damage", selfDamage)
+			attackEventLogger().Info("Recoil", "recoil_percent", recoilPercent, "self_damage", selfDamage)
 		}
 	}
 
@@ -186,7 +186,7 @@ func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move
 		}
 
 		if ailmentCheck < ailmentChance {
-			attackActionLogger().Info("Ailment check succeeded!", "chance", ailmentChance, "ailment_check", ailmentCheck)
+			attackEventLogger().Info("Ailment check succeeded!", "chance", ailmentChance, "ailment_check", ailmentCheck)
 
 			// Manual override of toxic so that it applies toxic and not poison
 			if move.Name == "toxic" {
@@ -197,14 +197,14 @@ func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move
 
 			// Make sure the pokemon didn't avoid ailment with ability or such
 			if defPokemon.Status != STATUS_NONE {
-				attackActionLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Nickname, "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
+				attackEventLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Nickname, "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
 			} else {
-				attackActionLogger().Info("Pokemon removed ailment with ability", "ability_name", defPokemon.Ability.Name, "ailment_id", ailment)
+				attackEventLogger().Info("Pokemon removed ailment with ability", "ability_name", defPokemon.Ability.Name, "ailment_id", ailment)
 			}
 
 			return []StateEvent{event}
 		} else {
-			attackActionLogger().Info("Ailment check failed.", "ailment_chance", ailmentChance, "ailment_check", ailmentCheck)
+			attackEventLogger().Info("Ailment check failed.", "ailment_chance", ailmentChance, "ailment_check", ailmentCheck)
 		}
 
 	}
@@ -222,7 +222,7 @@ func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move
 			case EFFECT_CONFUSION:
 				// TODO: add message
 				if defPokemon.Ability.Name != "own-tempo" {
-					attackActionLogger().Info("Confusion check passed.", "effect_chance", effectChance, "effect_check", effectCheck)
+					attackEventLogger().Info("Confusion check passed.", "effect_chance", effectChance, "effect_check", effectCheck)
 
 					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
 				}

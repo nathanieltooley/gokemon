@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
@@ -69,16 +68,16 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 			return 0
 		}
 
-		log.Debug().
-			Int("aPlayer", a.GetCtx().PlayerID).
-			Int("bPlayer", b.GetCtx().PlayerID).
-			Int("aSpeed", aSpeed).
-			Int("bSpeed", bSpeed).
-			Int("aPriority", aPriority).
-			Int("bPriority", bPriority).
-			Int("comp", cmp.Compare(aSpeed, bSpeed)).
-			Int("compPriority", cmp.Compare(aPriority, bPriority)).
-			Msg("sort debug")
+		internalLogger.V(2).Info("sort debug",
+			"aPlayer", a.GetCtx().PlayerID,
+			"bPlayer", b.GetCtx().PlayerID,
+			"aSpeed", aSpeed,
+			"bSpeed", bSpeed,
+			"aPriority", aPriority,
+			"bPriority", bPriority,
+			"comp", cmp.Compare(aSpeed, bSpeed),
+			"compPriority", cmp.Compare(aPriority, bPriority),
+		)
 
 		priorComp := cmp.Compare(aPriority, bPriority)
 		speedComp := cmp.Compare(aSpeed, bSpeed)
@@ -99,11 +98,12 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 		case AttackAction, *AttackAction, SkipAction, *SkipAction:
 			player := gameState.GetPlayer(a.GetCtx().PlayerID)
 
-			log.Info().Int("attackIndex", i).
-				Int("attackerSpeed", player.GetActivePokemon().Speed(gameState.Weather)).
-				Int("attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue()).
-				Int("attackerConfCount", player.GetActivePokemon().ConfusionCount).
-				Msg("Attack state update")
+			internalLogger.V(2).Info("attack state update",
+				"attackIndex", i,
+				"attackerSpeed", player.GetActivePokemon().Speed(gameState.Weather),
+				"attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue(),
+				"attackerConfCount", player.GetActivePokemon().ConfusionCount,
+			)
 
 			pokemon := player.GetActivePokemon()
 			if pokemon.CanAttackThisTurn {
@@ -121,7 +121,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				log.Info().Msgf("%s attack was skipped because of para", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of para", "pokemon_name", pokemon.Nickname)
 
 				events = append(events, paraEvent)
 				return
@@ -134,7 +134,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				log.Info().Msgf("%s attack was skipped because of sleep", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of sleep", "pokemon_name", pokemon.Nickname)
 
 				events = append(events, sleepEv)
 				return
@@ -147,7 +147,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				log.Info().Msgf("%s attack was skipped because of freeze", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of freeze", "pokemon_name", pokemon.Nickname)
 
 				events = append(events, frzEv)
 				return
@@ -160,7 +160,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				log.Info().Msgf("%s attack was skipped because of confusion", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of confusion", "pokemon_name", pokemon.Nickname)
 
 				events = append(events, confusionEv)
 				return
@@ -169,9 +169,9 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				events = append(events, a.UpdateState(gameState)...)
 			} else if !pokemon.Alive() {
-				log.Info().Msgf("%s attack was skipped because of dead", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of dead", "pokemon_name", pokemon.Nickname)
 			} else if !pokemon.CanAttackThisTurn {
-				log.Info().Msgf("%s attack was skipped because it was marked as unable to attack for the turn", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because it was marked as unable to attack for the turn", "pokemon_name", pokemon.Nickname)
 			}
 		default:
 			events = append(events, a.UpdateState(gameState)...)

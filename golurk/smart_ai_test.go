@@ -13,13 +13,13 @@ func mustNotBeNil[T any](value *T) T {
 }
 
 func TestAttackMove(t *testing.T) {
-	playerPokemon := NewPokeBuilder(internalData.GetPokemonByName("Bulbasaur"), internalRng).Build()
-	aiPokemon := NewPokeBuilder(internalData.GetPokemonByName("Charizard"), internalRng).Build()
+	playerPokemon := NewPokeBuilder(GlobalData.GetPokemonByName("Bulbasaur"), internalRng).Build()
+	aiPokemon := NewPokeBuilder(GlobalData.GetPokemonByName("Charizard"), internalRng).Build()
 
-	aiPokemon.Moves[0] = mustNotBeNil(internalData.GetMove("tackle"))
-	aiPokemon.Moves[1] = mustNotBeNil(internalData.GetMove("ember"))
-	aiPokemon.Moves[2] = mustNotBeNil(internalData.GetMove("tail-whip"))
-	aiPokemon.Moves[3] = mustNotBeNil(internalData.GetMove("scary-face"))
+	aiPokemon.Moves[0] = mustNotBeNil(GlobalData.GetMove("tackle"))
+	aiPokemon.Moves[1] = mustNotBeNil(GlobalData.GetMove("ember"))
+	aiPokemon.Moves[2] = mustNotBeNil(GlobalData.GetMove("tail-whip"))
+	aiPokemon.Moves[3] = mustNotBeNil(GlobalData.GetMove("scary-face"))
 
 	// do go tests run in parallel and are RNG impls thread-safe. asking for a friend
 	gameState := NewState([]Pokemon{playerPokemon}, []Pokemon{aiPokemon}, internalSeed)
@@ -32,13 +32,13 @@ func TestAttackMove(t *testing.T) {
 }
 
 func TestSlowMove(t *testing.T) {
-	playerPokemon := NewPokeBuilder(internalData.GetPokemonByName("Bulbasaur"), internalRng).SetIvs([6]uint{0, 0, 0, 0, 0, 252}).Build()
-	aiPokemon := NewPokeBuilder(internalData.GetPokemonByName("Charmander"), internalRng).Build()
+	playerPokemon := NewPokeBuilder(GlobalData.GetPokemonByName("Bulbasaur"), internalRng).SetIvs([6]uint{0, 0, 0, 0, 0, 252}).Build()
+	aiPokemon := NewPokeBuilder(GlobalData.GetPokemonByName("Charmander"), internalRng).Build()
 
-	aiPokemon.Moves[0] = mustNotBeNil(internalData.GetMove("tackle"))
-	aiPokemon.Moves[1] = mustNotBeNil(internalData.GetMove("ember"))
-	aiPokemon.Moves[2] = mustNotBeNil(internalData.GetMove("tail-whip"))
-	aiPokemon.Moves[3] = mustNotBeNil(internalData.GetMove("scary-face"))
+	aiPokemon.Moves[0] = mustNotBeNil(GlobalData.GetMove("tackle"))
+	aiPokemon.Moves[1] = mustNotBeNil(GlobalData.GetMove("ember"))
+	aiPokemon.Moves[2] = mustNotBeNil(GlobalData.GetMove("tail-whip"))
+	aiPokemon.Moves[3] = mustNotBeNil(GlobalData.GetMove("scary-face"))
 
 	gameState := NewState([]Pokemon{playerPokemon}, []Pokemon{aiPokemon}, CreateRandomStateSeed())
 

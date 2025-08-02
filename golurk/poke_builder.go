@@ -4,14 +4,12 @@ import (
 	"math"
 	"math/rand/v2"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/go-logr/logr"
 	"github.com/samber/lo"
 )
 
-var builderLogger = func() *zerolog.Logger {
-	logger := log.With().Str("location", "pokemon-builder").Logger()
-	return &logger
+var builderLogger = func() logr.Logger {
+	return internalLogger.WithName("pokemon_builder")
 }
 
 type PokemonBuilder struct {
@@ -44,13 +42,13 @@ func (pb *PokemonBuilder) SetEvs(evs [6]uint) *PokemonBuilder {
 	pb.poke.SpDef.Ev = evs[4]
 	pb.poke.RawSpeed.Ev = evs[5]
 
-	builderLogger().Debug().
-		Uint("HP", evs[0]).
-		Uint("ATTACK", evs[1]).
-		Uint("DEF", evs[2]).
-		Uint("SPATTACK", evs[3]).
-		Uint("SPDEF", evs[4]).
-		Uint("SPEED", evs[5]).Msg("Setting EVs")
+	builderLogger().Info("setting evs",
+		"HP", evs[0],
+		"ATTACK", evs[1],
+		"DEF", evs[2],
+		"SPATTACK", evs[3],
+		"SPDEF", evs[4],
+		"SPEED", evs[5])
 
 	return pb
 }
@@ -63,13 +61,13 @@ func (pb *PokemonBuilder) SetIvs(ivs [6]uint) *PokemonBuilder {
 	pb.poke.SpDef.Iv = ivs[4]
 	pb.poke.RawSpeed.Iv = ivs[5]
 
-	builderLogger().Debug().
-		Uint("HP", ivs[0]).
-		Uint("ATTACK", ivs[1]).
-		Uint("DEF", ivs[2]).
-		Uint("SPATTACK", ivs[3]).
-		Uint("SPDEF", ivs[4]).
-		Uint("SPEED", ivs[5]).Msg("Setting IVs")
+	builderLogger().Info("setting ivs",
+		"HP", ivs[0],
+		"ATTACK", ivs[1],
+		"DEF", ivs[2],
+		"SPATTACK", ivs[3],
+		"SPDEF", ivs[4],
+		"SPEED", ivs[5])
 
 	return pb
 }
@@ -82,7 +80,7 @@ func (pb *PokemonBuilder) SetPerfectIvs() *PokemonBuilder {
 	pb.poke.SpDef.Iv = MAX_IV
 	pb.poke.RawSpeed.Iv = MAX_IV
 
-	builderLogger().Debug().Msg("Setting Perfect IVS")
+	builderLogger().Info("setting perfect IVS")
 
 	return pb
 }
@@ -95,7 +93,7 @@ func (pb *PokemonBuilder) SetRandomIvs() *PokemonBuilder {
 		ivs[i] = iv
 	}
 
-	builderLogger().Debug().Msg("Setting Random IVs")
+	builderLogger().Info("setting random IVs")
 	pb.SetIvs(ivs)
 
 	return pb
@@ -126,10 +124,10 @@ func (pb *PokemonBuilder) SetRandomEvs() *PokemonBuilder {
 		evPool -= int(randomEv)
 	}
 
-	builderLogger().Debug().Msg("Setting Random EVs")
+	builderLogger().Info("setting random EVs")
 	pb.SetEvs(evs)
 
-	builderLogger().Debug().Msgf("EV Total: %d", pb.poke.GetCurrentEvTotal())
+	builderLogger().Info("EV Total", "total", pb.poke.GetCurrentEvTotal())
 	return pb
 }
 
@@ -162,7 +160,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 	var moves [4]Move
 
 	if len(possibleMoves) == 0 {
-		builderLogger().Warn().Msg("This Pokemon was given no available moves to randomize with!")
+		builderLogger().Info("This Pokemon was given no available moves to randomize with!", "pokemon_name", pb.poke.Nickname)
 		return pb
 	}
 
@@ -170,12 +168,6 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 		move := possibleMoves[pb.rng.IntN(len(possibleMoves))]
 		moves[i] = move
 	}
-
-	moveNames := lo.Map(moves[:], func(move Move, _ int) string {
-		return move.Name
-	})
-
-	builderLogger().Debug().Strs("Moves", moveNames)
 
 	pb.poke.Moves = moves
 
@@ -185,7 +177,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *PokemonBuilder {
 	abilityCount := len(possibleAbilities)
 	if abilityCount == 0 {
-		builderLogger().Warn().Msg("This Pokemon was given no available abilities to randomize with!")
+		builderLogger().Info("This Pokemon was given no available abilities to randomize with!", "pokemon_name", pb.poke.Nickname)
 		return pb
 	}
 
@@ -212,6 +204,5 @@ func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *Pokemon
 
 func (pb *PokemonBuilder) Build() Pokemon {
 	pb.poke.ReCalcStats()
-	builderLogger().Debug().Msg("Building pokemon")
 	return pb.poke
 }

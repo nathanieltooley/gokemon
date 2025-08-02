@@ -3,8 +3,6 @@ package golurk
 import (
 	"math/rand/v2"
 	"slices"
-
-	"github.com/rs/zerolog/log"
 )
 
 // plus 1 because Go has made very stupid design decisions
@@ -51,7 +49,7 @@ type Player struct {
 func (p Player) Lost() bool {
 	for _, pokemon := range p.Team {
 		if pokemon.Alive() {
-			log.Debug().Msgf("%s hasn't lost yet, still has pokemon: %s", p.Name, pokemon.Nickname)
+			internalLogger.V(2).Info("Player hasn't lost yet", "player_name", p.Name, "alive_pokemon_name", pokemon.Nickname)
 			return false
 		}
 	}
@@ -84,12 +82,10 @@ func (g *GameState) GameOver() int {
 	peerLoss := g.ClientPlayer.Lost()
 
 	if hostLoss {
-		log.Info().Msg("HOST/Player lost")
 		return HOST
 	}
 
 	if peerLoss {
-		log.Info().Msg("PEER/AI lost")
 		return PEER
 	}
 
