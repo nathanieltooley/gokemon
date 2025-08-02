@@ -1,21 +1,15 @@
 package tests
 
 import (
-	"os"
 	"testing"
 
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/game/state"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/rs/zerolog"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-func init() {
-	global.GlobalInit(os.DirFS("../"), false)
-	global.UpdateLogLevel(zerolog.DebugLevel)
-}
+var (
+	testingSeed = golurk.CreateRandomStateSeed()
+	testingRng  = golurk.CreateRNG(&testingSeed)
+)
 
 // NOTE: Most ability tests will directly set the ability on a pokemon (probably bulbasaur) rather than choosing a pokemon
 // with that ability for the simple fact that it really doesn't matter. However it may change if for some reason it's important to the ability
@@ -24,9 +18,9 @@ func TestDrizzle(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
-	if gameState.Weather != core.WEATHER_RAIN {
+	if gameState.Weather != golurk.WEATHER_RAIN {
 		t.Fatalf("Expected weather to be rain: got %d", gameState.Weather)
 	}
 }
@@ -41,7 +35,7 @@ func TestSpeedBoost(t *testing.T) {
 		t.Fatal("test pokemon has started with incorrect speed stage")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 
 	pokemonSpeedStage := gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -54,7 +48,7 @@ func TestSpeedBoost(t *testing.T) {
 	}
 
 	// Test that pokemon that switch in do not get the speed boost
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
 	pokemonSpeedStage = gameState.HostPlayer.GetActivePokemon().RawSpeed.Stage
 	if pokemonSpeedStage != 1 {
@@ -64,13 +58,13 @@ func TestSpeedBoost(t *testing.T) {
 
 func TestSturdy(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("sturdy")
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("charizard")).SetLevel(100).SetPerfectIvs().Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("charizard"), testingRng).SetLevel(100).SetPerfectIvs().Build()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("ember")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.AI, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
 
 	if gameState.HostPlayer.GetActivePokemon().Hp.Value != 1 {
 		t.Fatalf("pokemon should survive with 1 hp because of sturdy, got %d", pokemon.Hp.Value)
@@ -81,11 +75,11 @@ func TestDamp(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("damp")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("self-destruct")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("self-destruct")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
@@ -98,13 +92,12 @@ func TestLimber(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("limber")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
-
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("nuzzle")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
-	if gameState.HostPlayer.GetActivePokemon().Status == core.STATUS_PARA {
+	if gameState.HostPlayer.GetActivePokemon().Status == golurk.STATUS_PARA {
 		t.Fatal("pokemon with limber was paralyzed")
 	}
 }
@@ -114,9 +107,9 @@ func TestSandVeilSandstormDamage(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	gameState.Weather = core.WEATHER_SANDSTORM
+	gameState.Weather = golurk.WEATHER_SANDSTORM
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -128,11 +121,10 @@ func TestVoltAbsorb(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("volt-absorb")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spark")
-
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("spark")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -141,7 +133,7 @@ func TestVoltAbsorb(t *testing.T) {
 
 	pokemon.DamagePerc(.25)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -154,11 +146,10 @@ func TestWaterAbsorb(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("water-absorb")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("bubble")
-
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("bubble")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -167,7 +158,7 @@ func TestWaterAbsorb(t *testing.T) {
 
 	pokemon.DamagePerc(.25)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -180,15 +171,14 @@ func TestInsomnia(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("insomnia")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spore")
-
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("spore")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status == core.STATUS_SLEEP {
+	if pokemon.Status == golurk.STATUS_SLEEP {
 		t.Fatalf("pokemon with insomnia fell asleep")
 	}
 }
@@ -197,16 +187,16 @@ func TestImmunity(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("immunity")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("toxic")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("toxic")
 	enemyPokemon.Moves[0].Accuracy = 100
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status == core.STATUS_POISON || pokemon.Status == core.STATUS_TOXIC {
+	if pokemon.Status == golurk.STATUS_POISON || pokemon.Status == golurk.STATUS_TOXIC {
 		t.Fatalf("pokemon with immunity was poisoned")
 	}
 }
@@ -215,11 +205,10 @@ func TestFlashFireImmunity(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("flash-fire")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("flamethrower")
-
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("flamethrower")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -229,16 +218,16 @@ func TestFlashFireImmunity(t *testing.T) {
 }
 
 func TestFlashFire(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("vulpix")).SetPerfectIvs().SetLevel(100).Build()
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("vulpix"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
 	pokemon.Ability.Name = "flash-fire"
-	pokemon.Moves[0] = *global.MOVES.GetMove("ember")
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("ember")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("ember")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("ember")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -246,7 +235,7 @@ func TestFlashFire(t *testing.T) {
 		t.Fatalf("pokemon with flash-fire took fire-type damage: hp %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 108, 128)
 }
@@ -257,7 +246,7 @@ func TestIntimidate(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
 	intimidatedPokemon := gameState.ClientPlayer.GetActivePokemon()
 
@@ -270,11 +259,11 @@ func TestOwnTempo(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("intimidate")
 	enemyPokemon := getDummyPokemonWithAbility("own-tempo")
 
-	pokemon.Moves[0] = *global.MOVES.GetMove("teeter-dance")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("teeter-dance")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
 	ownTempoPokemon := gameState.ClientPlayer.GetActivePokemon()
 
@@ -282,7 +271,7 @@ func TestOwnTempo(t *testing.T) {
 		t.Fatalf("own-tempo pokemon was intimidated: attack stage = %d", ownTempoPokemon.Attack.Stage)
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
 
 	ownTempoPokemon = gameState.ClientPlayer.GetActivePokemon()
 
@@ -296,10 +285,10 @@ func TestSuctionCups(t *testing.T) {
 	pokemon2 := getDummyPokemon()
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("roar")
-	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("roar")
+	gameState := golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon}, golurk.CreateRandomStateSeed())
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	activeIndex := gameState.HostPlayer.ActivePokeIndex
 	if activeIndex != 0 {
@@ -308,31 +297,31 @@ func TestSuctionCups(t *testing.T) {
 }
 
 func TestWonderGuard(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(5).SetPerfectIvs().Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(5).SetPerfectIvs().Build()
 	pokemon.Ability.Name = "wonder-guard"
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
-	enemyPokemon.Moves[1] = *global.MOVES.GetMove("water-gun")
-	enemyPokemon.Moves[2] = *global.MOVES.GetMove("ember")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
+	enemyPokemon.Moves[1] = *golurk.GlobalData.GetMove("water-gun")
+	enemyPokemon.Moves[2] = *golurk.GlobalData.GetMove("ember")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
 		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 1)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
 		t.Fatalf("pokemon with wonder guard took damage from non-super effective move. hp: %d/%d", pokemon.Hp.Value, pokemon.MaxHp)
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 2)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 2)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value == pokemon.MaxHp {
@@ -344,11 +333,11 @@ func TestLevitate(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("levitate")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("earthquake")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("earthquake")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -357,25 +346,25 @@ func TestLevitate(t *testing.T) {
 }
 
 func TestHugePower(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	pokemon.Ability.Name = "huge-power"
-	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 58, 69)
 }
 
 func TestPurePower(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	pokemon.Ability.Name = "pure-power"
-	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackel")
 
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 58, 69)
 }
@@ -384,15 +373,15 @@ func TestVitalSpirit(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("vital-spirit")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("spore")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("spore")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status == core.STATUS_SLEEP {
+	if pokemon.Status == golurk.STATUS_SLEEP {
 		t.Fatalf("pokemon with vital spirit fell asleep")
 	}
 }
@@ -401,50 +390,50 @@ func TestWaterVeil(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("water-veil")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("will-o-wisp")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("will-o-wisp")
 	enemyPokemon.Moves[0].Accuracy = 100
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status == core.STATUS_BURN {
+	if pokemon.Status == golurk.STATUS_BURN {
 		t.Fatalf("pokemon with water-veil burned")
 	}
 }
 
 func TestThickFat(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
 	pokemon.Ability.Name = "thick-fat"
 
-	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("flamethrower"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("flamethrower"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 66, 78)
 
-	damage = stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("blizzard"), false, core.WEATHER_NONE, global.GokeRand)
+	damage = golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("blizzard"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 80, 96)
 }
 
 func TestChloro(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	pokemon.Ability.Name = "chlorophyll"
 
-	if pokemon.Speed(core.WEATHER_SUN) != 252 {
-		t.Fatalf("pokemon with chlorophyll has the incorrect speed: %d", pokemon.Speed(core.WEATHER_SUN))
+	if pokemon.Speed(golurk.WEATHER_SUN) != 252 {
+		t.Fatalf("pokemon with chlorophyll has the incorrect speed: %d", pokemon.Speed(golurk.WEATHER_SUN))
 	}
 }
 
 func TestSwiftSwim(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	pokemon.Ability.Name = "swift-swim"
 
-	if pokemon.Speed(core.WEATHER_RAIN) != 252 {
-		t.Fatalf("pokemon with swift-swim has the incorrect speed: %d", pokemon.Speed(core.WEATHER_RAIN))
+	if pokemon.Speed(golurk.WEATHER_RAIN) != 252 {
+		t.Fatalf("pokemon with swift-swim has the incorrect speed: %d", pokemon.Speed(golurk.WEATHER_RAIN))
 	}
 }
 
@@ -452,7 +441,7 @@ func TestMagmaArmor(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("magma-armor")
 	enemyPokemon := getDummyPokemon()
 
-	modIceBeam := *global.MOVES.GetMove("ice-beam")
+	modIceBeam := *golurk.GlobalData.GetMove("ice-beam")
 	modIceBeam.Meta.AilmentChance = 100
 	modIceBeam.EffectChance = 100
 
@@ -460,11 +449,11 @@ func TestMagmaArmor(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status == core.STATUS_FROZEN {
+	if pokemon.Status == golurk.STATUS_FROZEN {
 		t.Fatalf("pokemon with magma armor froze")
 	}
 }
@@ -473,11 +462,11 @@ func TestLightningRod(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("lightning-rod")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("thunderbolt")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("thunderbolt")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -494,13 +483,13 @@ func TestPressure(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("pressure")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
 	startingPP := enemyPokemon.Moves[0].PP
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	endingPP := gameState.ClientPlayer.GetActivePokemon().InGameMoveInfo[0].PP
 	if endingPP != (startingPP - 2) {
@@ -514,9 +503,9 @@ func TestSandStream(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
-	if gameState.Weather != core.WEATHER_SANDSTORM {
+	if gameState.Weather != golurk.WEATHER_SANDSTORM {
 		t.Fatalf("pokemon with sand-stream did not setup sandstorm weather")
 	}
 }
@@ -527,9 +516,9 @@ func TestDrought(t *testing.T) {
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
-	if gameState.Weather != core.WEATHER_SUN {
+	if gameState.Weather != golurk.WEATHER_SUN {
 		t.Fatalf("pokemon with drought did not setup harsh sunlight")
 	}
 }
@@ -540,9 +529,9 @@ func TestRainDish(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	gameState.Weather = core.WEATHER_RAIN
+	gameState.Weather = golurk.WEATHER_RAIN
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != 2 {
@@ -554,16 +543,16 @@ func TestKeenEye(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("keen-eye")
 	enemyPokemon := getDummyPokemon()
 
-	sattack := *global.MOVES.GetMove("sand-attack")
+	sattack := *golurk.GlobalData.GetMove("sand-attack")
 	sattack.Accuracy = 100
 	enemyPokemon.Moves[0] = sattack
 
-	posSAttack := *global.MOVES.GetMove("sand-attack")
-	posSAttack.StatChanges = []core.StatChange{{Change: 1, StatName: core.STAT_ACCURACY}}
+	posSAttack := *golurk.GlobalData.GetMove("sand-attack")
+	posSAttack.StatChanges = []golurk.StatChange{{Change: 1, StatName: golurk.STAT_ACCURACY}}
 	pokemon.Moves[0] = posSAttack
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0), stateCore.NewAttackAction(stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0), golurk.NewAttackAction(golurk.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.AccuracyStage < 0 {
@@ -577,9 +566,9 @@ func TestRockHead(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("rock-head")
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.Moves[0] = *global.MOVES.GetMove("double-edge")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("double-edge")
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -591,16 +580,16 @@ func TestInnerFocus(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("inner-focus")
 	enemyPokemon := getDummyPokemonWithAbility("intimidate")
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("fake-out")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("fake-out")
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.PEER, 0)}))
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Attack.Stage != 0 {
 		t.Fatalf("pokemon with inner focus was intimidated")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if !pokemon.CanAttackThisTurn {
@@ -609,38 +598,38 @@ func TestInnerFocus(t *testing.T) {
 }
 
 func TestHustleBoost(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 	pokemon.Ability.Name = "hustle"
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 44, 52)
 }
 
 func TestMarvelScale(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 	pokemon.Ability.Name = "marvel-scale"
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
-	pokemon.Status = core.STATUS_PARA
-	damageStatus := stateCore.Damage(enemyPokemon, pokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
+	pokemon.Status = golurk.STATUS_PARA
+	damageStatus := golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 29, 35)
 	checkDamageRange(t, damageStatus, 20, 24)
 }
 
 func TestGuts(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 	pokemon.Ability.Name = "guts"
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByPokedex(1)).SetLevel(100).SetPerfectIvs().Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetLevel(100).SetPerfectIvs().Build()
 
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
-	pokemon.Status = core.STATUS_PARA
-	damageStatus := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
-	pokemon.Status = core.STATUS_BURN
-	damageBurn := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
+	pokemon.Status = golurk.STATUS_PARA
+	damageStatus := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
+	pokemon.Status = golurk.STATUS_BURN
+	damageBurn := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, testingRng)
 
 	checkDamageRange(t, damage, 29, 35)
 	checkDamageRange(t, damageStatus, 44, 52)
@@ -651,12 +640,12 @@ func TestNaturalCure(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("natural-cure")
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.Status = core.STATUS_BURN
+	pokemon.Status = golurk.STATUS_BURN
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
-	if pokemon.Status != core.STATUS_NONE {
+	if pokemon.Status != golurk.STATUS_NONE {
 		t.Fatalf("pokemon with natural cure did not cure it's status (naturally)")
 	}
 }
@@ -666,7 +655,7 @@ func TestTrace(t *testing.T) {
 	enemyPokemon := getDummyPokemonWithAbility("huge-power")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Ability.Name != "huge-power" {
@@ -678,11 +667,11 @@ func TestTruant(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("truant")
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
-	pokemon.Moves[1] = *global.MOVES.GetMove("protect")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
+	pokemon.Moves[1] = *golurk.GlobalData.GetMove("protect")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
@@ -690,7 +679,7 @@ func TestTruant(t *testing.T) {
 		t.Fatalf("truant should only activate after the pokemon attacks with a move")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 1)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 1)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
@@ -703,7 +692,7 @@ func TestTruant(t *testing.T) {
 		t.Fatalf("pokemon took damage from protect")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
 
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
 	if enemyPokemon.Hp.Value < enemyPokemon.MaxHp {
@@ -715,12 +704,12 @@ func TestWhiteSmokeClearBody(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("white-smoke")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("leer")
-	pokemon.Moves[0] = *global.MOVES.GetMove("swords-dance")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("leer")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("swords-dance")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0), stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0), golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Def.Stage != 0 {
@@ -733,7 +722,7 @@ func TestWhiteSmokeClearBody(t *testing.T) {
 
 	pokemon.Ability.Name = "clear-body"
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.HOST, 0), stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0), golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Def.Stage != 0 {
@@ -749,23 +738,23 @@ func TestHyperCutter(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("hyper-cutter")
 	enemyPokemon := getDummyPokemon()
 
-	modLeer := global.MOVES.GetMove("leer")
-	modLeer.StatChanges = []core.StatChange{{Change: -1, StatName: core.STAT_ATTACK}}
+	modLeer := golurk.GlobalData.GetMove("leer")
+	modLeer.StatChanges = []golurk.StatChange{{Change: -1, StatName: golurk.STAT_ATTACK}}
 	modLeer.EffectChance = 100
 
 	enemyPokemon.Moves[0] = *modLeer
-	enemyPokemon.Moves[1] = *global.MOVES.GetMove("leer")
+	enemyPokemon.Moves[1] = *golurk.GlobalData.GetMove("leer")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Attack.Stage < 0 {
 		t.Fatalf("pokemon with hyper cutter had it's attack lowered")
 	}
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 1)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 1)}))
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 
 	if pokemon.Def.Stage != -1 {
@@ -777,15 +766,15 @@ func TestSynch(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("synchronize")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("nuzzle")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("nuzzle")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
 
-	if pokemon.Status != enemyPokemon.Status && pokemon.Status == core.STATUS_PARA {
+	if pokemon.Status != enemyPokemon.Status && pokemon.Status == golurk.STATUS_PARA {
 		t.Fatalf("pokemon with synchronize did not sync statuses")
 	}
 }
@@ -794,12 +783,12 @@ func TestLiquidOoze(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("liquid-ooze")
 	enemyPokemon := getDummyPokemon()
 
-	drainMove := *global.MOVES.GetMove("tackle")
+	drainMove := *golurk.GlobalData.GetMove("tackle")
 	drainMove.Meta.Drain = 50
 	enemyPokemon.Moves[0] = drainMove
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
 	if enemyPokemon.Hp.Value == enemyPokemon.MaxHp {
@@ -811,9 +800,9 @@ func TestSoundproof(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("soundproof")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("hyper-voice")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("hyper-voice")
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {
@@ -825,12 +814,12 @@ func TestColorChange(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("color-change")
 	enemyPokemon := getDummyPokemon()
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
-	if pokemon.BattleType.Name != core.TYPENAME_NORMAL {
+	if pokemon.BattleType.Name != golurk.TYPENAME_NORMAL {
 		t.Fatalf("pokemon with color change did not change it's type to the attack type of NORMAL")
 	}
 }
@@ -840,11 +829,11 @@ func TestForecast(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	gameState.Weather = core.WEATHER_RAIN
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 0)}))
+	gameState.Weather = golurk.WEATHER_RAIN
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
-	if pokemon.BattleType == nil || pokemon.BattleType.Name != core.TYPENAME_WATER {
+	if pokemon.BattleType == nil || pokemon.BattleType.Name != golurk.TYPENAME_WATER {
 		t.Fatalf("pokemon with forecast did not change type")
 	}
 }
@@ -854,8 +843,8 @@ func TestTrap(t *testing.T) {
 	pokemon2 := getDummyPokemon()
 	enemyPokemon := getDummyPokemonWithAbility("shadow-tag")
 
-	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+	gameState := golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon}, testingSeed)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
 
 	if gameState.HostPlayer.ActivePokeIndex == 1 {
 		t.Fatalf("pokemon was able to switch against shadow-tag")
@@ -863,8 +852,8 @@ func TestTrap(t *testing.T) {
 
 	enemyPokemon2 := getDummyPokemonWithAbility("arena-trap")
 
-	gameState = state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon2}, stateCore.CreateRandomStateSeed())
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+	gameState = golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon2}, testingSeed)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
 
 	if gameState.HostPlayer.ActivePokeIndex == 1 {
 		t.Fatalf("pokemon was able to switch against arena-trap")
@@ -872,19 +861,19 @@ func TestTrap(t *testing.T) {
 }
 
 func TestMagPull(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("magneton")).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("magneton"), testingRng).Build()
 	pokemon2 := getDummyPokemon()
 	enemyPokemon := getDummyPokemonWithAbility("magnet-pull")
 
-	gameState := state.NewState([]core.Pokemon{pokemon, pokemon2}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+	gameState := golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon}, testingSeed)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
 
 	if gameState.HostPlayer.ActivePokeIndex == 1 {
 		t.Fatalf("steel-type was able to switch against magnet-pull")
 	}
 
-	gameState = state.NewState([]core.Pokemon{pokemon2, pokemon}, []core.Pokemon{enemyPokemon}, stateCore.CreateRandomStateSeed())
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewSwitchAction(&gameState, stateCore.HOST, 1)}))
+	gameState = golurk.NewState([]golurk.Pokemon{pokemon2, pokemon}, []golurk.Pokemon{enemyPokemon}, testingSeed)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
 
 	if gameState.HostPlayer.ActivePokeIndex != 1 {
 		t.Fatalf("non-steel-type could not switch against magnet-pull")
