@@ -513,7 +513,7 @@ func singleplayerHandler(gameState *golurk.GameState, playerAction golurk.Action
 		playerAction = golurk.SkipAction{}
 	}
 
-	return golurk.ProcessTurn(gameState, []golurk.Action{playerAction, aiAction})
+	return networking.TurnResolveMessage{Result: golurk.ProcessTurn(gameState, []golurk.Action{playerAction, aiAction})}
 }
 
 func clientNetworkHandler(netInfo networking.NetReaderInfo, action golurk.Action) tea.Msg {
