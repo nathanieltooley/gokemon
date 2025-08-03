@@ -7,8 +7,13 @@ import (
 	"github.com/nathanieltooley/gokemon/golurk"
 )
 
+var (
+	testingSeed = golurk.CreateRandomStateSeed()
+	testingRng  = golurk.CreateRNG(&testingSeed)
+)
+
 func getDummyPokemon() golurk.Pokemon {
-	return golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1)).Build()
+	return golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).Build()
 }
 
 func getDummyPokemonWithAbility(ability string) golurk.Pokemon {

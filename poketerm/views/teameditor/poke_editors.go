@@ -12,7 +12,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/nathanieltooley/gokemon/golurk"
-	"github.com/nathanieltooley/gokemon/poketerm/global"
 	"github.com/nathanieltooley/gokemon/poketerm/rendering"
 	"github.com/samber/lo"
 )
@@ -435,13 +434,13 @@ type moveEditor struct {
 }
 
 type moveItem struct {
-	*golurk.Move
+	golurk.Move
 }
 
 func (i moveItem) FilterValue() string { return i.Name }
 func (i moveItem) Value() string       { return i.Name }
 
-func newMoveEditor(pokemon golurk.Pokemon, validMoves []*golurk.Move) moveEditor {
+func newMoveEditor(pokemon golurk.Pokemon, validMoves []golurk.Move) moveEditor {
 	startingMoves := pokemon.Moves
 	var lists [4]list.Model
 
@@ -467,8 +466,8 @@ func newMoveEditor(pokemon golurk.Pokemon, validMoves []*golurk.Move) moveEditor
 	}
 
 	return moveEditor{
-		validMoves: lo.Map(validMoves, func(m *golurk.Move, _ int) golurk.Move {
-			return *m
+		validMoves: lo.Map(validMoves, func(m golurk.Move, _ int) golurk.Move {
+			return m
 		}),
 		moveIndex:     0,
 		selectedMoves: startingMoves,
@@ -519,9 +518,9 @@ func (e moveEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, te
 			currentList := e.lists[e.moveIndex]
 			choice := currentList.VisibleItems()[currentList.Index()].(moveItem)
 
-			e.selectedMoves[e.moveIndex] = *choice.Move
+			e.selectedMoves[e.moveIndex] = choice.Move
 			// Update the actual pokemon as well
-			rootModel.currentPokemon.Moves[e.moveIndex] = *choice.Move
+			rootModel.currentPokemon.Moves[e.moveIndex] = choice.Move
 
 			e.moveIndex++
 
@@ -598,7 +597,7 @@ func (i itemItem) FilterValue() string { return string(i) }
 func (i itemItem) Value() string       { return string(i) }
 
 func newItemEditor() itemEditor {
-	validItems := global.ITEMS
+	validItems := golurk.GlobalData.Items
 	items := make([]list.Item, len(validItems))
 	for i, item := range validItems {
 		items[i] = itemItem(item)

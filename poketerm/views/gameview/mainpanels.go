@@ -178,7 +178,7 @@ func (m playerPanel) View() string {
 	timerView := ""
 
 	if m.gameState.Networked {
-		timerView = fmt.Sprintf("Timer: %s", golurk.GetTimerString(*m.timer))
+		timerView = fmt.Sprintf("Timer: %s", getTimerString(*m.timer))
 	}
 
 	return playerPanelStyle.Render(lipgloss.JoinVertical(lipgloss.Center, m.name, timerView, pokeInfo))
@@ -466,4 +466,19 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type clearTextMsg struct {
 	time.Time
+}
+
+func getTimerString(timer int64) string {
+	timerInSeconds := timer / int64(global.GameTicksPerSecond)
+	minutes := timerInSeconds / 60
+	seconds := timerInSeconds % 60
+
+	// there could be a way to do this using a format string
+	// but this is easier
+	secondsString := fmt.Sprint(seconds)
+	if seconds < 10 {
+		secondsString = "0" + secondsString
+	}
+
+	return fmt.Sprintf("%d:%s", minutes, secondsString)
 }

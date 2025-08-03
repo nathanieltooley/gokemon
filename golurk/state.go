@@ -84,18 +84,3 @@ func NewState(localTeam []Pokemon, opposingTeam []Pokemon, seed rand.PCG) GameSt
 		RngSource:    seed,
 	}
 }
-
-// func GetTimerString(timer int64) string {
-// 	timerInSeconds := timer / int64(global.GameTicksPerSecond)
-// 	minutes := timerInSeconds / 60
-// 	seconds := timerInSeconds % 60
-//
-// 	// there could be a way to do this using a format string
-// 	// but this is easier
-// 	secondsString := fmt.Sprint(seconds)
-// 	if seconds < 10 {
-// 		secondsString = "0" + secondsString
-// 	}
-//
-// 	return fmt.Sprintf("%d:%s", minutes, secondsString)
-// }

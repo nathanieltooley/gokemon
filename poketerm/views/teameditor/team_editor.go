@@ -181,7 +181,7 @@ func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, enterPokeEditor) {
 			if m.addingNewPokemon {
 				if m.choice != nil && len(m.ctx.team) < 6 {
-					newPokemon := golurk.NewPokeBuilder(m.choice).
+					newPokemon := golurk.NewPokeBuilder(m.choice, global.GokeRand).
 						SetLevel(100).
 						SetRandomAbility(golurk.GlobalData.GetPokemonAbilities(m.choice.Name)).
 						SetPerfectIvs().

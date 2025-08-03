@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
-	"github.com/nathanieltooley/gokemon/client/networking"
+	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/networking"
 )
 
 func TestEncodeDecodeEvents(t *testing.T) {
-	events := []stateCore.StateEvent{stateCore.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, stateCore.AttackEvent{AttackerID: 20, MoveID: 30}}
+	events := []golurk.StateEvent{golurk.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, golurk.AttackEvent{AttackerID: 20, MoveID: 30}}
 	es := networking.EventSlice{Events: events}
 
 	encodeBuf := bytes.Buffer{}
@@ -29,5 +29,27 @@ func TestEncodeDecodeEvents(t *testing.T) {
 
 	if !reflect.DeepEqual(es, newEs) {
 		t.Fatalf("start and end EventSlice values are not equal: %+v != %+v", es, newEs)
+	}
+}
+
+func TestEncodeDecodeResolveMessage(t *testing.T) {
+	events := []golurk.StateEvent{golurk.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, golurk.AttackEvent{AttackerID: 20, MoveID: 30}}
+	msg := networking.TurnResolveMessage{Result: golurk.TurnResult{Kind: 3, ForThisPlayer: true, Events: events}}
+
+	encodeBuf := bytes.Buffer{}
+	encoder := gob.NewEncoder(&encodeBuf)
+	if err := encoder.Encode(msg); err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	decoder := gob.NewDecoder(&encodeBuf)
+	newMsg := networking.TurnResolveMessage{}
+
+	if err := decoder.Decode(&newMsg); err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	if !reflect.DeepEqual(msg, newMsg) {
+		t.Fatalf("start and end EventSlice values are not equal: %+v != %+v", msg, newMsg)
 	}
 }

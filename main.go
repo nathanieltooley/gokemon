@@ -4,8 +4,8 @@ import (
 	"embed"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/global"
-	"github.com/nathanieltooley/gokemon/client/views/mainmenu"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
+	"github.com/nathanieltooley/gokemon/poketerm/views/mainmenu"
 	"github.com/rs/zerolog/log"
 )
 

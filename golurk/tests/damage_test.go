@@ -2,29 +2,23 @@ package tests
 
 import (
 	"math"
+	"math/rand/v2"
 	"testing"
 
-	"github.com/nathanieltooley/gokemon/client/game"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/client/game/state"
-	"github.com/nathanieltooley/gokemon/client/global"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/rs/zerolog/log"
-
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
 )
 
 const iterCount = 1000
 
 func TestDamage(t *testing.T) {
-	global.StopLogging()
-	defer global.ContinueLogging()
 	for range iterCount {
-		pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
-		enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+		pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+		enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-		pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+		pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
-		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, core.WEATHER_NONE, global.GokeRand)
+		damage := golurk.Damage(pokemon, enemyPokemon, pokemon.Moves[0], false, golurk.WEATHER_NONE, testingRng)
 
 		checkDamageRange(t, damage, 29, 35)
 	}
@@ -32,13 +26,10 @@ func TestDamage(t *testing.T) {
 
 func TestDamageLow(t *testing.T) {
 	log.Debug().Msg("====damage low test====")
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-	global.ForceRng(lowSource{})
-	defer global.SetNormalRng()
-
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, rand.New(lowSource{}))
 
 	if damage != 29 {
 		t.Fatalf("low damage incorrect: expected 29, got %d", damage)
@@ -46,13 +37,10 @@ func TestDamageLow(t *testing.T) {
 }
 
 func TestDamageHigh(t *testing.T) {
-	pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
-	enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-	global.ForceRng(highSource{})
-	defer global.SetNormalRng()
-
-	damage := stateCore.Damage(pokemon, enemyPokemon, *global.MOVES.GetMove("tackle"), false, core.WEATHER_NONE, global.GokeRand)
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("tackle"), false, golurk.WEATHER_NONE, rand.New(highSource{}))
 
 	if damage != 35 {
 		t.Fatalf("high damage incorrect: expected 35, got %d", damage)
@@ -60,16 +48,13 @@ func TestDamageHigh(t *testing.T) {
 }
 
 func TestCritDamage(t *testing.T) {
-	global.StopLogging()
-	defer global.ContinueLogging()
-
 	for range iterCount {
-		pokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
-		enemyPokemon := game.NewPokeBuilder(global.POKEMON.GetPokemonByName("bulbasaur")).SetPerfectIvs().SetLevel(100).Build()
+		pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+		enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
-		pokemon.Moves[0] = *global.MOVES.GetMove("tackle")
+		pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
-		damage := stateCore.Damage(pokemon, enemyPokemon, pokemon.Moves[0], true, core.WEATHER_NONE, global.GokeRand)
+		damage := golurk.Damage(pokemon, enemyPokemon, pokemon.Moves[0], true, golurk.WEATHER_NONE, testingRng)
 
 		checkDamageRange(t, damage, 44, 52)
 	}
@@ -80,9 +65,9 @@ func TestSandstormChip(t *testing.T) {
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
-	gameState.Weather = core.WEATHER_SANDSTORM
+	gameState.Weather = golurk.WEATHER_SANDSTORM
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	damage := float64(pokemon.MaxHp) * (1.0 / 16.0)
@@ -97,13 +82,13 @@ func TestBattleTypes(t *testing.T) {
 	pokemon := getDummyPokemon()
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.BattleType = &core.TYPE_FLYING
+	pokemon.BattleType = &golurk.TYPE_FLYING
 
-	enemyPokemon.Moves[0] = *global.MOVES.GetMove("earthquake")
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("earthquake")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 
-	state.ApplyEventsToState(&gameState, state.ProcessTurn(&gameState, []stateCore.Action{stateCore.NewAttackAction(stateCore.PEER, 0)}))
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
 	if pokemon.Hp.Value != pokemon.MaxHp {

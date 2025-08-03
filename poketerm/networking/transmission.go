@@ -9,8 +9,7 @@ import (
 	"net"
 	"reflect"
 
-	tea "github.com/charmbracelet/bubbletea"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/rs/zerolog/log"
 )
 
@@ -60,7 +59,7 @@ func AcceptData[T any](conn net.Conn) (T, error) {
 }
 
 // Sends an action message (SendActionMessage)
-func SendAction(conn net.Conn, data stateCore.Action) error {
+func SendAction(conn net.Conn, data golurk.Action) error {
 	concreteName := reflect.TypeOf(data).String()
 
 	buffer := bytes.NewBuffer(make([]byte, 0))
@@ -86,7 +85,7 @@ func SendAction(conn net.Conn, data stateCore.Action) error {
 }
 
 // Accepts an action AFTER the message type has already been read and removed from the connection
-func acceptAction(reader io.Reader) (stateCore.Action, error) {
+func acceptAction(reader io.Reader) (golurk.Action, error) {
 	actionBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -113,17 +112,17 @@ func acceptAction(reader io.Reader) (stateCore.Action, error) {
 	// So I would end up having to do this anyway somewhere else (unless there is a better way to get around gob's lack of support for interfaces)
 	switch concreteName {
 	case "core.SwitchAction":
-		a := &stateCore.SwitchAction{}
+		a := &golurk.SwitchAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
 	case "core.SkipAction":
-		a := &stateCore.SkipAction{}
+		a := &golurk.SkipAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
 	case "core.AttackAction":
-		a := &stateCore.AttackAction{}
+		a := &golurk.AttackAction{}
 
 		err := decoder.Decode(a)
 		return *a, err
@@ -132,7 +131,7 @@ func acceptAction(reader io.Reader) (stateCore.Action, error) {
 	return nil, &InvalidActionTypeError{concreteName}
 }
 
-func SendMessage(conn net.Conn, msgType messageType, msg tea.Msg) error {
+func SendMessage(conn net.Conn, msgType messageType, msg any) error {
 	buffer := bytes.NewBuffer(make([]byte, 0))
 	err := binary.Write(buffer, binary.LittleEndian, msgType)
 	if err != nil {
@@ -148,7 +147,7 @@ func SendMessage(conn net.Conn, msgType messageType, msg tea.Msg) error {
 	return err
 }
 
-func AcceptMessage(conn net.Conn) (tea.Msg, error) {
+func AcceptMessage(conn net.Conn) (any, error) {
 	var msgType messageType = -1
 
 	readBytes, err := readAll(conn)
@@ -167,12 +166,8 @@ func AcceptMessage(conn net.Conn) (tea.Msg, error) {
 	switch msgType {
 	case MESSAGE_CONTINUE:
 		return decodeMessage[ContinueUpdaterMessage](buffer)
-	case MESSAGE_FORCESWITCH:
-		return decodeMessage[ForceSwitchMessage](buffer)
-	case MESSAGE_GAMEOVER:
-		return decodeMessage[GameOverMessage](buffer)
 	case MESSAGE_TURNRESOLVE:
-		return decodeMessage[TurnResolvedMessage](buffer)
+		return decodeMessage[TurnResolveMessage](buffer)
 	case MESSAGE_SENDACTION:
 		action, err := acceptAction(buffer)
 		return SendActionMessage{Action: action}, err

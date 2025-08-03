@@ -2,15 +2,16 @@ package global
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-logr/zerologr"
 	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -54,7 +55,7 @@ var (
 
 	GameTicksPerSecond = 20
 
-	// Global RNG that can be changed for testing purposes
+	// Global RNG for unimportant or non-networked RNG
 	GokeRand = rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 
 	initLogger    zerolog.Logger
@@ -120,45 +121,142 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 
 	// Main global logger
 	log.Logger = createLogger(configDir, level)
-	golurk.SetInternalLogger()
+	golurk.SetInternalLogger(zerologr.New(&log.Logger))
 
 	// Load concurrently
 	var wg sync.WaitGroup
 	wg.Add(4)
+	errChan := make(chan error, 8)
 
 	go func() {
-		gen1Pokemon := loadPokemon(files, "data/gen1-data.csv")
-		gen2Pokemon := loadPokemon(files, "data/gen2-data.csv")
-		gen3Pokemon := loadPokemon(files, "data/gen3-data.csv")
+		genCount := 3
+		pokemon := make([]golurk.BasePokemon, genCount*150)
+		for i := range genCount {
+			genPath := fmt.Sprintf("data/gen%d-data.csv", i)
+			genFile, err := files.Open(genPath)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		POKEMON = slices.Concat(gen1Pokemon, gen2Pokemon, gen3Pokemon)
+			genBytes, err := fileReadAll(genFile)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			genPokemon, err := golurk.LoadPokemon(genBytes)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			pokemon = append(pokemon, genPokemon...)
+		}
+
+		golurk.GlobalData.Pokemon = pokemon
 		wg.Done()
 	}()
 	go func() {
-		MOVES = loadMoves(files)
+		moveFile, err := files.Open("data/moves.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveMapFile, err := files.Open("data/movesMap.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveBytes, err := fileReadAll(moveFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveMapBytes, err := fileReadAll(moveMapFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moves, err := golurk.LoadMoves(moveBytes, moveMapBytes)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		golurk.SetGlobalMoves(moves)
 		wg.Done()
 	}()
 	go func() {
-		ABILITIES = loadAbilities(files)
+		abilityFile, err := files.Open("data/abilities.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		abilityBytes, err := fileReadAll(abilityFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		abilities, err := golurk.LoadAbilities(abilityBytes)
+		if err != nil {
+			errChan <- err
+		}
+		golurk.SetGlobalAbilities(abilities)
 		wg.Done()
 	}()
 	go func() {
-		ITEMS = loadItems(files)
+		itemFile, err := files.Open("data/items.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		itemBytes, err := fileReadAll(itemFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		items, err := golurk.LoadItems(itemBytes)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		golurk.GlobalData.Items = items
 		wg.Done()
 	}()
 
 	wg.Wait()
-}
+	errs := make([]error, 0)
+	for {
+		shouldBreak := false
+		select {
+		case err := <-errChan:
+			errs = append(errs, err)
+		default:
+			shouldBreak = true
+		}
 
-func createFileWriter(configDir string) zerolog.ConsoleWriter {
-	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
-	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
-	return zerolog.ConsoleWriter{Out: rollingWriter}
-}
+		if shouldBreak {
+			break
+		}
+	}
 
-func createLogger(configDir string, level zerolog.Level) zerolog.Logger {
-	// Main global logger
-	return zerolog.New(createFileWriter(configDir)).With().Timestamp().Caller().Logger().Level(level)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			log.Logger.Err(err)
+		}
+
+		panic("error(s) encountered while loading pokemon data")
+	}
 }
 
 func StopLogging() {
@@ -193,4 +291,27 @@ func populateConfig(config GlobalConfig) GlobalConfig {
 	}
 
 	return config
+}
+
+func createFileWriter(configDir string) zerolog.ConsoleWriter {
+	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
+	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
+	return zerolog.ConsoleWriter{Out: rollingWriter}
+}
+
+func createLogger(configDir string, level zerolog.Level) zerolog.Logger {
+	// Main global logger
+	return zerolog.New(createFileWriter(configDir)).With().Timestamp().Caller().Logger().Level(level)
+}
+
+func fileReadAll(file fs.File) ([]byte, error) {
+	var fileSize int64
+	stat, err := file.Stat()
+	if err == nil {
+		fileSize = stat.Size()
+	}
+	buf := make([]byte, fileSize)
+
+	len, err := file.Read(buf)
+	return buf[0:len], err
 }

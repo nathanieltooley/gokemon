@@ -6,11 +6,6 @@ import (
 	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-var (
-	testingSeed = golurk.CreateRandomStateSeed()
-	testingRng  = golurk.CreateRNG(&testingSeed)
-)
-
 // NOTE: Most ability tests will directly set the ability on a pokemon (probably bulbasaur) rather than choosing a pokemon
 // with that ability for the simple fact that it really doesn't matter. However it may change if for some reason it's important to the ability
 func TestDrizzle(t *testing.T) {

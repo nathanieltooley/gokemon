@@ -9,15 +9,12 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	stateCore "github.com/nathanieltooley/gokemon/client/game/state/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	MESSAGE_FORCESWITCH messageType = iota
-	MESSAGE_TURNRESOLVE
-	MESSAGE_GAMEOVER
+	MESSAGE_TURNRESOLVE messageType = iota + 1
 	MESSAGE_CONTINUE
 	MESSAGE_SENDACTION
 	MESSAGE_UPDATETIMER
@@ -30,23 +27,14 @@ const (
 
 // "Messages" are during a game for communication
 type (
-	ForceSwitchMessage struct {
-		ForThisPlayer bool
-		Events        EventSlice
-	}
-	TurnResolvedMessage struct {
-		Events EventSlice
-	}
-	GameOverMessage struct {
-		// The "you" in this sense is the player who is receiving the message
-		YouLost bool
-		Events  EventSlice
+	TurnResolveMessage struct {
+		Result golurk.TurnResult
 	}
 	ContinueUpdaterMessage struct {
-		Actions []stateCore.Action
+		Actions []golurk.Action
 	}
 	SendActionMessage struct {
-		Action stateCore.Action
+		Action golurk.Action
 	}
 	UpdateTimerMessage struct {
 		Directive     int
@@ -57,8 +45,45 @@ type (
 	}
 )
 
+// HACK: This has to be updated when/if golurk.TurnResult is updated
+type innerResolve struct {
+	kind          int
+	forThisPlayer bool
+	events        EventSlice
+}
+
+func (msg TurnResolveMessage) GobEncode() ([]byte, error) {
+	encodeBuffer := bytes.Buffer{}
+	innerEncoder := gob.NewEncoder(&encodeBuffer)
+	ir := innerResolve{
+		kind:          msg.Result.Kind,
+		forThisPlayer: msg.Result.ForThisPlayer,
+		events:        EventSlice{msg.Result.Events},
+	}
+
+	err := innerEncoder.Encode(ir)
+
+	return encodeBuffer.Bytes(), err
+}
+
+func (msg *TurnResolveMessage) GobDecode(buf []byte) error {
+	innerDecoder := gob.NewDecoder(bytes.NewBuffer(buf))
+	ir := innerResolve{}
+
+	err := innerDecoder.Decode(&ir)
+	if err != nil {
+		return err
+	}
+
+	msg.Result.Kind = ir.kind
+	msg.Result.Events = ir.events.Events
+	msg.Result.ForThisPlayer = ir.forThisPlayer
+
+	return nil
+}
+
 type EventSlice struct {
-	Events []stateCore.StateEvent
+	Events []golurk.StateEvent
 }
 
 func (es EventSlice) GobEncode() ([]byte, error) {
@@ -81,53 +106,53 @@ func (es EventSlice) GobEncode() ([]byte, error) {
 		// missed in std.reflect or some macro-like codegen solution? In any case if you know how to write this in a better way,
 		// please do not hesitate to submit a PR and fix this.
 		switch event := event.(type) {
-		case stateCore.SwitchEvent:
+		case golurk.SwitchEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.AttackEvent:
+		case golurk.AttackEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.WeatherEvent:
+		case golurk.WeatherEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.StatChangeEvent:
+		case golurk.StatChangeEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.AilmentEvent:
+		case golurk.AilmentEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.AbilityActivationEvent:
+		case golurk.AbilityActivationEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.DamageEvent:
+		case golurk.DamageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.HealEvent:
+		case golurk.HealEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.HealPercEvent:
+		case golurk.HealPercEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.BurnEvent:
+		case golurk.BurnEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.PoisonEvent:
+		case golurk.PoisonEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.ToxicEvent:
+		case golurk.ToxicEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.FrozenEvent:
+		case golurk.FrozenEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.SleepEvent:
+		case golurk.SleepEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.ParaEvent:
+		case golurk.ParaEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.FlinchEvent:
+		case golurk.FlinchEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.ApplyConfusionEvent:
+		case golurk.ApplyConfusionEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.ConfusionEvent:
+		case golurk.ConfusionEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.SandstormDamageEvent:
+		case golurk.SandstormDamageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.TurnStartEvent:
+		case golurk.TurnStartEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.EndOfTurnAbilityCheck:
+		case golurk.EndOfTurnAbilityCheck:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.TypeChangeEvent:
+		case golurk.TypeChangeEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.MessageEvent:
+		case golurk.MessageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
-		case stateCore.FmtMessageEvent:
+		case golurk.FmtMessageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
 		default:
 			return nil, fmt.Errorf("%s has not been given an encoder case", reflect.TypeOf(event).Name())
@@ -149,14 +174,14 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 		return err
 	}
 
-	newEventSlice := make([]stateCore.StateEvent, eventLen)
+	newEventSlice := make([]golurk.StateEvent, eventLen)
 	for i := range eventLen {
 		eventName := ""
 		if err := innerDecoder.Decode(&eventName); err != nil {
 			return err
 		}
 
-		var ev stateCore.StateEvent = nil
+		var ev golurk.StateEvent = nil
 		var err error = nil
 
 		// NOTE:
@@ -167,53 +192,53 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 		// please do not hesitate to submit a PR and fix this.
 		switch eventName {
 		case "SwitchEvent":
-			ev, err = gobDecodeEvent[stateCore.SwitchEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.SwitchEvent](innerDecoder)
 		case "AttackEvent":
-			ev, err = gobDecodeEvent[stateCore.AttackEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.AttackEvent](innerDecoder)
 		case "WeatherEvent":
-			ev, err = gobDecodeEvent[stateCore.WeatherEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.WeatherEvent](innerDecoder)
 		case "StatChangeEvent":
-			ev, err = gobDecodeEvent[stateCore.StatChangeEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.StatChangeEvent](innerDecoder)
 		case "AilmentEvent":
-			ev, err = gobDecodeEvent[stateCore.AilmentEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.AilmentEvent](innerDecoder)
 		case "AbilityActivationEvent":
-			ev, err = gobDecodeEvent[stateCore.AbilityActivationEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.AbilityActivationEvent](innerDecoder)
 		case "DamageEvent":
-			ev, err = gobDecodeEvent[stateCore.DamageEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.DamageEvent](innerDecoder)
 		case "HealEvent":
-			ev, err = gobDecodeEvent[stateCore.HealEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.HealEvent](innerDecoder)
 		case "HealPercEvent":
-			ev, err = gobDecodeEvent[stateCore.HealPercEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.HealPercEvent](innerDecoder)
 		case "BurnEvent":
-			ev, err = gobDecodeEvent[stateCore.BurnEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.BurnEvent](innerDecoder)
 		case "PoisonEvent":
-			ev, err = gobDecodeEvent[stateCore.PoisonEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.PoisonEvent](innerDecoder)
 		case "ToxicEvent":
-			ev, err = gobDecodeEvent[stateCore.ToxicEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.ToxicEvent](innerDecoder)
 		case "FrozenEvent":
-			ev, err = gobDecodeEvent[stateCore.FrozenEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.FrozenEvent](innerDecoder)
 		case "SleepEvent":
-			ev, err = gobDecodeEvent[stateCore.SleepEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.SleepEvent](innerDecoder)
 		case "ParaEvent":
-			ev, err = gobDecodeEvent[stateCore.ParaEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.ParaEvent](innerDecoder)
 		case "FlinchEvent":
-			ev, err = gobDecodeEvent[stateCore.FlinchEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.FlinchEvent](innerDecoder)
 		case "ApplyConfusionEvent":
-			ev, err = gobDecodeEvent[stateCore.ApplyConfusionEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.ApplyConfusionEvent](innerDecoder)
 		case "ConfusionEvent":
-			ev, err = gobDecodeEvent[stateCore.ConfusionEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.ConfusionEvent](innerDecoder)
 		case "SandstormDamageEvent":
-			ev, err = gobDecodeEvent[stateCore.SandstormDamageEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.SandstormDamageEvent](innerDecoder)
 		case "TurnStartEvent":
-			ev, err = gobDecodeEvent[stateCore.TurnStartEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.TurnStartEvent](innerDecoder)
 		case "EndOfTurnAbilityCheck":
-			ev, err = gobDecodeEvent[stateCore.EndOfTurnAbilityCheck](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.EndOfTurnAbilityCheck](innerDecoder)
 		case "TypeChangeEvent":
-			ev, err = gobDecodeEvent[stateCore.TypeChangeEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.TypeChangeEvent](innerDecoder)
 		case "MessageEvent":
-			ev, err = gobDecodeEvent[stateCore.MessageEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.MessageEvent](innerDecoder)
 		case "FmtMessageEvent":
-			ev, err = gobDecodeEvent[stateCore.FmtMessageEvent](innerDecoder)
+			ev, err = gobDecodeEvent[golurk.FmtMessageEvent](innerDecoder)
 		default:
 			return fmt.Errorf("%s has not been given a decoder case", eventName)
 		}
@@ -229,7 +254,7 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 	return nil
 }
 
-func gobDecodeEvent[T stateCore.StateEvent](decoder *gob.Decoder) (T, error) {
+func gobDecodeEvent[T golurk.StateEvent](decoder *gob.Decoder) (T, error) {
 	ev := new(T)
 	if err := decoder.Decode(ev); err != nil {
 		return *ev, err
@@ -238,7 +263,7 @@ func gobDecodeEvent[T stateCore.StateEvent](decoder *gob.Decoder) (T, error) {
 	return *ev, nil
 }
 
-func gobEncodeEvent[T stateCore.StateEvent](ev T, encoder *gob.Encoder) error {
+func gobEncodeEvent[T golurk.StateEvent](ev T, encoder *gob.Encoder) error {
 	// type names as returned by reflect include package name (i.e. core.SwitchEvent)
 	// so split it and only get the type name
 	pureTypeName := strings.SplitN(reflect.TypeOf(ev).String(), ".", 2)[1]
@@ -254,7 +279,7 @@ func gobEncodeEvent[T stateCore.StateEvent](ev T, encoder *gob.Encoder) error {
 }
 
 type TeamSelectionPacket struct {
-	Team []core.Pokemon
+	Team []golurk.Pokemon
 }
 
 type StarterSelectionPacket struct {
@@ -275,7 +300,7 @@ func (e NetworkingErrorMsg) Error() string {
 }
 
 type NetReaderInfo struct {
-	ActionChan  chan stateCore.Action
+	ActionChan  chan golurk.Action
 	TimerChan   chan UpdateTimerMessage
 	MessageChan chan tea.Msg
 

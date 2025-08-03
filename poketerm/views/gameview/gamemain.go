@@ -306,23 +306,27 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Host's timer runs out
 			if m.ctx.playerSide == golurk.HOST {
 				if m.ctx.state.HostPlayer.MultiTimerTick <= 0 {
-					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-						YouLost: false,
+					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_TURNRESOLVE, golurk.TurnResult{
+						Kind:          golurk.RESULT_GAMEOVER,
+						ForThisPlayer: false,
 					})
 
 					return m, func() tea.Msg {
-						return networking.GameOverMessage{
-							YouLost: true,
+						return golurk.TurnResult{
+							Kind:          golurk.RESULT_GAMEOVER,
+							ForThisPlayer: true,
 						}
 					}
 				} else if m.ctx.state.ClientPlayer.MultiTimerTick <= 0 {
-					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{
-						YouLost: true,
+					networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_TURNRESOLVE, golurk.TurnResult{
+						Kind:          golurk.RESULT_GAMEOVER,
+						ForThisPlayer: true,
 					})
 
 					return m, func() tea.Msg {
-						return networking.GameOverMessage{
-							YouLost: false,
+						return golurk.TurnResult{
+							Kind:          golurk.RESULT_GAMEOVER,
+							ForThisPlayer: false,
 						}
 					}
 				}
@@ -344,39 +348,42 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		cmds = append(cmds, tick())
 
-	case networking.ForceSwitchMessage:
-		m.eventQueue.AddEvents(msg.Events.Events)
-		m.ctx.cameFromForceSwitch = true
+	case networking.TurnResolveMessage:
+		switch msg.Result.Kind {
+		case golurk.RESULT_FORCESWITCH:
+			m.eventQueue.AddEvents(msg.Result.Events)
+			m.ctx.cameFromForceSwitch = true
 
-		if msg.ForThisPlayer {
+			if msg.Result.ForThisPlayer {
+				m.ctx.chosenAction = nil
+				m.ctx.forcedSwitch = true
+			}
+
+			m.ctx.currentSmState = SM_RECEIVED_EVENTS
+		case golurk.RESULT_RESOLVED:
+			log.Debug().Msg("game main has received turn resolved message")
+			m.panel = newActionPanel(m.ctx)
 			m.ctx.chosenAction = nil
-			m.ctx.forcedSwitch = true
+			m.ctx.forcedSwitch = false
+			m.ctx.cameFromForceSwitch = false
+
+			m.ctx.currentSmState = SM_RECEIVED_EVENTS
+
+			for _, event := range msg.Result.Events {
+				log.Debug().Str("eventType", reflect.TypeOf(event).Name()).Msg("")
+			}
+
+			m.eventQueue.AddEvents(msg.Result.Events)
+
+		// Game Over Check
+		case golurk.RESULT_GAMEOVER:
+			m.eventQueue.AddEvents(msg.Result.Events)
+			m.ctx.cameFromGameOver = true
+			m.ctx.lost = msg.Result.ForThisPlayer
+
+			m.ctx.currentSmState = SM_RECEIVED_EVENTS
+
 		}
-
-		m.ctx.currentSmState = SM_RECEIVED_EVENTS
-	case networking.TurnResolvedMessage:
-		log.Debug().Msg("game main has received turn resolved message")
-		m.panel = newActionPanel(m.ctx)
-		m.ctx.chosenAction = nil
-		m.ctx.forcedSwitch = false
-		m.ctx.cameFromForceSwitch = false
-
-		m.ctx.currentSmState = SM_RECEIVED_EVENTS
-
-		for _, event := range msg.Events.Events {
-			log.Debug().Str("eventType", reflect.TypeOf(event).Name()).Msg("")
-		}
-
-		m.eventQueue.AddEvents(msg.Events.Events)
-
-	// Game Over Check
-	case networking.GameOverMessage:
-		m.eventQueue.AddEvents(msg.Events.Events)
-		m.ctx.cameFromGameOver = true
-		m.ctx.lost = msg.YouLost
-
-		m.ctx.currentSmState = SM_RECEIVED_EVENTS
-
 	case networking.NetworkingErrorMsg:
 		m.showError = true
 		m.currentErr = msg
@@ -537,43 +544,7 @@ func hostNetworkHandler(netInfo networking.NetReaderInfo, action golurk.Action, 
 	}
 	turnResult := golurk.ProcessTurn(gameState, actions)
 
-	switch turnResult.Kind {
-	case networking.TurnResolvedMessage:
-		err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_TURNRESOLVE, msg)
-		if err != nil {
-			return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send turn resolve message"}
-		}
-
-		return turnResult
-	case networking.GameOverMessage:
-		// Host Lost, send client a message saying they won
-		if msg.YouLost {
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{YouLost: false})
-			if err != nil {
-				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send game over message"}
-			}
-		} else { // client lost, send client a message saying they lost
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_GAMEOVER, networking.GameOverMessage{YouLost: true})
-			if err != nil {
-				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send game over message"}
-			}
-		}
-		return turnResult
-	case networking.ForceSwitchMessage:
-		if msg.ForThisPlayer { // For Host
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: false, Events: msg.Events})
-			if err != nil {
-				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
-			}
-		} else { // for client
-			err := networking.SendMessage(netInfo.Conn, networking.MESSAGE_FORCESWITCH, networking.ForceSwitchMessage{ForThisPlayer: true, Events: msg.Events})
-			if err != nil {
-				return networking.NetworkingErrorMsg{Err: err, Reason: "host failed to send force switch message"}
-			}
-		}
-
-		return turnResult
-	}
+	networking.SendMessage(netInfo.Conn, networking.MESSAGE_TURNRESOLVE, networking.TurnResolveMessage{turnResult})
 
 	return turnResult
 }

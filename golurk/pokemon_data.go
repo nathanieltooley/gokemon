@@ -12,11 +12,10 @@ import (
 var GlobalData = pokemonDb{}
 
 type pokemonDb struct {
-	moves            MoveRegistry
-	Pokemon          []BasePokemon
-	Abilities        AbilityRegistry
-	PokemonAbilities map[string][]Ability
-	Items            []string
+	moves     MoveRegistry
+	Pokemon   []BasePokemon
+	abilities AbilityRegistry
+	Items     []string
 }
 
 type MoveRegistry struct {
@@ -27,8 +26,17 @@ type MoveRegistry struct {
 }
 
 type AbilityRegistry struct {
+	// for right now this is unused
 	Abilities        []Ability
 	PokemonAbilities map[string][]Ability
+}
+
+func SetGlobalMoves(mr MoveRegistry) {
+	GlobalData.moves = mr
+}
+
+func SetGlobalAbilities(ar AbilityRegistry) {
+	GlobalData.abilities = ar
 }
 
 func (db pokemonDb) GetMove(name string) *Move {
@@ -84,10 +92,14 @@ func (db pokemonDb) GetRandomPokemon() BasePokemon {
 func (db pokemonDb) GetPokemonAbilities(name string) []Ability {
 	pokemonLowerName := strings.ToLower(name)
 
-	return db.Abilities.PokemonAbilities[pokemonLowerName]
+	return db.abilities.PokemonAbilities[pokemonLowerName]
 }
 
-// loadPokemon takes in the bytes of a csv file with the following columns:
+// func (db pokemonDb) GetAbilities() []Ability {
+// 	return db.abilities.Abilities
+// }
+
+// LoadPokemon takes in the bytes of a csv file with the following columns:
 // PokedexNumber, HP, Attack, Defense, SpecialAttack, SpecialDefense, Speed
 // in that order. All values must be valid integers
 func LoadPokemon(fileBytes []byte) ([]BasePokemon, error) {
@@ -192,28 +204,6 @@ func LoadPokemon(fileBytes []byte) ([]BasePokemon, error) {
 func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 	internalLogger.Info("Loading Move Data")
 
-	// movesPath := "data/moves.json"
-	// movesMapPath := "data/movesMap.json"
-
-	// moveDataFile, err := files.Open(movesPath)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't read move data file")
-	// }
-	// defer moveDataFile.Close()
-
-	// moveDataBytes, err := io.ReadAll(moveDataFile)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't read move data file")
-	// }
-	//
-	// moveMapFile, err := files.Open(movesMapPath)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't read move map file")
-	// }
-	// defer moveMapFile.Close()
-
-	// moveMapBytes, err := io.ReadAll(moveMapFile)
-
 	parsedMoves := make([]Move, 0, 1000)
 	moveMap := make(map[string][]string)
 	moveRegistry := MoveRegistry{}
@@ -240,7 +230,7 @@ func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 
 // LoadAbilities takes in json that lists ability info and json that maps pokemon names to abilities
 // (this is different from loadMoves because info about Moves is much larger than info about abiltiies)
-func LoadAbilities(abilitiesListBytes []byte, abilitiesMapBytes []byte) AbilityRegistry {
+func LoadAbilities(abilitiesMapBytes []byte) (AbilityRegistry, error) {
 	// abilityFile := "data/abilities.json"
 	// file, err := files.Open(abilityFile)
 	// if err != nil {
@@ -254,21 +244,21 @@ func LoadAbilities(abilitiesListBytes []byte, abilitiesMapBytes []byte) AbilityR
 	// 	internalLogger.Error(err, "Couldn't read abilities file")
 	// }
 
-	abilityReg := AbilityRegistry{}
 	abilitiesList := []Ability{}
 	abilityMap := make(map[string][]Ability)
-	if err := json.Unmarshal(abilitiesListBytes, &abilityReg); err != nil {
-		internalLogger.Error(err, "Invalid ability list")
-	}
+	// if err := json.Unmarshal(abilitiesListBytes, &abilityList); err != nil {
+	// 	internalLogger.Error(err, "Invalid ability list")
+	// }
 	if err := json.Unmarshal(abilitiesMapBytes, &abilityMap); err != nil {
 		internalLogger.Error(err, "Invalid ability map")
+		return AbilityRegistry{}, err
 	}
 
 	internalLogger.Info("Loaded abilities", "pokemon_count", len(abilityMap))
-	return AbilityRegistry{Abilities: abilitiesList, PokemonAbilities: abilityMap}
+	return AbilityRegistry{Abilities: abilitiesList, PokemonAbilities: abilityMap}, nil
 }
 
-func LoadItems(itemBytes []byte) []string {
+func LoadItems(itemBytes []byte) ([]string, error) {
 	// itemsFile := "data/items.json"
 	// file, err := files.Open(itemsFile)
 	// if err != nil {
@@ -285,8 +275,9 @@ func LoadItems(itemBytes []byte) []string {
 	items := make([]string, 0)
 	if err := json.Unmarshal(itemBytes, &items); err != nil {
 		internalLogger.Error(err, "Couldn't parse items.json")
+		return items, err
 	}
 
 	internalLogger.Info("Loaded %d items", "count", len(items))
-	return items
+	return items, nil
 }
