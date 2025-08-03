@@ -132,7 +132,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		defer wg.Done()
 
 		genCount := 3
-		pokemon := make([]golurk.BasePokemon, genCount*150)
+		pokemon := make([]golurk.BasePokemon, 0, genCount*150)
 		for i := range genCount {
 			genPath := fmt.Sprintf("data/gen%d-data.csv", i+1)
 			genFile, err := files.Open(genPath)
