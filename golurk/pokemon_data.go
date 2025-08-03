@@ -206,7 +206,7 @@ func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 
 	parsedMoves := make([]Move, 0, 1000)
 	moveMap := make(map[string][]string)
-	moveRegistry := MoveRegistry{}
+	moveRegistry := MoveRegistry{Moves: make(map[string]Move)}
 
 	if err := json.Unmarshal(moveBytes, &parsedMoves); err != nil {
 		internalLogger.Error(err, "Couldn't unmarshal move data")
@@ -217,6 +217,7 @@ func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 		return moveRegistry, err
 	}
 
+	// convert move slice to move name -> move map
 	for _, parsedMove := range parsedMoves {
 		moveRegistry.Moves[parsedMove.Name] = parsedMove
 	}
