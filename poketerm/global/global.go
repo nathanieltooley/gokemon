@@ -129,10 +129,12 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	errChan := make(chan error, 8)
 
 	go func() {
+		defer wg.Done()
+
 		genCount := 3
 		pokemon := make([]golurk.BasePokemon, genCount*150)
 		for i := range genCount {
-			genPath := fmt.Sprintf("data/gen%d-data.csv", i)
+			genPath := fmt.Sprintf("data/gen%d-data.csv", i+1)
 			genFile, err := files.Open(genPath)
 			if err != nil {
 				errChan <- err
@@ -155,9 +157,10 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		}
 
 		golurk.GlobalData.Pokemon = pokemon
-		wg.Done()
 	}()
 	go func() {
+		defer wg.Done()
+
 		moveFile, err := files.Open("data/moves.json")
 		if err != nil {
 			errChan <- err
@@ -189,9 +192,10 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		}
 
 		golurk.SetGlobalMoves(moves)
-		wg.Done()
 	}()
 	go func() {
+		defer wg.Done()
+
 		abilityFile, err := files.Open("data/abilities.json")
 		if err != nil {
 			errChan <- err
@@ -209,9 +213,10 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 			errChan <- err
 		}
 		golurk.SetGlobalAbilities(abilities)
-		wg.Done()
 	}()
 	go func() {
+		defer wg.Done()
+
 		itemFile, err := files.Open("data/items.json")
 		if err != nil {
 			errChan <- err
@@ -231,7 +236,6 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		}
 
 		golurk.GlobalData.Items = items
-		wg.Done()
 	}()
 
 	wg.Wait()
@@ -252,7 +256,8 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 
 	if len(errs) > 0 {
 		for _, err := range errs {
-			log.Logger.Err(err)
+			log.Err(err)
+			fmt.Printf("err: %s", err)
 		}
 
 		panic("error(s) encountered while loading pokemon data")
