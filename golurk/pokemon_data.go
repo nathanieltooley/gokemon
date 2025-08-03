@@ -172,6 +172,8 @@ func LoadPokemon(fileBytes []byte) ([]BasePokemon, error) {
 		type1Name := row[2]
 		type2Name := row[3]
 
+		internalLogger.WithName("load_pokemon").V(1).Info("loaded pokemon", "pokedex", pokedexNumber, "name", name, "hp", hp, "attack", attack, "def", def, "spattack", spAttack, "spDef", spDef, "speed", speed)
+
 		type1 := TYPE_MAP[type1Name]
 		var type2 *PokemonType = nil
 

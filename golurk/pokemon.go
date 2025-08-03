@@ -346,7 +346,7 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {
 	statNumerator := (2*baseValue + iv + (ev / 4)) * (level)
 	statValue := (float32(statNumerator)/100 + 5) * natureMod
-	internalLogger.V(2).Info("", "stat", statValue)
+	internalLogger.V(1).Info("", "stat", statValue)
 	return uint(statValue)
 }
 

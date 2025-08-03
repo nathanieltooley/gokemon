@@ -65,14 +65,14 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 	}
 
 	for _, action := range actions {
-		internalLogger.V(2).Info("Player Action", "player_id", action.GetCtx().PlayerID, "action_name", reflect.TypeOf(action).Name())
+		internalLogger.V(1).Info("Player Action", "player_id", action.GetCtx().PlayerID, "action_name", reflect.TypeOf(action).Name())
 	}
 
 	events = append(events, commonSwitching(*gameState, switches)...)
 
 	// Properly end turn after force switches are dealt with
 	if backFromForceSwitch {
-		internalLogger.V(2).Info("coming back from force switch")
+		internalLogger.V(1).Info("coming back from force switch")
 		// TODO: Force updater to switch out a pokemon if current, and also dead, pokemon is not switched out
 		host.ActiveKOed = false
 		client.ActiveKOed = false
@@ -123,7 +123,7 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 
 	if !clonedState.HostPlayer.GetActivePokemon().Alive() {
 		host.ActiveKOed = true
-		internalLogger.V(2).Info("host's pokemon has been killed. returning force switch")
+		internalLogger.V(1).Info("host's pokemon has been killed. returning force switch")
 		return TurnResult{
 			Kind:          RESULT_FORCESWITCH,
 			ForThisPlayer: true,
@@ -133,7 +133,7 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 
 	if !clonedState.ClientPlayer.GetActivePokemon().Alive() {
 		client.ActiveKOed = true
-		internalLogger.V(2).Info("client's pokemon has been killed. returning force switch")
+		internalLogger.V(1).Info("client's pokemon has been killed. returning force switch")
 		return TurnResult{
 			Kind:          RESULT_FORCESWITCH,
 			ForThisPlayer: false,
