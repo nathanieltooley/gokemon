@@ -77,7 +77,7 @@ func LoadTeamMap(filePath string) (SavedTeams, error) {
 	teamFile, err := os.Open(filePath)
 	// If there is an error, assume the file doesn't exist
 	if err != nil {
-		if err := os.MkdirAll(filepath.Dir(filePath), 0666); err != nil {
+		if err := os.MkdirAll(filepath.Dir(filePath), 0777); err != nil {
 			return nil, err
 		}
 
