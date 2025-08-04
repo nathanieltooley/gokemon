@@ -47,18 +47,18 @@ type (
 
 // HACK: This has to be updated when/if golurk.TurnResult is updated
 type innerResolve struct {
-	kind          int
-	forThisPlayer bool
-	events        EventSlice
+	Kind          int
+	ForThisPlayer bool
+	Events        EventSlice
 }
 
 func (msg TurnResolveMessage) GobEncode() ([]byte, error) {
 	encodeBuffer := bytes.Buffer{}
 	innerEncoder := gob.NewEncoder(&encodeBuffer)
 	ir := innerResolve{
-		kind:          msg.Result.Kind,
-		forThisPlayer: msg.Result.ForThisPlayer,
-		events:        EventSlice{msg.Result.Events},
+		Kind:          msg.Result.Kind,
+		ForThisPlayer: msg.Result.ForThisPlayer,
+		Events:        EventSlice{msg.Result.Events},
 	}
 
 	err := innerEncoder.Encode(ir)
@@ -75,9 +75,9 @@ func (msg *TurnResolveMessage) GobDecode(buf []byte) error {
 		return err
 	}
 
-	msg.Result.Kind = ir.kind
-	msg.Result.Events = ir.events.Events
-	msg.Result.ForThisPlayer = ir.forThisPlayer
+	msg.Result.Kind = ir.Kind
+	msg.Result.Events = ir.Events.Events
+	msg.Result.ForThisPlayer = ir.ForThisPlayer
 
 	return nil
 }
