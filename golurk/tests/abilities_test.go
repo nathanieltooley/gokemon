@@ -355,7 +355,7 @@ func TestHugePower(t *testing.T) {
 func TestPurePower(t *testing.T) {
 	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	pokemon.Ability.Name = "pure-power"
-	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackel")
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
 	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByPokedex(1), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
