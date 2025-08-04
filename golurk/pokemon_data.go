@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"io/fs"
 	"math/rand/v2"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var GlobalData = pokemonDb{}
@@ -234,47 +237,20 @@ func LoadMoves(moveBytes []byte, moveMapBytes []byte) (MoveRegistry, error) {
 // LoadAbilities takes in json that lists ability info and json that maps pokemon names to abilities
 // (this is different from loadMoves because info about Moves is much larger than info about abiltiies)
 func LoadAbilities(abilitiesMapBytes []byte) (AbilityRegistry, error) {
-	// abilityFile := "data/abilities.json"
-	// file, err := files.Open(abilityFile)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't open abilities file")
-	// }
-	//
-	// defer file.Close()
-	//
-	// fileData, err := io.ReadAll(file)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't read abilities file")
-	// }
-
 	abilitiesList := []Ability{}
 	abilityMap := make(map[string][]Ability)
-	// if err := json.Unmarshal(abilitiesListBytes, &abilityList); err != nil {
-	// 	internalLogger.Error(err, "Invalid ability list")
-	// }
+
 	if err := json.Unmarshal(abilitiesMapBytes, &abilityMap); err != nil {
 		internalLogger.Error(err, "Invalid ability map")
 		return AbilityRegistry{}, err
 	}
 
 	internalLogger.Info("Loaded abilities", "pokemon_count", len(abilityMap))
+	// TODO: Actually load abilities list. Right now its fine because nothing uses it
 	return AbilityRegistry{Abilities: abilitiesList, PokemonAbilities: abilityMap}, nil
 }
 
 func LoadItems(itemBytes []byte) ([]string, error) {
-	// itemsFile := "data/items.json"
-	// file, err := files.Open(itemsFile)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't open items file")
-	// }
-	//
-	// defer file.Close()
-	//
-	// fileData, err := io.ReadAll(file)
-	// if err != nil {
-	// 	internalLogger.Error(err, "Couldn't read items file")
-	// }
-
 	items := make([]string, 0)
 	if err := json.Unmarshal(itemBytes, &items); err != nil {
 		internalLogger.Error(err, "Couldn't parse items.json")
@@ -283,4 +259,155 @@ func LoadItems(itemBytes []byte) ([]string, error) {
 
 	internalLogger.Info("Loaded %d items", "count", len(items))
 	return items, nil
+}
+
+// DefaultLoader loads pokemon data from their locations in the gokemon repo.
+// This data is used in the terminal program and for tests in this library.
+// Should NOT be used outside of those two contexts unless your files are formatted
+// the exact same way.
+func DefaultLoader(files fs.FS) []error {
+	// Load concurrently
+	var wg sync.WaitGroup
+	wg.Add(4)
+	errChan := make(chan error, 8)
+
+	go func() {
+		defer wg.Done()
+
+		genCount := 3
+		pokemon := make([]BasePokemon, 0, genCount*150)
+		for i := range genCount {
+			genPath := fmt.Sprintf("data/gen%d-data.csv", i+1)
+			genFile, err := files.Open(genPath)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			genBytes, err := fileReadAll(genFile)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			genPokemon, err := LoadPokemon(genBytes)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			pokemon = append(pokemon, genPokemon...)
+		}
+
+		GlobalData.Pokemon = pokemon
+	}()
+	go func() {
+		defer wg.Done()
+
+		moveFile, err := files.Open("data/moves.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveMapFile, err := files.Open("data/movesMap.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveBytes, err := fileReadAll(moveFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moveMapBytes, err := fileReadAll(moveMapFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		moves, err := LoadMoves(moveBytes, moveMapBytes)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		SetGlobalMoves(moves)
+	}()
+	go func() {
+		defer wg.Done()
+
+		abilityFile, err := files.Open("data/abilities.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		abilityBytes, err := fileReadAll(abilityFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		abilities, err := LoadAbilities(abilityBytes)
+		if err != nil {
+			errChan <- err
+		}
+		SetGlobalAbilities(abilities)
+	}()
+	go func() {
+		defer wg.Done()
+
+		itemFile, err := files.Open("data/items.json")
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		itemBytes, err := fileReadAll(itemFile)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		items, err := LoadItems(itemBytes)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		GlobalData.Items = items
+	}()
+
+	wg.Wait()
+	errs := make([]error, 0)
+	for {
+		shouldBreak := false
+		select {
+		case err := <-errChan:
+			errs = append(errs, err)
+		default:
+			shouldBreak = true
+		}
+
+		if shouldBreak {
+			break
+		}
+	}
+
+	return errs
+}
+
+func fileReadAll(file fs.File) ([]byte, error) {
+	var fileSize int64
+	stat, err := file.Stat()
+	if err == nil {
+		fileSize = stat.Size()
+	}
+	buf := make([]byte, fileSize)
+
+	len, err := file.Read(buf)
+	return buf[0:len], err
 }

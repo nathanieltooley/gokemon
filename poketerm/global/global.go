@@ -7,7 +7,6 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -123,137 +122,7 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 	log.Logger = createLogger(configDir, level)
 	golurk.SetInternalLogger(zerologr.New(&log.Logger))
 
-	// Load concurrently
-	var wg sync.WaitGroup
-	wg.Add(4)
-	errChan := make(chan error, 8)
-
-	go func() {
-		defer wg.Done()
-
-		genCount := 3
-		pokemon := make([]golurk.BasePokemon, 0, genCount*150)
-		for i := range genCount {
-			genPath := fmt.Sprintf("data/gen%d-data.csv", i+1)
-			genFile, err := files.Open(genPath)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			genBytes, err := fileReadAll(genFile)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			genPokemon, err := golurk.LoadPokemon(genBytes)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			pokemon = append(pokemon, genPokemon...)
-		}
-
-		golurk.GlobalData.Pokemon = pokemon
-	}()
-	go func() {
-		defer wg.Done()
-
-		moveFile, err := files.Open("data/moves.json")
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		moveMapFile, err := files.Open("data/movesMap.json")
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		moveBytes, err := fileReadAll(moveFile)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		moveMapBytes, err := fileReadAll(moveMapFile)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		moves, err := golurk.LoadMoves(moveBytes, moveMapBytes)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		golurk.SetGlobalMoves(moves)
-	}()
-	go func() {
-		defer wg.Done()
-
-		abilityFile, err := files.Open("data/abilities.json")
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		abilityBytes, err := fileReadAll(abilityFile)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		abilities, err := golurk.LoadAbilities(abilityBytes)
-		if err != nil {
-			errChan <- err
-		}
-		golurk.SetGlobalAbilities(abilities)
-	}()
-	go func() {
-		defer wg.Done()
-
-		itemFile, err := files.Open("data/items.json")
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		itemBytes, err := fileReadAll(itemFile)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		items, err := golurk.LoadItems(itemBytes)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		golurk.GlobalData.Items = items
-	}()
-
-	wg.Wait()
-	errs := make([]error, 0)
-	for {
-		shouldBreak := false
-		select {
-		case err := <-errChan:
-			errs = append(errs, err)
-		default:
-			shouldBreak = true
-		}
-
-		if shouldBreak {
-			break
-		}
-	}
-
+	errs := golurk.DefaultLoader(files)
 	if len(errs) > 0 {
 		for _, err := range errs {
 			log.Err(err)
@@ -307,16 +176,4 @@ func createFileWriter(configDir string) zerolog.ConsoleWriter {
 func createLogger(configDir string, level zerolog.Level) zerolog.Logger {
 	// Main global logger
 	return zerolog.New(createFileWriter(configDir)).With().Timestamp().Caller().Logger().Level(level)
-}
-
-func fileReadAll(file fs.File) ([]byte, error) {
-	var fileSize int64
-	stat, err := file.Stat()
-	if err == nil {
-		fileSize = stat.Size()
-	}
-	buf := make([]byte, fileSize)
-
-	len, err := file.Read(buf)
-	return buf[0:len], err
 }
