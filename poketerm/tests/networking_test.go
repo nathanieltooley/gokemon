@@ -7,8 +7,13 @@ import (
 	"testing"
 
 	"github.com/nathanieltooley/gokemon/golurk"
+	"github.com/nathanieltooley/gokemon/poketerm/global"
 	"github.com/nathanieltooley/gokemon/poketerm/networking"
 )
+
+func init() {
+	global.StopLogging()
+}
 
 func TestEncodeDecodeEvents(t *testing.T) {
 	events := []golurk.StateEvent{golurk.SwitchEvent{PlayerIndex: 10, SwitchIndex: 100}, golurk.AttackEvent{AttackerID: 20, MoveID: 30}}

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/nathanieltooley/gokemon/golurk"
-	"github.com/rs/zerolog/log"
 )
 
 const iterCount = 1000
@@ -25,7 +24,6 @@ func TestDamage(t *testing.T) {
 }
 
 func TestDamageLow(t *testing.T) {
-	log.Debug().Msg("====damage low test====")
 	pokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
 
