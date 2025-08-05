@@ -338,8 +338,8 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if !move.IsNil() && pp > 0 {
 				attack := golurk.NewAttackAction(m.ctx.playerSide, m.moveGridFocus)
-				m.ctx.chosenAction = attack
-				m.ctx.currentSmState = SM_USER_ACTION_SENT
+
+				m.ctx.setChosenAction(attack)
 			}
 
 			outOfMoves := true
@@ -352,8 +352,8 @@ func (m movePanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if outOfMoves {
 				attack := golurk.NewAttackAction(m.ctx.playerSide, -1)
-				m.ctx.chosenAction = attack
-				m.ctx.currentSmState = SM_USER_ACTION_SENT
+
+				m.ctx.setChosenAction(attack)
 			}
 		}
 	}
@@ -455,8 +455,7 @@ func (m pokemonPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if currentValidPokemon.Alive() {
 				action := golurk.NewSwitchAction(m.ctx.state, m.ctx.playerSide, m.selectedPokemon)
 
-				m.ctx.chosenAction = action
-				m.ctx.currentSmState = SM_USER_ACTION_SENT
+				m.ctx.setChosenAction(action)
 			}
 		}
 	}

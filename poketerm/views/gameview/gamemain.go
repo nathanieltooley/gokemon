@@ -49,6 +49,13 @@ type gameContext struct {
 	lost                bool
 }
 
+func (gc *gameContext) setChosenAction(act golurk.Action) {
+	if gc.chosenAction == nil {
+		gc.chosenAction = act
+		gc.currentSmState = SM_USER_ACTION_SENT
+	}
+}
+
 type MainGameModel struct {
 	ctx               *gameContext
 	turnUpdateHandler func(golurk.Action) tea.Msg
