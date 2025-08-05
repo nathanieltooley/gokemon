@@ -108,10 +108,10 @@ func (w rollingFileWriter) Write(b []byte) (n int, err error) {
 		// delete an old file for as many times as necessary
 		for range difference {
 			for _, fileName := range logMatches {
-				file_index := getLogIndex(w.FileName, fileName)
+				fileIndex := getLogIndex(w.FileName, fileName)
 
-				if file_index > latestFileIndex {
-					latestFileIndex = file_index
+				if fileIndex > latestFileIndex {
+					latestFileIndex = fileIndex
 				} else {
 					continue
 				}
