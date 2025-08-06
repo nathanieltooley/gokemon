@@ -2,6 +2,7 @@ package global
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/fs"
 	"math/rand/v2"
@@ -52,6 +53,8 @@ var (
 		LocalPlayerName:  "Player",
 	}
 
+	colorEnabled = false
+
 	GameTicksPerSecond = 20
 
 	// Global RNG for unimportant or non-networked RNG
@@ -66,6 +69,13 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 
 	configDir := DefaultConfigDir()
 	configFilepath := DefaultConfigLocation()
+
+	debugFlag := flag.Bool("debug", false, "Turns on debug mode")
+	colorFlag := flag.Bool("color", false, "Turns on color output for logging. Should only be used for terminal tools like cat and tail.")
+
+	flag.Parse()
+
+	colorEnabled = *colorFlag
 
 	// Basic logging for config debugging
 	initLogger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
@@ -106,8 +116,10 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 		Opt = config
 	}
 
+	enableDebug := *debugFlag || Opt.Debug
+
 	level := zerolog.InfoLevel
-	if Opt.Debug {
+	if enableDebug {
 		level = zerolog.DebugLevel
 	}
 
@@ -120,7 +132,9 @@ func GlobalInit(files fs.FS, shouldLog bool) {
 
 	// Main global logger
 	log.Logger = createLogger(configDir, level)
-	golurk.SetInternalLogger(zerologr.New(&log.Logger))
+	if enableDebug {
+		golurk.SetInternalLogger(zerologr.New(&log.Logger))
+	}
 
 	errs := golurk.DefaultLoader(files)
 	if len(errs) > 0 {
@@ -169,8 +183,8 @@ func populateConfig(config GlobalConfig) GlobalConfig {
 
 func createFileWriter(configDir string) zerolog.ConsoleWriter {
 	rollingWriter := NewRollingFileWriter(filepath.Join(configDir, "logs/"), "gokemon")
-	// TODO: Make custom formatter. ConsoleWriter ends up printing out console format codes (obviously) that look bad in a text editor
-	return zerolog.ConsoleWriter{Out: rollingWriter}
+	// TODO: Add toggle flag for color output
+	return zerolog.ConsoleWriter{Out: rollingWriter, NoColor: !colorEnabled}
 }
 
 func createLogger(configDir string, level zerolog.Level) zerolog.Logger {
