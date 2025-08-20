@@ -31,6 +31,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	currentPokemon := player.GetActivePokemon()
 	newActivePkm := player.GetPokemon(event.SwitchIndex)
 
+	currentPokemon.ClearStatChanges()
+
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 	switch opposingPokemon.Ability.Name {
 	case "shadow-tag", "arena-trap":
@@ -83,8 +85,6 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	case "forecast":
 		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	}
-
-	newActivePkm.ClearStatChanges()
 
 	newActivePkm.SwitchedInThisTurn = true
 	newActivePkm.CanAttackThisTurn = false
