@@ -166,6 +166,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 
 	for i := range 4 {
 		move := possibleMoves[pb.rng.IntN(len(possibleMoves))]
+		builderLogger().Info("Move selected", "move_name", move.Name, "pokemon_name", pb.poke.Nickname)
 		moves[i] = move
 	}
 
