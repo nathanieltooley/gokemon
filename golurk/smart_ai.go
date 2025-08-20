@@ -1,6 +1,6 @@
 package golurk
 
-// Determines the best AI Action. Failsafes to skip action
+// Determines the best AI Action. Failsafes to struggle
 func BestAiAction(gameState *GameState) Action {
 	if gameState.ClientPlayer.GetActivePokemon().Alive() {
 		playerPokemon := gameState.HostPlayer.GetActivePokemon()
@@ -17,20 +17,24 @@ func BestAiAction(gameState *GameState) Action {
 		}
 
 		if !hasAnyMoves {
-			return &SkipAction{}
+			internalLogger.WithName("ai_move_selection").Info("pokemon has no moves and / or is dead and should not be here in the first place", "pokemon_name", aiPokemon.Nickname)
+			return NewAttackAction(AI, -1)
 		}
 
 		bestMoveIndex := -1
 
 		if aiPokemon.Speed(gameState.Weather) < playerPokemon.Speed(gameState.Weather) {
 			bestMoveIndex = bestSlowingMove(gameState)
+
+			if bestMoveIndex != -1 {
+				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best slowing move", "pokemon_name", aiPokemon.Nickname, "move_name", aiPokemon.Moves[bestMoveIndex].Name)
+			}
 		} else {
 			bestMoveIndex = bestAttackingMove(gameState)
-		}
 
-		if bestMoveIndex == -1 {
-			internalLogger.WithName("ai_move_selection").Info("pokemon has no moves and / or is dead and should not be here in the first place", "pokemon_name", aiPokemon.Nickname)
-			return &SkipAction{}
+			if bestMoveIndex != -1 {
+				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best damaging move", "pokemon_name", aiPokemon.Nickname, "move_name", aiPokemon.Moves[bestMoveIndex].Name)
+			}
 		}
 
 		bestMove := Move{}
@@ -39,14 +43,24 @@ func BestAiAction(gameState *GameState) Action {
 		}
 
 		if bestMove.IsNil() {
+			moveIndices := []int{0, 1, 2, 3}
+			rngCopy.Shuffle(4, func(i, j int) {
+				temp := moveIndices[i]
+				moveIndices[i] = moveIndices[j]
+				moveIndices[j] = temp
+			})
+
 			// Randomly select a non-nil move if no best move available
-			for {
-				rMoveIndex := rngCopy.IntN(4)
-				randMove := aiPokemon.Moves[rMoveIndex]
+			for _, i := range moveIndices {
+				randMove := aiPokemon.Moves[i]
 				if !randMove.IsNil() {
-					return NewAttackAction(AI, rMoveIndex)
+					return NewAttackAction(AI, i)
 				}
 			}
+
+			// if all else fails, use the first move available
+			internalLogger.WithName("ai_move_selection").Info("AI failed to chose random move . . . selecting first", "pokemon_name", aiPokemon.Nickname)
+			return NewAttackAction(AI, 0)
 		} else {
 			return NewAttackAction(AI, bestMoveIndex)
 		}
@@ -60,7 +74,7 @@ func BestAiAction(gameState *GameState) Action {
 		}
 	}
 
-	return &SkipAction{}
+	return NewAttackAction(AI, -1)
 }
 
 func bestAttackingMove(gameState *GameState) int {
