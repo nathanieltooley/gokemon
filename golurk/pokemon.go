@@ -275,6 +275,17 @@ func (p Pokemon) DefenseEffectiveness(attackType *PokemonType) float64 {
 	}
 }
 
+func (p *Pokemon) ClearStatChanges() {
+	p.Attack.Stage = 0
+	p.Def.Stage = 0
+	p.SpDef.Stage = 0
+	p.SpAttack.Stage = 0
+	p.RawSpeed.Stage = 0
+	p.CritStage = 0
+	p.AccuracyStage = 0
+	p.EvasionStage = 0
+}
+
 func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
 	var evs [6]uint8
 	if hp > MAX_EV {

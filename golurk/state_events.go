@@ -82,6 +82,8 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	}
 
+	newActivePkm.ClearStatChanges()
+
 	newActivePkm.SwitchedInThisTurn = true
 	newActivePkm.CanAttackThisTurn = false
 	// no matter what, pokemon should not truant on the turn they switch in
