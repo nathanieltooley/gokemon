@@ -956,7 +956,7 @@ func (event EndOfTurnAbilityCheck) Update(gameState *GameState) ([]StateEvent, [
 		)
 	case "shed-skin":
 		check := rng.Float32()
-		if check <= .33 {
+		if check <= .33 && playerPokemon.Status != STATUS_NONE {
 			events = append(events,
 				SimpleAbilityActivationEvent(gameState, event.PlayerID),
 			)
