@@ -449,7 +449,7 @@ func newMoveEditor(pokemon golurk.Pokemon, validMoves []golurk.Move) moveEditor 
 		items[i] = moveItem{move}
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		list := list.New(items, rendering.NewSimpleListDelegate(), 20, 15)
 		list.SetFilteringEnabled(true)
 		list.SetShowStatusBar(false)
