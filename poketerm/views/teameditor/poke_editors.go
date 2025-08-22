@@ -481,7 +481,7 @@ func (e moveEditor) View() string {
 	for i := range moves {
 		move := "Nothing"
 
-		if e.selectedMoves[i].IsNil() {
+		if !e.selectedMoves[i].IsNil() {
 			move = e.selectedMoves[i].Name
 		}
 
