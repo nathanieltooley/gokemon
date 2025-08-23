@@ -97,7 +97,7 @@ type Nature struct {
 // Certain values that are only relevant to battles (like stat stages, counters for sleep and toxic, or PP [lol] for a move) are not saved as team data.
 type Pokemon struct {
 	Base                 *BasePokemon
-	Nickname             string
+	nickname             string
 	Level                uint
 	Hp                   HpStat
 	MaxHp                uint
@@ -123,6 +123,22 @@ type Pokemon struct {
 	InGameMoveInfo       [4]BattleMove `json:"-"`
 	FlashFire            bool          `json:"-"`
 	TruantShouldActivate bool          `json:"-"`
+}
+
+func (p Pokemon) Name() string {
+	if p.nickname != "" {
+		return p.nickname
+	} else {
+		return p.Base.Name
+	}
+}
+
+func (p Pokemon) HasNickname() bool {
+	return p.nickname != ""
+}
+
+func (p *Pokemon) SetNickname(name string) {
+	p.nickname = name
 }
 
 func (p Pokemon) HasType(pokemonType *PokemonType) bool {
@@ -252,7 +268,7 @@ func (p Pokemon) Accuracy() float32 {
 
 // AbilityText returns text that should show when a pokemon's ability is activated
 func (p *Pokemon) AbilityText() string {
-	return fmt.Sprintf("%s activated %s!", p.Nickname, p.Ability.Name)
+	return fmt.Sprintf("%s activated %s!", p.Name(), p.Ability.Name)
 }
 
 func (p Pokemon) IsNil() bool {
