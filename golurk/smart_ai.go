@@ -17,7 +17,7 @@ func BestAiAction(gameState *GameState) Action {
 		}
 
 		if !hasAnyMoves {
-			internalLogger.WithName("ai_move_selection").Info("pokemon has no moves and / or is dead and should not be here in the first place", "pokemon_name", aiPokemon.Nickname)
+			internalLogger.WithName("ai_move_selection").Info("pokemon has no moves and / or is dead and should not be here in the first place", "pokemon_name", aiPokemon.Name())
 			return NewAttackAction(AI, -1)
 		}
 
@@ -27,13 +27,13 @@ func BestAiAction(gameState *GameState) Action {
 			bestMoveIndex = bestSlowingMove(gameState)
 
 			if bestMoveIndex != -1 {
-				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best slowing move", "pokemon_name", aiPokemon.Nickname, "move_name", aiPokemon.Moves[bestMoveIndex].Name)
+				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best slowing move", "pokemon_name", aiPokemon.Name(), "move_name", aiPokemon.Moves[bestMoveIndex].Name)
 			}
 		} else {
 			bestMoveIndex = bestAttackingMove(gameState)
 
 			if bestMoveIndex != -1 {
-				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best damaging move", "pokemon_name", aiPokemon.Nickname, "move_name", aiPokemon.Moves[bestMoveIndex].Name)
+				internalLogger.WithName("ai_move_selection").V(1).Info("AI chose best damaging move", "pokemon_name", aiPokemon.Name(), "move_name", aiPokemon.Moves[bestMoveIndex].Name)
 			}
 		}
 
@@ -59,7 +59,7 @@ func BestAiAction(gameState *GameState) Action {
 			}
 
 			// if all else fails, use the first move available
-			internalLogger.WithName("ai_move_selection").Info("AI failed to chose random move . . . selecting first", "pokemon_name", aiPokemon.Nickname)
+			internalLogger.WithName("ai_move_selection").Info("AI failed to chose random move . . . selecting first", "pokemon_name", aiPokemon.Name())
 			return NewAttackAction(AI, 0)
 		} else {
 			return NewAttackAction(AI, bestMoveIndex)

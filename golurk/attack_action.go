@@ -74,7 +74,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 			damage = defPokemon.MaxHp - 1
 			events = append(events,
 				SimpleAbilityActivationEvent(&state, defIndex),
-				NewFmtMessageEvent("%s held on!", defPokemon.Nickname),
+				NewFmtMessageEvent("%s held on!", defPokemon.Name()),
 			)
 		}
 	}
@@ -83,7 +83,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 		if effectiveness < 2 {
 			events = append(events,
 				SimpleAbilityActivationEvent(&state, defIndex),
-				NewFmtMessageEvent("%s does not take any damage!", defPokemon.Nickname),
+				NewFmtMessageEvent("%s does not take any damage!", defPokemon.Name()),
 			)
 
 			return events
@@ -96,7 +96,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 
 	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
 
-	attackEventLogger().Info("Attack Event!", "attacker", attackPokemon.Nickname, "defender", defPokemon.Nickname, "damage", damage)
+	attackEventLogger().Info("Attack Event!", "attacker", attackPokemon.Name(), "defender", defPokemon.Name(), "damage", damage)
 
 	if move.Meta.Drain > 0 {
 		var drainedHealth uint = 0
@@ -120,7 +120,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 			recoilPercent := (float32(move.Meta.Drain) / 100)
 			selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
 
-			events = append(events, NewFmtMessageEvent("%s took %d%% recoil damage", attackPokemon.Nickname, int(math.Abs(float64(move.Meta.Drain)))))
+			events = append(events, NewFmtMessageEvent("%s took %d%% recoil damage", attackPokemon.Name(), int(math.Abs(float64(move.Meta.Drain)))))
 			// flip sign here because recoil is considered negative Drain healing in pokeapi
 			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: attIndex, SupressMessage: true})
 
@@ -164,7 +164,7 @@ func ohkoHandler(state *GameState, attackPokemon Pokemon, defPokemon Pokemon, de
 
 	randCheck := rng.Float64()
 	if randCheck < 0.01 {
-		events = append(events, NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Nickname))
+		events = append(events, NewFmtMessageEvent("%s took calamitous damage!", defPokemon.Name()))
 	} else {
 		events = append(events, NewMessageEvent("It's a one-hit KO!"))
 	}
@@ -197,7 +197,7 @@ func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move
 
 			// Make sure the pokemon didn't avoid ailment with ability or such
 			if defPokemon.Status != STATUS_NONE {
-				attackEventLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Nickname, "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
+				attackEventLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Name(), "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
 			} else {
 				attackEventLogger().Info("Pokemon removed ailment with ability", "ability_name", defPokemon.Ability.Name, "ailment_id", ailment)
 			}
@@ -243,7 +243,7 @@ func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []Sta
 	if defPokemon.Ability.Name == "suction-cups" {
 		return []StateEvent{
 			SimpleAbilityActivationEvent(state, defIndex),
-			NewFmtMessageEvent("%s cannot be forced out!", defPokemon.Nickname),
+			NewFmtMessageEvent("%s cannot be forced out!", defPokemon.Name()),
 		}
 	}
 

@@ -121,7 +121,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of para", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of para", "pokemon_name", pokemon.Name())
 
 				events = append(events, paraEvent)
 				return
@@ -134,7 +134,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of sleep", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of sleep", "pokemon_name", pokemon.Name())
 
 				events = append(events, sleepEv)
 				return
@@ -147,7 +147,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of freeze", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of freeze", "pokemon_name", pokemon.Name())
 
 				events = append(events, frzEv)
 				return
@@ -160,7 +160,7 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of confusion", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of confusion", "pokemon_name", pokemon.Name())
 
 				events = append(events, confusionEv)
 				return
@@ -169,9 +169,9 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 			if pokemon.Alive() && pokemon.CanAttackThisTurn {
 				events = append(events, a.UpdateState(gameState)...)
 			} else if !pokemon.Alive() {
-				internalLogger.Info("attack was skipped because of dead", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because of dead", "pokemon_name", pokemon.Name())
 			} else if !pokemon.CanAttackThisTurn {
-				internalLogger.Info("attack was skipped because it was marked as unable to attack for the turn", "pokemon_name", pokemon.Nickname)
+				internalLogger.Info("attack was skipped because it was marked as unable to attack for the turn", "pokemon_name", pokemon.Name())
 			}
 		default:
 			events = append(events, a.UpdateState(gameState)...)

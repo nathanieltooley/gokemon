@@ -304,7 +304,7 @@ func (m editPokemonModel) View() string {
 
             MAX EVS: %d
             `,
-		m.currentPokemon.Nickname,
+		m.currentPokemon.Name(),
 		m.currentPokemon.Level,
 
 		m.currentPokemon.Hp.Value,

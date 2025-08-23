@@ -20,7 +20,7 @@ type PokemonBuilder struct {
 func NewPokeBuilder(base *BasePokemon, rng *rand.Rand) *PokemonBuilder {
 	poke := Pokemon{
 		Base:     base,
-		Nickname: base.Name,
+		nickname: "",
 		Level:    1,
 		Hp:       HpStat{Value: 0, Ev: 0, Iv: 0},
 		Attack:   Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
@@ -32,6 +32,11 @@ func NewPokeBuilder(base *BasePokemon, rng *rand.Rand) *PokemonBuilder {
 	}
 
 	return &PokemonBuilder{poke, *rng}
+}
+
+func (pb *PokemonBuilder) SetNickname(name string) *PokemonBuilder {
+	pb.poke.nickname = name
+	return pb
 }
 
 func (pb *PokemonBuilder) SetEvs(evs [6]uint) *PokemonBuilder {
@@ -160,13 +165,13 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 	var moves [4]Move
 
 	if len(possibleMoves) == 0 {
-		builderLogger().Info("This Pokemon was given no available moves to randomize with!", "pokemon_name", pb.poke.Nickname)
+		builderLogger().Info("This Pokemon was given no available moves to randomize with!", "pokemon_name", pb.poke.Name())
 		return pb
 	}
 
 	for i := range 4 {
 		move := possibleMoves[pb.rng.IntN(len(possibleMoves))]
-		builderLogger().Info("Move selected", "move_name", move.Name, "pokemon_name", pb.poke.Nickname)
+		builderLogger().Info("Move selected", "move_name", move.Name, "pokemon_name", pb.poke.Name())
 		moves[i] = move
 	}
 
@@ -178,7 +183,7 @@ func (pb *PokemonBuilder) SetRandomMoves(possibleMoves []Move) *PokemonBuilder {
 func (pb *PokemonBuilder) SetRandomAbility(possibleAbilities []Ability) *PokemonBuilder {
 	abilityCount := len(possibleAbilities)
 	if abilityCount == 0 {
-		builderLogger().Info("This Pokemon was given no available abilities to randomize with!", "pokemon_name", pb.poke.Nickname)
+		builderLogger().Info("This Pokemon was given no available abilities to randomize with!", "pokemon_name", pb.poke.Name())
 		return pb
 	}
 

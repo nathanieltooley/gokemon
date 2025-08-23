@@ -36,14 +36,14 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 	switch opposingPokemon.Ability.Name {
 	case "shadow-tag", "arena-trap":
-		return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
+		return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Name())}
 	case "magnet-pull":
 		if currentPokemon.HasType(&TYPE_STEEL) {
-			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Nickname)}
+			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Name())}
 		}
 	}
 
-	internalLogger.WithName("switch_event").Info("", "player_name", player.Name, "pokemon_name", newActivePkm.Nickname)
+	internalLogger.WithName("switch_event").Info("", "player_name", player.Name, "pokemon_name", newActivePkm.Name())
 
 	// TODO: OOB Check
 	player.ActivePokeIndex = event.SwitchIndex
@@ -54,7 +54,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// Reset toxic count
 	if newActivePkm.Status == STATUS_TOXIC {
 		newActivePkm.ToxicCount = 1
-		internalLogger.WithName("switch_event").Info("pokemon switched in and reset their toxic count", "pokemon_name", newActivePkm.Nickname)
+		internalLogger.WithName("switch_event").Info("pokemon switched in and reset their toxic count", "pokemon_name", newActivePkm.Name())
 	}
 
 	// --- Activate Abilities
@@ -81,7 +81,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 		// manual message event used here because AbilityActivationEvent would use the new ability
 		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s activated trace!"))
-		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s gained %s's ability: %s", newActivePkm.Nickname, opposingPokemon.Nickname, opposingPokemon.Ability.Name))
+		followUpEvents = append(followUpEvents, NewFmtMessageEvent("%s gained %s's ability: %s", newActivePkm.Name(), opposingPokemon.Name(), opposingPokemon.Ability.Name))
 	case "forecast":
 		followUpEvents = append(followUpEvents, SimpleAbilityActivationEvent(gameState, event.PlayerIndex))
 	}
@@ -93,9 +93,9 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	messages := make([]string, 0)
 	if gameState.Turn == 0 || gameState.Turn == 1 {
-		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Nickname))
+		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Name()))
 	} else {
-		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Nickname))
+		messages = append(messages, fmt.Sprintf("%s switched to %s!", player.Name, newActivePkm.Name()))
 	}
 
 	return followUpEvents, messages
@@ -114,7 +114,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	defPokemon := defender.GetActivePokemon()
 
 	if !attackPokemon.Alive() {
-		attackEventLogger().Info("attack was cancelled because they died", "pokemon_name", attackPokemon.Nickname)
+		attackEventLogger().Info("attack was cancelled because they died", "pokemon_name", attackPokemon.Name())
 		return nil, nil
 	}
 
@@ -146,12 +146,12 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	if defPokemon.Ability.Name == "soundproof" && lo.Contains(SOUND_MOVES, move.Name) {
 		return []StateEvent{
 			SimpleAbilityActivationEvent(gameState, defenderInt),
-		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Nickname)}
+		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Name())}
 	}
 
 	events := make([]StateEvent, 0)
 	messages := make([]string, 0)
-	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Nickname, move.Name))
+	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Name(), move.Name))
 
 	accuracyCheck := rng.IntN(100)
 
@@ -214,7 +214,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			if slices.Contains(EXPLOSIVE_MOVES, move.Name) {
 				events = append(events,
 					AbilityActivationEvent{
-						CustomMessage: fmt.Sprintf("%s prevented %s from activating!", defPokemon.Nickname, move.Name),
+						CustomMessage: fmt.Sprintf("%s prevented %s from activating!", defPokemon.Name(), move.Name),
 					},
 				)
 
@@ -296,8 +296,8 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			attackPokemon.InGameMoveInfo[event.MoveID].PP = pp - ppModifier
 		}
 	} else {
-		attackEventLogger().Info("accuracy check failed", "accuracy_check", accuracyCheck, "accuracy_chance", accuracy, "pokemon_name", attackPokemon.Nickname)
-		messages = append(messages, fmt.Sprintf("%s missed their attack!", attackPokemon.Nickname))
+		attackEventLogger().Info("accuracy check failed", "accuracy_check", accuracyCheck, "accuracy_chance", accuracy, "pokemon_name", attackPokemon.Name())
+		messages = append(messages, fmt.Sprintf("%s missed their attack!", attackPokemon.Name()))
 	}
 
 	attackPokemon.TruantShouldActivate = true
@@ -357,11 +357,11 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 	if event.Change < 0 && (pokemon.Ability.Name == "white-smoke" || pokemon.Ability.Name == "clear-body") {
 		return []StateEvent{
 			SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-		}, []string{fmt.Sprintf("%s's stats cannot be lowered!", pokemon.Nickname)}
+		}, []string{fmt.Sprintf("%s's stats cannot be lowered!", pokemon.Name())}
 	}
 
 	if statCheck < event.Chance {
-		internalLogger.WithName("stat_change_event").Info("stat change check passed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Nickname)
+		internalLogger.WithName("stat_change_event").Info("stat change check passed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Name())
 
 		// sorry
 		switch event.StatName {
@@ -369,7 +369,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 			if event.Change < 0 && pokemon.Ability.Name == "hyper-cutter" {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				}, []string{fmt.Sprintf("%s's attack cannot be lowered!", pokemon.Nickname)}
+				}, []string{fmt.Sprintf("%s's attack cannot be lowered!", pokemon.Name())}
 			}
 			pokemon.Attack.ChangeStat(event.Change)
 		case STAT_DEFENSE:
@@ -384,7 +384,7 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 			if event.Change < 0 && (pokemon.Ability.Name == "keen-eye" || pokemon.Ability.Name == "illuminate") {
 				return []StateEvent{
 					SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				}, []string{fmt.Sprintf("%s's accuracy cannot be lowered", pokemon.Nickname)}
+				}, []string{fmt.Sprintf("%s's accuracy cannot be lowered", pokemon.Name())}
 			}
 
 			pokemon.ChangeAccuracy(event.Change)
@@ -396,14 +396,14 @@ func (event StatChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 		var message []string = nil
 
 		if event.Change > 0 {
-			message = []string{fmt.Sprintf("%s's %s increased by %d stages!", pokemon.Nickname, event.StatName, absChange)}
+			message = []string{fmt.Sprintf("%s's %s increased by %d stages!", pokemon.Name(), event.StatName, absChange)}
 		} else {
-			message = []string{fmt.Sprintf("%s's %s decreased by %d stages!", pokemon.Nickname, event.StatName, absChange)}
+			message = []string{fmt.Sprintf("%s's %s decreased by %d stages!", pokemon.Name(), event.StatName, absChange)}
 		}
 
 		return nil, message
 	} else {
-		internalLogger.WithName("stat_change_event").Info("stat change check failed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Nickname)
+		internalLogger.WithName("stat_change_event").Info("stat change check failed", "stat_check", statCheck, "stat_chance", event.Chance, "pokemon_name", pokemon.Name())
 		return nil, nil
 	}
 }
@@ -438,12 +438,12 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		if pokemon.Ability.Name == "limber" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				NewFmtMessageEvent("%s cannot be paralyzed", pokemon.Nickname),
+				NewFmtMessageEvent("%s cannot be paralyzed", pokemon.Name()),
 			}, nil
 		}
 	// Set how many turns the pokemon is asleep for
 	case STATUS_SLEEP:
-		cantSleepMsg := fmt.Sprintf("%s cannot fall asleep", pokemon.Nickname)
+		cantSleepMsg := fmt.Sprintf("%s cannot fall asleep", pokemon.Name())
 		if pokemon.Ability.Name == "insomnia" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
@@ -465,26 +465,26 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		}
 
 		pokemon.SleepCount = randTime
-		internalLogger.WithName("ailment_event").Info("Pokemon fell asleep", "pokemon_name", pokemon.Nickname, "sleep_turns", pokemon.SleepCount)
+		internalLogger.WithName("ailment_event").Info("Pokemon fell asleep", "pokemon_name", pokemon.Name(), "sleep_turns", pokemon.SleepCount)
 	case STATUS_BURN:
 		if pokemon.Ability.Name == "water-veil" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				NewFmtMessageEvent("%s cannot be burned", pokemon.Nickname),
+				NewFmtMessageEvent("%s cannot be burned", pokemon.Name()),
 			}, nil
 		}
 	case STATUS_POISON:
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Nickname),
+				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Name()),
 			}, nil
 		}
 	case STATUS_FROZEN:
 		if pokemon.Ability.Name == "magma-armor" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				NewFmtMessageEvent("%s cannot be frozen", pokemon.Nickname),
+				NewFmtMessageEvent("%s cannot be frozen", pokemon.Name()),
 			}, nil
 		}
 	case STATUS_TOXIC:
@@ -492,7 +492,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		if pokemon.Ability.Name == "immunity" {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
-				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Nickname),
+				NewFmtMessageEvent("%s cannot be poisoned", pokemon.Name()),
 			}, nil
 		}
 
@@ -514,7 +514,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 		}
 	}
 
-	return events, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Nickname)}
+	return events, []string{fmt.Sprintf(ailmentApplicationMessages[event.Ailment], pokemon.Name())}
 }
 
 // AbilityActivationEvent occurs when an ability is activated. This can be just the message that an ability has activated
@@ -551,7 +551,7 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 	messages := make([]string, 0)
 
 	if event.CustomMessage == "" {
-		messages = append(messages, fmt.Sprintf("%s activated their ability: %s", activatorPkm.Nickname, event.AbilityName))
+		messages = append(messages, fmt.Sprintf("%s activated their ability: %s", activatorPkm.Name(), event.AbilityName))
 	} else {
 		messages = append(messages, event.CustomMessage)
 	}
@@ -561,7 +561,7 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 	case "flash-fire":
 		activatorPkm.FlashFire = true
 
-		messages = []string{fmt.Sprintf("%s boosted it's fire-type attacks!", activatorPkm.Nickname)}
+		messages = []string{fmt.Sprintf("%s boosted it's fire-type attacks!", activatorPkm.Name())}
 	case "lightning-rod":
 		events = append(events, NewStatChangeEvent(event.ActivatorInt, STAT_SPATTACK, 1, 100))
 	case "volt-absorb", "water-absorb":
@@ -571,17 +571,17 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 	case "rain-dish":
 		events = append(events, HealPercEvent{HealPerc: 1.0 / 16.0, PlayerIndex: event.ActivatorInt})
 
-		messages = []string{fmt.Sprintf("%s was healed by the rain!", activatorPkm.Nickname)}
+		messages = []string{fmt.Sprintf("%s was healed by the rain!", activatorPkm.Name())}
 	case "shed-skin":
 		// TODO: actually test this ability
 		activatorPkm.Status = STATUS_NONE
 
-		messages = []string{fmt.Sprintf("%s shed it's skin!", activatorPkm.Nickname)}
+		messages = []string{fmt.Sprintf("%s shed it's skin!", activatorPkm.Name())}
 	case "truant":
 		activatorPkm.CanAttackThisTurn = false
 		activatorPkm.TruantShouldActivate = false
 
-		messages = []string{fmt.Sprintf("%s is loafing around!", activatorPkm.Nickname)}
+		messages = []string{fmt.Sprintf("%s is loafing around!", activatorPkm.Name())}
 	case "forecast":
 		switch gameState.Weather {
 		case WEATHER_RAIN:
@@ -592,7 +592,7 @@ func (event AbilityActivationEvent) Update(gameState *GameState) ([]StateEvent, 
 			activatorPkm.BattleType = &TYPE_NORMAL
 		}
 
-		messages = append(messages, fmt.Sprintf("%s changed type to %s", activatorPkm.Nickname, activatorPkm.BattleType.Name))
+		messages = append(messages, fmt.Sprintf("%s changed type to %s", activatorPkm.Name(), activatorPkm.BattleType.Name))
 	}
 
 	return events, messages
@@ -612,7 +612,7 @@ func (event DamageEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	damagePercent := 100 * (float64(event.Damage) / float64(pokemon.MaxHp))
 
 	messages := []string{
-		fmt.Sprintf("%s took %d%% damage!", pokemon.Nickname, int(damagePercent)),
+		fmt.Sprintf("%s took %d%% damage!", pokemon.Name(), int(damagePercent)),
 	}
 
 	if event.Crit {
@@ -637,7 +637,7 @@ func (event HealEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	healPerc := 100 * (float64(event.Heal) / float64(pokemon.MaxHp))
 	messages := []string{
-		fmt.Sprintf("%s healed %d%% of their health!", pokemon.Nickname, int(healPerc)),
+		fmt.Sprintf("%s healed %d%% of their health!", pokemon.Name(), int(healPerc)),
 	}
 
 	return nil, messages
@@ -655,7 +655,7 @@ func (event HealPercEvent) Update(gameState *GameState) ([]StateEvent, []string)
 	heal := 100 * event.HealPerc
 
 	return nil, []string{
-		fmt.Sprintf("%s healed by %d%%!", pokemon.Nickname, int(heal)),
+		fmt.Sprintf("%s healed by %d%%!", pokemon.Name(), int(heal)),
 	}
 }
 
@@ -669,7 +669,7 @@ func (event BurnEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	if pokemon.Alive() {
 		damage := pokemon.MaxHp / 16
 		return []StateEvent{DamageEvent{Damage: damage, PlayerIndex: event.PlayerIndex}}, []string{
-			fmt.Sprintf("%s is burned!", pokemon.Nickname),
+			fmt.Sprintf("%s is burned!", pokemon.Name()),
 		}
 	}
 
@@ -685,7 +685,7 @@ func (event PoisonEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	damage := pokemon.MaxHp / 8
 	return []StateEvent{DamageEvent{Damage: damage, PlayerIndex: event.PlayerIndex}}, []string{
-		fmt.Sprintf("%s is poisoned!", pokemon.Nickname),
+		fmt.Sprintf("%s is poisoned!", pokemon.Name()),
 	}
 }
 
@@ -699,10 +699,10 @@ func (event ToxicEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	damage := (pokemon.MaxHp / 16) * uint(pokemon.ToxicCount)
 	pokemon.ToxicCount++
 
-	internalLogger.WithName("toxic_event").Info("toxic updated", "damage", damage, "toxic_count", pokemon.ToxicCount, "pokemon_name", pokemon.Nickname)
+	internalLogger.WithName("toxic_event").Info("toxic updated", "damage", damage, "toxic_count", pokemon.ToxicCount, "pokemon_name", pokemon.Name())
 
 	return []StateEvent{DamageEvent{Damage: damage, PlayerIndex: event.PlayerIndex}}, []string{
-		fmt.Sprintf("%s is badly poisoned!", pokemon.Nickname),
+		fmt.Sprintf("%s is badly poisoned!", pokemon.Name()),
 	}
 }
 
@@ -723,13 +723,13 @@ func (event FrozenEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	// pokemon stays frozen
 	if thawCheck > thawChance {
-		internalLogger.WithName("frozen_event").Info("Thaw check failed", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Nickname)
-		message = fmt.Sprintf("%s is frozen and cannot move", pokemon.Nickname)
+		internalLogger.WithName("frozen_event").Info("Thaw check failed", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Name())
+		message = fmt.Sprintf("%s is frozen and cannot move", pokemon.Name())
 
 		pokemon.CanAttackThisTurn = false
 	} else {
-		internalLogger.WithName("frozen_event").Info("thaw check passed!", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Nickname)
-		message = fmt.Sprintf("%s thawed out!", pokemon.Nickname)
+		internalLogger.WithName("frozen_event").Info("thaw check passed!", "thaw_check", thawCheck, "thaw_chance", thawChance, "pokemon_name", pokemon.Name())
+		message = fmt.Sprintf("%s thawed out!", pokemon.Name())
 
 		// No need for a new event really
 		pokemon.Status = STATUS_NONE
@@ -757,18 +757,18 @@ func (event ParaEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	paraCheck := rng.Float64()
 
 	messages := make([]string, 0)
-	messages = append(messages, fmt.Sprintf("%s is paralyzed.", pokemon.Nickname))
+	messages = append(messages, fmt.Sprintf("%s is paralyzed.", pokemon.Name()))
 
 	if paraCheck > paraChance {
 		// don't get para'd
-		internalLogger.WithName("para_event").Info("Para Check passed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Nickname)
+		internalLogger.WithName("para_event").Info("Para Check passed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Name())
 		return []StateEvent{event.FollowUpAttackEvent}, messages
 	} else {
 		// do get para'd
-		internalLogger.WithName("para_event").Info("Para Check failed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Nickname)
+		internalLogger.WithName("para_event").Info("Para Check failed", "para_check", paraCheck, "para_chance", paraChance, "pokemon_name", pokemon.Name())
 		pokemon.CanAttackThisTurn = false
 
-		messages = append(messages, fmt.Sprintf("%s is paralyzed and cannot move.", pokemon.Nickname))
+		messages = append(messages, fmt.Sprintf("%s is paralyzed and cannot move.", pokemon.Name()))
 	}
 
 	return nil, messages
@@ -782,7 +782,7 @@ func (event FlinchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 	pokemon.CanAttackThisTurn = false
 
-	return nil, []string{fmt.Sprintf("%s flinched and cannot move!", pokemon.Nickname)}
+	return nil, []string{fmt.Sprintf("%s flinched and cannot move!", pokemon.Name())}
 }
 
 type SleepEvent struct {
@@ -797,11 +797,11 @@ func (event SleepEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// Sleep is over
 	if pokemon.SleepCount <= 0 {
 		pokemon.Status = STATUS_NONE
-		message = fmt.Sprintf("%s woke up!", pokemon.Nickname)
+		message = fmt.Sprintf("%s woke up!", pokemon.Name())
 		pokemon.CanAttackThisTurn = true
 		pokemon.TruantShouldActivate = false
 	} else {
-		message = fmt.Sprintf("%s is asleep", pokemon.Nickname)
+		message = fmt.Sprintf("%s is asleep", pokemon.Name())
 		pokemon.CanAttackThisTurn = false
 	}
 
@@ -828,10 +828,10 @@ func (event ApplyConfusionEvent) Update(gameState *GameState) ([]StateEvent, []s
 		confusionDuration := rng.IntN(3) + 2
 		pokemon.ConfusionCount = confusionDuration
 
-		internalLogger.WithName("apply_confusion_event").Info("confusion applied", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Nickname)
+		internalLogger.WithName("apply_confusion_event").Info("confusion applied", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Name())
 	}
 
-	return nil, []string{fmt.Sprintf("%s is now confused!", pokemon.Nickname)}
+	return nil, []string{fmt.Sprintf("%s is now confused!", pokemon.Name())}
 }
 
 type ConfusionEvent struct {
@@ -842,11 +842,11 @@ type ConfusionEvent struct {
 func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
 	pokemon.ConfusionCount--
-	internalLogger.WithName("confusion_event").Info("confusion updated", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Nickname)
+	internalLogger.WithName("confusion_event").Info("confusion updated", "confusion_count", pokemon.ConfusionCount, "pokemon_name", pokemon.Name())
 
 	rng := gameState.CreateRng()
 
-	confuseText := fmt.Sprintf("%s is confused", pokemon.Nickname)
+	confuseText := fmt.Sprintf("%s is confused", pokemon.Name())
 
 	messages := make([]string, 0)
 	messages = append(messages, confuseText)
@@ -876,12 +876,12 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	pokemon.CanAttackThisTurn = false
 	dmg := Damage(*pokemon, *pokemon, confMove, false, WEATHER_NONE, rng)
 
-	messages = append(messages, fmt.Sprintf("%s hit itself in confusion.", pokemon.Nickname))
+	messages = append(messages, fmt.Sprintf("%s hit itself in confusion.", pokemon.Name()))
 
 	events := make([]StateEvent, 0)
 	events = append(events, DamageEvent{Damage: dmg, PlayerIndex: event.PlayerIndex})
 
-	internalLogger.WithName("confusion_event").Info("pokemon hit itself in confusion", "pokemon_name", pokemon.Nickname)
+	internalLogger.WithName("confusion_event").Info("pokemon hit itself in confusion", "pokemon_name", pokemon.Name())
 
 	return events, messages
 }
@@ -913,7 +913,7 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 	dmg := float64(pokemon.MaxHp) * (1.0 / 16.0)
 	messages := []string{
 		"The sandstorm rages.",
-		fmt.Sprintf("%s was damaged by the sandstorm!", pokemon.Nickname),
+		fmt.Sprintf("%s was damaged by the sandstorm!", pokemon.Name()),
 	}
 	dmgInt := uint(math.Ceil(dmg))
 	return []StateEvent{
@@ -977,7 +977,7 @@ func (event TypeChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 	pokemon := gameState.GetPlayer(event.ChangerInt).GetActivePokemon()
 	pokemon.BattleType = &event.PokemonType
 
-	return nil, []string{fmt.Sprintf("%s changed its type to %s!", pokemon.Nickname, event.PokemonType.Name)}
+	return nil, []string{fmt.Sprintf("%s changed its type to %s!", pokemon.Name(), event.PokemonType.Name)}
 }
 
 // MessageEvent is an event that only shows a message. No state updates occur.

@@ -49,7 +49,7 @@ type Player struct {
 func (p Player) Lost() bool {
 	for _, pokemon := range p.Team {
 		if pokemon.Alive() {
-			internalLogger.V(2).Info("Player hasn't lost yet", "player_name", p.Name, "alive_pokemon_name", pokemon.Nickname)
+			internalLogger.V(2).Info("Player hasn't lost yet", "player_name", p.Name, "alive_pokemon_name", pokemon.Name())
 			return false
 		}
 	}
