@@ -162,7 +162,7 @@ func (m playerPanel) View() string {
 
 	nameFormat := currentPokemon.Base.Name
 	if currentPokemon.Nickname != "" {
-		nameFormat = fmt.Sprintf("%s (%s)", currentPokemon.Nickname, currentPokemon.Base.Name)
+		nameFormat = fmt.Sprintf("%s (%s)", currentPokemon.Name(), currentPokemon.Base.Name)
 	}
 
 	pokeInfo := fmt.Sprintf("%s %s\nLevel: %d\n%s",
@@ -393,7 +393,7 @@ func (m pokemonPanel) View() string {
 			style = style.BorderForeground(lipgloss.Color("#ff2f2f"))
 		}
 
-		panels = append(panels, style.Width(pokemonWidth).Render(pokemon.Nickname))
+		panels = append(panels, style.Width(pokemonWidth).Render(pokemon.Name()))
 	}
 
 	displayText := m.currentSubtext

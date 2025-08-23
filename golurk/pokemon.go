@@ -125,6 +125,14 @@ type Pokemon struct {
 	TruantShouldActivate bool          `json:"-"`
 }
 
+func (p Pokemon) Name() string {
+	if p.Nickname != "" {
+		return p.Nickname
+	} else {
+		return p.Base.Name
+	}
+}
+
 func (p Pokemon) HasType(pokemonType *PokemonType) bool {
 	// all comparisons have to be against names, Go does not by default compare values but only pointers.
 	// end early if there is a battle type
@@ -252,7 +260,7 @@ func (p Pokemon) Accuracy() float32 {
 
 // AbilityText returns text that should show when a pokemon's ability is activated
 func (p *Pokemon) AbilityText() string {
-	return fmt.Sprintf("%s activated %s!", p.Nickname, p.Ability.Name)
+	return fmt.Sprintf("%s activated %s!", p.Name(), p.Ability.Name)
 }
 
 func (p Pokemon) IsNil() bool {

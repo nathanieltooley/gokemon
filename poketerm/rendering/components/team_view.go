@@ -41,7 +41,7 @@ func (m TeamView) View() string {
 	teamPanels := make([]string, 0)
 
 	for i, pokemon := range m.Team {
-		panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Nickname, pokemon.Level)
+		panel := fmt.Sprintf("%s\nLevel: %d\n", pokemon.Name(), pokemon.Level)
 
 		if i == m.CurrentPokemonIndex && m.Focused {
 			teamPanels = append(teamPanels, highlightedPokemonTeamStyle.Render(panel))

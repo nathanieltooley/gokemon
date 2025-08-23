@@ -86,7 +86,7 @@ func newDetailsEditor(pokeInfo golurk.Pokemon) detailsEditor {
 	nameInput.Placeholder = "Nickname"
 	nameInput.Focus()
 	nameInput.CharLimit = 16
-	nameInput.SetValue(pokeInfo.Nickname)
+	nameInput.SetValue(pokeInfo.Name())
 
 	levelInput := textinput.New()
 	levelInput.Blur()

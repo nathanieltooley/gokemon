@@ -102,7 +102,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 		d = baseD
 
 	} else if crit && (defendent.Ability.Name == "battle-armor" || defendent.Ability.Name == "shell-armor") {
-		damageLogger().Info("Defending pokemon blocked crit", "pokemon_name", defendent.Nickname, "ability_name", defendent.Ability.Name)
+		damageLogger().Info("Defending pokemon blocked crit", "pokemon_name", defendent.Name(), "ability_name", defendent.Ability.Name)
 	}
 
 	lowHealthBonus := 1.0
@@ -127,7 +127,7 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 	// TODO: Add exception for Guts and Facade
 	if attacker.Status == STATUS_BURN && move.DamageClass == DAMAGETYPE_PHYSICAL {
 		burn = 0.5
-		damageLogger().V(2).Info("Attacker is burned and is using a physical move", "attacker_name", attacker.Nickname)
+		damageLogger().V(2).Info("Attacker is burned and is using a physical move", "attacker_name", attacker.Name())
 	}
 
 	if attacker.Ability.Name == "guts" {
