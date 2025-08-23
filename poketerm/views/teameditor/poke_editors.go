@@ -119,7 +119,7 @@ func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor,
 			nameValue := e.is.inputs[i].Value()
 
 			if nameValue != "" {
-				currentPokemon.SetNickname(nameValue)
+				currentPokemon.Nickname = nameValue
 			}
 
 		case DE_LEVEL:

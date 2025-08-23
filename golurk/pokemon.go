@@ -97,7 +97,7 @@ type Nature struct {
 // Certain values that are only relevant to battles (like stat stages, counters for sleep and toxic, or PP [lol] for a move) are not saved as team data.
 type Pokemon struct {
 	Base                 *BasePokemon
-	nickname             string
+	Nickname             string
 	Level                uint
 	Hp                   HpStat
 	MaxHp                uint
@@ -126,19 +126,11 @@ type Pokemon struct {
 }
 
 func (p Pokemon) Name() string {
-	if p.nickname != "" {
-		return p.nickname
+	if p.Nickname != "" {
+		return p.Nickname
 	} else {
 		return p.Base.Name
 	}
-}
-
-func (p Pokemon) HasNickname() bool {
-	return p.nickname != ""
-}
-
-func (p *Pokemon) SetNickname(name string) {
-	p.nickname = name
 }
 
 func (p Pokemon) HasType(pokemonType *PokemonType) bool {

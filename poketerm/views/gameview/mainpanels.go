@@ -161,7 +161,7 @@ func (m playerPanel) View() string {
 	}
 
 	nameFormat := currentPokemon.Base.Name
-	if currentPokemon.HasNickname() {
+	if currentPokemon.Nickname != "" {
 		nameFormat = fmt.Sprintf("%s (%s)", currentPokemon.Name(), currentPokemon.Base.Name)
 	}
 

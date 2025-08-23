@@ -20,7 +20,7 @@ type PokemonBuilder struct {
 func NewPokeBuilder(base *BasePokemon, rng *rand.Rand) *PokemonBuilder {
 	poke := Pokemon{
 		Base:     base,
-		nickname: "",
+		Nickname: "",
 		Level:    1,
 		Hp:       HpStat{Value: 0, Ev: 0, Iv: 0},
 		Attack:   Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
@@ -35,7 +35,7 @@ func NewPokeBuilder(base *BasePokemon, rng *rand.Rand) *PokemonBuilder {
 }
 
 func (pb *PokemonBuilder) SetNickname(name string) *PokemonBuilder {
-	pb.poke.nickname = name
+	pb.poke.Nickname = name
 	return pb
 }
 
