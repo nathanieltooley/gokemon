@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
 type Response struct {
-	Items []core.NamedApiResource
+	Items []golurk.NamedApiResource
 }
 
 func main() {

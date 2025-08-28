@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk/"
 	"github.com/nathanieltooley/gokemon/scripts"
 )
 
@@ -16,12 +16,12 @@ type Response struct {
 	Count    int
 	Next     *string
 	Previous *string
-	Results  []core.NamedApiResource
+	Results  []golurk.NamedApiResource
 }
 
 type PreAbility struct {
 	Name       string
-	Generation core.NamedApiResource
+	Generation golurk.NamedApiResource
 	ForPokemon []struct {
 		Pokemon struct {
 			Name string
@@ -39,7 +39,7 @@ func main() {
 	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
 	flag.Parse()
 
-	abilitiesNR := make([]core.NamedApiResource, 0)
+	abilitiesNR := make([]golurk.NamedApiResource, 0)
 
 	url := "https://pokeapi.co/api/v2/ability?offset=0&limit=1000"
 	for {
@@ -69,7 +69,7 @@ func main() {
 		}
 	}
 
-	abilityMap := make(map[string][]core.Ability)
+	abilityMap := make(map[string][]golurk.Ability)
 
 	for _, nrAbility := range abilitiesNR {
 		log.Printf("Getting pokemon who have ability: %s\n", nrAbility.Name)
@@ -95,7 +95,7 @@ func main() {
 			log.Printf("--- %s : Is Hidden %v", pokemon.Pokemon.Name, pokemon.IsHidden)
 			pokemonAbilities, ok := abilityMap[pokemon.Pokemon.Name]
 
-			finalAbility := core.Ability{
+			finalAbility := golurk.Ability{
 				Name:     ability.Name,
 				IsHidden: pokemon.IsHidden,
 			}
@@ -103,7 +103,7 @@ func main() {
 			if ok {
 				abilityMap[pokemon.Pokemon.Name] = append(pokemonAbilities, finalAbility)
 			} else {
-				abilityMap[pokemon.Pokemon.Name] = []core.Ability{finalAbility}
+				abilityMap[pokemon.Pokemon.Name] = []golurk.Ability{finalAbility}
 			}
 		}
 	}

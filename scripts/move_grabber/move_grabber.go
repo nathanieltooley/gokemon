@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/nathanieltooley/gokemon/scripts"
 	"github.com/samber/lo"
 	"golang.org/x/text/cases"
@@ -16,11 +17,11 @@ import (
 )
 
 type MoveMetaPre struct {
-	Ailment       core.NamedApiResource
+	Ailment       golurk.NamedApiResource
 	AilmentChance int `json:"ailment_chance"`
 	FlinchChance  int `json:"flinch_chance"`
 	StatChance    int `json:"stat_chance"`
-	Category      core.NamedApiResource
+	Category      golurk.NamedApiResource
 
 	// Null means always hits once
 	MinHits *int `json:"min_hits"`
@@ -37,7 +38,7 @@ type MoveMetaPre struct {
 }
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
-func (m *MoveMetaPre) ToFullMeta() (*core.MoveMeta, error) {
+func (m *MoveMetaPre) ToFullMeta() (*golurk.MoveMeta, error) {
 	ailmentJson, err := scripts.FollowNamedResource[struct {
 		Id   int
 		Name string
@@ -54,7 +55,7 @@ func (m *MoveMetaPre) ToFullMeta() (*core.MoveMeta, error) {
 		return nil, err
 	}
 
-	meta := &core.MoveMeta{
+	meta := &golurk.MoveMeta{
 		Ailment:  ailmentJson,
 		Category: categoryJson,
 
@@ -86,25 +87,25 @@ type StatChangePre struct {
 // TODO: Follow all NamedApiResources and return their actual value
 type MoveFullPre struct {
 	Accuracy      int
-	DamageClass   core.NamedApiResource `json:"damage_class"`
+	DamageClass   golurk.NamedApiResource `json:"damage_class"`
 	EffectChance  int
 	EffectEntries []struct {
 		Effect      string
-		Language    core.NamedApiResource
+		Language    golurk.NamedApiResource
 		ShortEffect string `json:"short_effect"`
 	} `json:"effect_entries"`
-	LearnedByPokemon []core.NamedApiResource `json:"learned_by_pokemon"`
+	LearnedByPokemon []golurk.NamedApiResource `json:"learned_by_pokemon"`
 	Meta             *MoveMetaPre
 	Name             string
 	Power            int
 	PP               int
 	Priority         int
 	StatChanges      []StatChangePre `json:"stat_changes"`
-	Target           core.NamedApiResource
-	Type             core.NamedApiResource
+	Target           golurk.NamedApiResource
+	Type             golurk.NamedApiResource
 }
 
-func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
+func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
 	damageClassJson, err := scripts.FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
@@ -117,14 +118,14 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 		Name         string
 		Descriptions []struct {
 			Description string
-			Language    core.NamedApiResource
+			Language    golurk.NamedApiResource
 		}
 	}](m.Target)
 	if err != nil {
 		return nil, err
 	}
 
-	var effect core.EffectEntry
+	var effect golurk.EffectEntry
 	for _, effectEntry := range m.EffectEntries {
 		if effectEntry.Language.Name == "en" {
 			effect.Effect = effectEntry.Effect
@@ -132,12 +133,12 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 		}
 	}
 
-	target := core.Target{
+	target := golurk.Target{
 		Id:   targetJson.Id,
 		Name: targetJson.Name,
 	}
 
-	var meta *core.MoveMeta
+	var meta *golurk.MoveMeta
 
 	if m.Meta != nil {
 		meta1, err := m.Meta.ToFullMeta()
@@ -150,7 +151,7 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 
 	titleCaser := cases.Title(language.English)
 
-	move := &core.MoveFull{
+	move := &golurk.MoveFull{
 		DamageClass: damageClassJson.Name,
 		EffectEntry: effect,
 		Target:      target,
@@ -165,7 +166,7 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 		PP:               m.PP,
 		Priority:         m.Priority,
 		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) core.StatChange {
-			return core.StatChange{
+			return golurk.StatChange{
 				Change:   statPre.Change,
 				StatName: statPre.Stat.Name,
 			}
@@ -190,7 +191,7 @@ func main() {
 		Count    int
 		Next     *string // Pointers because they can be nil
 		Previous *string
-		Results  []core.NamedApiResource
+		Results  []golurk.NamedApiResource
 	}
 
 	fullresponseJson := new(Response)
@@ -249,12 +250,12 @@ func main() {
 		}
 
 		// Gross hack to get rid of LearnedByPokemon info
-		move := core.Move{
+		move := golurk.Move{
 			Accuracy:     moveJson.Accuracy,
 			DamageClass:  moveJson.DamageClass,
 			EffectChance: movePreJson.EffectChance,
 			EffectEntry:  moveJson.EffectEntry,
-			Meta:         moveJson.Meta,
+			Meta:         *moveJson.Meta,
 			Name:         moveJson.Name,
 			Power:        moveJson.Power,
 			PP:           moveJson.PP,
