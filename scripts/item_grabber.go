@@ -9,17 +9,17 @@ import (
 	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-type Response struct {
+type ItemResponse struct {
 	Items []golurk.NamedApiResource
 }
 
-func main() {
+func itemMain() {
 	itemResponse, err := http.Get("https://pokeapi.co/api/v2/item-attribute/7/")
 	if err != nil {
 		panic(err)
 	}
 
-	parsedResponse := new(Response)
+	parsedResponse := new(ItemResponse)
 	responseBytes, err := io.ReadAll(itemResponse.Body)
 	if err != nil {
 		panic(err)

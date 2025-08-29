@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/golurk/"
-	"github.com/nathanieltooley/gokemon/scripts"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-type Response struct {
+type AbilityResponse struct {
 	Count    int
 	Next     *string
 	Previous *string
@@ -35,7 +34,7 @@ type Generation struct {
 	Name string
 }
 
-func main() {
+func abilityMain() {
 	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
 	flag.Parse()
 
@@ -53,7 +52,7 @@ func main() {
 			panic(err)
 		}
 
-		tempResponse := new(Response)
+		tempResponse := new(AbilityResponse)
 
 		err = json.Unmarshal(responseBytes, tempResponse)
 		if err != nil {
@@ -73,14 +72,14 @@ func main() {
 
 	for _, nrAbility := range abilitiesNR {
 		log.Printf("Getting pokemon who have ability: %s\n", nrAbility.Name)
-		ability, err := scripts.FollowNamedResource[PreAbility](nrAbility)
+		ability, err := FollowNamedResource[PreAbility](nrAbility)
 		if err != nil {
 			panic(err)
 		}
 
 		// Skip abilities after a certain generation
 		if *generationLimit > 0 {
-			gen, err := scripts.FollowNamedResource[Generation](ability.Generation)
+			gen, err := FollowNamedResource[Generation](ability.Generation)
 			if err != nil {
 				panic(err)
 			}

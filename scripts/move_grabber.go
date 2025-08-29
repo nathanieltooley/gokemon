@@ -8,9 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
 	"github.com/nathanieltooley/gokemon/golurk"
-	"github.com/nathanieltooley/gokemon/scripts"
 	"github.com/samber/lo"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -39,17 +37,17 @@ type MoveMetaPre struct {
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
 func (m *MoveMetaPre) ToFullMeta() (*golurk.MoveMeta, error) {
-	ailmentJson, err := scripts.FollowNamedResource[struct {
-		Id   int
-		Name string
+	ailmentJson, err := FollowNamedResource[struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
 	}](m.Ailment)
 	if err != nil {
 		return nil, err
 	}
 
-	categoryJson, err := scripts.FollowNamedResource[struct {
-		Id   int
-		Name string
+	categoryJson, err := FollowNamedResource[struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
 	}](m.Category)
 	if err != nil {
 		return nil, err
@@ -106,14 +104,14 @@ type MoveFullPre struct {
 }
 
 func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
-	damageClassJson, err := scripts.FollowNamedResource[struct {
+	damageClassJson, err := FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
 	if err != nil {
 		return nil, err
 	}
 
-	targetJson, err := scripts.FollowNamedResource[struct {
+	targetJson, err := FollowNamedResource[struct {
 		Id           int
 		Name         string
 		Descriptions []struct {
@@ -165,7 +163,7 @@ func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
 		Power:            m.Power,
 		PP:               m.PP,
 		Priority:         m.Priority,
-		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) core.StatChange {
+		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) golurk.StatChange {
 			return golurk.StatChange{
 				Change:   statPre.Change,
 				StatName: statPre.Stat.Name,
@@ -184,7 +182,7 @@ func unwrap(err error) {
 
 // Fetches and downloads all move data from pokeapi and does extra requests
 // for important move data like damage classes and effect descriptions
-func main() {
+func moveMain() {
 	moveUrl := "https://pokeapi.co/api/v2/move/?offset=0&limit=1000"
 
 	type Response struct {
