@@ -34,7 +34,7 @@ type Generation struct {
 	Name string
 }
 
-func abilityMain() {
+func abilityMain(abilityMapJsonName string) {
 	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
 	flag.Parse()
 
@@ -112,7 +112,6 @@ func abilityMain() {
 		panic(err)
 	}
 
-	abilityMapJsonName := "./data/abilities.json"
 	os.Remove(abilityMapJsonName)
 
 	f, err := os.Create(abilityMapJsonName)

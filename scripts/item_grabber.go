@@ -13,7 +13,7 @@ type ItemResponse struct {
 	Items []golurk.NamedApiResource
 }
 
-func itemMain() {
+func itemMain(itemFileName string) {
 	itemResponse, err := http.Get("https://pokeapi.co/api/v2/item-attribute/7/")
 	if err != nil {
 		panic(err)
@@ -34,7 +34,6 @@ func itemMain() {
 		items[i] = item.Name
 	}
 
-	itemFileName := "./data/items.json"
 	os.Remove(itemFileName)
 
 	itemsFile, err := os.Create(itemFileName)

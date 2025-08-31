@@ -16,10 +16,10 @@ func main() {
 
 	switch scriptName {
 	case "ability":
-		abilityMain()
+		abilityMain("./poketerm/data/abilities.json")
 	case "item":
-		itemMain()
+		itemMain("./poketerm/data/items.json")
 	case "move":
-		moveMain()
+		moveMain("./poketerm/data/moves.json", "./poketerm/data/movesMap.json")
 	}
 }

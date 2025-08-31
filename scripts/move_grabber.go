@@ -36,13 +36,13 @@ type MoveMetaPre struct {
 }
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
-func (m *MoveMetaPre) ToFullMeta() (*golurk.MoveMeta, error) {
+func (m MoveMetaPre) ToFullMeta() (golurk.MoveMeta, error) {
 	ailmentJson, err := FollowNamedResource[struct {
 		Id   int    `json:"id"`
 		Name string `json:"name"`
 	}](m.Ailment)
 	if err != nil {
-		return nil, err
+		return golurk.MoveMeta{}, err
 	}
 
 	categoryJson, err := FollowNamedResource[struct {
@@ -50,10 +50,10 @@ func (m *MoveMetaPre) ToFullMeta() (*golurk.MoveMeta, error) {
 		Name string `json:"name"`
 	}](m.Category)
 	if err != nil {
-		return nil, err
+		return golurk.MoveMeta{}, err
 	}
 
-	meta := &golurk.MoveMeta{
+	meta := golurk.MoveMeta{
 		Ailment:  ailmentJson,
 		Category: categoryJson,
 
@@ -82,7 +82,8 @@ type StatChangePre struct {
 	}
 }
 
-// TODO: Follow all NamedApiResources and return their actual value
+// MoveFullPre is the data sent by the move endpoint before "NamedApiResources"
+// have been followed through.
 type MoveFullPre struct {
 	Accuracy      int
 	DamageClass   golurk.NamedApiResource `json:"damage_class"`
@@ -103,12 +104,12 @@ type MoveFullPre struct {
 	Type             golurk.NamedApiResource
 }
 
-func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
+func (m MoveFullPre) ToFull() (golurk.MoveFull, error) {
 	damageClassJson, err := FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
 	if err != nil {
-		return nil, err
+		return golurk.MoveFull{}, err
 	}
 
 	targetJson, err := FollowNamedResource[struct {
@@ -120,7 +121,7 @@ func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
 		}
 	}](m.Target)
 	if err != nil {
-		return nil, err
+		return golurk.MoveFull{}, err
 	}
 
 	var effect golurk.EffectEntry
@@ -136,12 +137,12 @@ func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
 		Name: targetJson.Name,
 	}
 
-	var meta *golurk.MoveMeta
+	var meta golurk.MoveMeta
 
 	if m.Meta != nil {
 		meta1, err := m.Meta.ToFullMeta()
 		if err != nil {
-			return nil, err
+			return golurk.MoveFull{}, err
 		}
 
 		meta = meta1
@@ -149,7 +150,7 @@ func (m *MoveFullPre) ToFullMeta() (*golurk.MoveFull, error) {
 
 	titleCaser := cases.Title(language.English)
 
-	move := &golurk.MoveFull{
+	move := golurk.MoveFull{
 		DamageClass: damageClassJson.Name,
 		EffectEntry: effect,
 		Target:      target,
@@ -182,7 +183,7 @@ func unwrap(err error) {
 
 // Fetches and downloads all move data from pokeapi and does extra requests
 // for important move data like damage classes and effect descriptions
-func moveMain() {
+func moveMain(movesFileName string, movesMapName string) {
 	moveUrl := "https://pokeapi.co/api/v2/move/?offset=0&limit=1000"
 
 	type Response struct {
@@ -238,7 +239,7 @@ func moveMain() {
 		err = json.Unmarshal(bytes, movePreJson)
 		unwrap(err)
 
-		moveJson, err := movePreJson.ToFullMeta()
+		moveJson, err := movePreJson.ToFull()
 		unwrap(err)
 
 		for _, pokemon := range moveJson.LearnedByPokemon {
@@ -251,9 +252,9 @@ func moveMain() {
 		move := golurk.Move{
 			Accuracy:     moveJson.Accuracy,
 			DamageClass:  moveJson.DamageClass,
-			EffectChance: movePreJson.EffectChance,
+			EffectChance: moveJson.EffectChance,
 			EffectEntry:  moveJson.EffectEntry,
-			Meta:         *moveJson.Meta,
+			Meta:         moveJson.Meta,
 			Name:         moveJson.Name,
 			Power:        moveJson.Power,
 			PP:           moveJson.PP,
@@ -266,9 +267,6 @@ func moveMain() {
 		// log.Printf("Move: %+v\n", moveJson)
 		allMoves = append(allMoves, move)
 	}
-
-	movesFileName := "./data/moves.json"
-	movesMapName := "./data/movesMap.json"
 
 	os.Remove(movesFileName)
 	os.Remove(movesMapName)
