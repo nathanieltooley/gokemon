@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -34,10 +33,7 @@ type Generation struct {
 	Name string
 }
 
-func abilityMain(abilityMapJsonName string) {
-	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
-	flag.Parse()
-
+func abilityMain(abilityMapJsonName string, generationLimit int) {
 	abilitiesNR := make([]golurk.NamedApiResource, 0)
 
 	url := "https://pokeapi.co/api/v2/ability?offset=0&limit=1000"
@@ -78,14 +74,14 @@ func abilityMain(abilityMapJsonName string) {
 		}
 
 		// Skip abilities after a certain generation
-		if *generationLimit > 0 {
+		if generationLimit > 0 {
 			gen, err := FollowNamedResource[Generation](ability.Generation)
 			if err != nil {
 				panic(err)
 			}
 
-			if gen.Id > *generationLimit {
-				log.Printf("Skipping ability. Gen higher than limit: %d > %d", gen.Id, *generationLimit)
+			if gen.Id > generationLimit {
+				log.Printf("Skipping ability. Gen higher than limit: %d > %d", gen.Id, generationLimit)
 				continue
 			}
 		}
