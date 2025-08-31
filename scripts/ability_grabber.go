@@ -2,26 +2,24 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"io"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/scripts"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-type Response struct {
+type AbilityResponse struct {
 	Count    int
 	Next     *string
 	Previous *string
-	Results  []core.NamedApiResource
+	Results  []golurk.NamedApiResource
 }
 
 type PreAbility struct {
 	Name       string
-	Generation core.NamedApiResource
+	Generation golurk.NamedApiResource
 	ForPokemon []struct {
 		Pokemon struct {
 			Name string
@@ -35,11 +33,8 @@ type Generation struct {
 	Name string
 }
 
-func main() {
-	generationLimit := flag.Int("gen", 0, "Limits abilities to before and in the generation provided")
-	flag.Parse()
-
-	abilitiesNR := make([]core.NamedApiResource, 0)
+func abilityMain(abilityMapJsonName string, generationLimit int) {
+	abilitiesNR := make([]golurk.NamedApiResource, 0)
 
 	url := "https://pokeapi.co/api/v2/ability?offset=0&limit=1000"
 	for {
@@ -53,7 +48,7 @@ func main() {
 			panic(err)
 		}
 
-		tempResponse := new(Response)
+		tempResponse := new(AbilityResponse)
 
 		err = json.Unmarshal(responseBytes, tempResponse)
 		if err != nil {
@@ -69,24 +64,24 @@ func main() {
 		}
 	}
 
-	abilityMap := make(map[string][]core.Ability)
+	abilityMap := make(map[string][]golurk.Ability)
 
 	for _, nrAbility := range abilitiesNR {
 		log.Printf("Getting pokemon who have ability: %s\n", nrAbility.Name)
-		ability, err := scripts.FollowNamedResource[PreAbility](nrAbility)
+		ability, err := FollowNamedResource[PreAbility](nrAbility)
 		if err != nil {
 			panic(err)
 		}
 
 		// Skip abilities after a certain generation
-		if *generationLimit > 0 {
-			gen, err := scripts.FollowNamedResource[Generation](ability.Generation)
+		if generationLimit > 0 {
+			gen, err := FollowNamedResource[Generation](ability.Generation)
 			if err != nil {
 				panic(err)
 			}
 
-			if gen.Id > *generationLimit {
-				log.Printf("Skipping ability. Gen higher than limit: %d > %d", gen.Id, *generationLimit)
+			if gen.Id > generationLimit {
+				log.Printf("Skipping ability. Gen higher than limit: %d > %d", gen.Id, generationLimit)
 				continue
 			}
 		}
@@ -95,7 +90,7 @@ func main() {
 			log.Printf("--- %s : Is Hidden %v", pokemon.Pokemon.Name, pokemon.IsHidden)
 			pokemonAbilities, ok := abilityMap[pokemon.Pokemon.Name]
 
-			finalAbility := core.Ability{
+			finalAbility := golurk.Ability{
 				Name:     ability.Name,
 				IsHidden: pokemon.IsHidden,
 			}
@@ -103,7 +98,7 @@ func main() {
 			if ok {
 				abilityMap[pokemon.Pokemon.Name] = append(pokemonAbilities, finalAbility)
 			} else {
-				abilityMap[pokemon.Pokemon.Name] = []core.Ability{finalAbility}
+				abilityMap[pokemon.Pokemon.Name] = []golurk.Ability{finalAbility}
 			}
 		}
 	}
@@ -113,7 +108,6 @@ func main() {
 		panic(err)
 	}
 
-	abilityMapJsonName := "./data/abilities.json"
 	os.Remove(abilityMapJsonName)
 
 	f, err := os.Create(abilityMapJsonName)

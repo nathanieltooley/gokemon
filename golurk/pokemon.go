@@ -27,17 +27,17 @@ func (t PokemonType) AttackEffectiveness(defenseType PokemonType) float64 {
 
 // BasePokemon is the base stats, possible abilities, and type information of a Pokemon, as if it were a PokeDex entry.
 type BasePokemon struct {
-	PokedexNumber uint
-	Name          string
-	Type1         *PokemonType
-	Type2         *PokemonType
-	Abilities     []Ability
-	Hp            uint
-	Attack        uint
-	Def           uint
-	SpAttack      uint
-	SpDef         uint
-	Speed         uint
+	PokedexNumber uint         `json:"pokedex_number"`
+	Name          string       `json:"name"`
+	Type1         *PokemonType `json:"type_1"`
+	Type2         *PokemonType `json:"type_2"`
+	Abilities     []Ability    `json:"abilities"`
+	Hp            uint         `json:"hp"`
+	Attack        uint         `json:"attack"`
+	Def           uint         `json:"defense"`
+	SpAttack      uint         `json:"special_attack"`
+	SpDef         uint         `json:"special_defense"`
+	Speed         uint         `json:"speed"`
 }
 
 // HasType returns whether a BasePokemon is either of these types
@@ -47,10 +47,10 @@ func (b BasePokemon) HasType(t *PokemonType) bool {
 
 // Stat represents one of a Pokemon's stats, keeping track of the raw values and also stage modifers.
 type Stat struct {
-	RawValue uint
-	Ev       uint
-	Iv       uint
-	Stage    int `json:"-"`
+	RawValue uint `json:"raw_value"`
+	Ev       uint `json:"ev"`
+	Iv       uint `json:"iv"`
+	Stage    int  `json:"-"`
 }
 
 // HpStat is a special version of Stat that does not contain stage info as HP cannot be increased in stages like other stats.
@@ -96,20 +96,23 @@ type Nature struct {
 // Pokemon is a mixture of an edited Pokemon on a team, and a version of that Pokemon in a battle.
 // Certain values that are only relevant to battles (like stat stages, counters for sleep and toxic, or PP [lol] for a move) are not saved as team data.
 type Pokemon struct {
-	Base                 *BasePokemon
-	Nickname             string
-	Level                uint
-	Hp                   HpStat
-	MaxHp                uint
-	Attack               Stat
-	Def                  Stat
-	SpAttack             Stat
-	SpDef                Stat
-	RawSpeed             Stat
-	Moves                [4]Move
-	Nature               Nature
-	Ability              Ability
-	Item                 string
+	// Saveable stats
+	Base     *BasePokemon `json:"base"`
+	Nickname string       `json:"nickname"`
+	Level    uint         `json:"level"`
+	Hp       HpStat       `json:"hp"`
+	MaxHp    uint         `json:"max_hp"`
+	Attack   Stat         `json:"attack"`
+	Def      Stat         `json:"defense"`
+	SpAttack Stat         `json:"special_attack"`
+	SpDef    Stat         `json:"special_defense"`
+	RawSpeed Stat         `json:"raw_speed"`
+	Moves    [4]Move      `json:"moves"`
+	Nature   Nature       `json:"nature"`
+	Ability  Ability      `json:"ability"`
+	Item     string       `json:"item"`
+
+	// Battle Only Stats
 	BattleType           *PokemonType  `json:"-"`
 	Status               int           `json:"-"`
 	ConfusionCount       int           `json:"-"`

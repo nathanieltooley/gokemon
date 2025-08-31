@@ -8,19 +8,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
-	"github.com/nathanieltooley/gokemon/scripts"
+	"github.com/nathanieltooley/gokemon/golurk"
 	"github.com/samber/lo"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 type MoveMetaPre struct {
-	Ailment       core.NamedApiResource
+	Ailment       golurk.NamedApiResource
 	AilmentChance int `json:"ailment_chance"`
 	FlinchChance  int `json:"flinch_chance"`
 	StatChance    int `json:"stat_chance"`
-	Category      core.NamedApiResource
+	Category      golurk.NamedApiResource
 
 	// Null means always hits once
 	MinHits *int `json:"min_hits"`
@@ -37,24 +36,24 @@ type MoveMetaPre struct {
 }
 
 // Follows all important NamedApiResource values and replaces that type with their actual value
-func (m *MoveMetaPre) ToFullMeta() (*core.MoveMeta, error) {
-	ailmentJson, err := scripts.FollowNamedResource[struct {
-		Id   int
-		Name string
+func (m MoveMetaPre) ToFullMeta() (golurk.MoveMeta, error) {
+	ailmentJson, err := FollowNamedResource[struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
 	}](m.Ailment)
 	if err != nil {
-		return nil, err
+		return golurk.MoveMeta{}, err
 	}
 
-	categoryJson, err := scripts.FollowNamedResource[struct {
-		Id   int
-		Name string
+	categoryJson, err := FollowNamedResource[struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
 	}](m.Category)
 	if err != nil {
-		return nil, err
+		return golurk.MoveMeta{}, err
 	}
 
-	meta := &core.MoveMeta{
+	meta := golurk.MoveMeta{
 		Ailment:  ailmentJson,
 		Category: categoryJson,
 
@@ -83,48 +82,49 @@ type StatChangePre struct {
 	}
 }
 
-// TODO: Follow all NamedApiResources and return their actual value
+// MoveFullPre is the data sent by the move endpoint before "NamedApiResources"
+// have been followed through.
 type MoveFullPre struct {
 	Accuracy      int
-	DamageClass   core.NamedApiResource `json:"damage_class"`
+	DamageClass   golurk.NamedApiResource `json:"damage_class"`
 	EffectChance  int
 	EffectEntries []struct {
 		Effect      string
-		Language    core.NamedApiResource
+		Language    golurk.NamedApiResource
 		ShortEffect string `json:"short_effect"`
 	} `json:"effect_entries"`
-	LearnedByPokemon []core.NamedApiResource `json:"learned_by_pokemon"`
+	LearnedByPokemon []golurk.NamedApiResource `json:"learned_by_pokemon"`
 	Meta             *MoveMetaPre
 	Name             string
 	Power            int
 	PP               int
 	Priority         int
 	StatChanges      []StatChangePre `json:"stat_changes"`
-	Target           core.NamedApiResource
-	Type             core.NamedApiResource
+	Target           golurk.NamedApiResource
+	Type             golurk.NamedApiResource
 }
 
-func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
-	damageClassJson, err := scripts.FollowNamedResource[struct {
+func (m MoveFullPre) ToFull() (golurk.MoveFull, error) {
+	damageClassJson, err := FollowNamedResource[struct {
 		Name string
 	}](m.DamageClass)
 	if err != nil {
-		return nil, err
+		return golurk.MoveFull{}, err
 	}
 
-	targetJson, err := scripts.FollowNamedResource[struct {
+	targetJson, err := FollowNamedResource[struct {
 		Id           int
 		Name         string
 		Descriptions []struct {
 			Description string
-			Language    core.NamedApiResource
+			Language    golurk.NamedApiResource
 		}
 	}](m.Target)
 	if err != nil {
-		return nil, err
+		return golurk.MoveFull{}, err
 	}
 
-	var effect core.EffectEntry
+	var effect golurk.EffectEntry
 	for _, effectEntry := range m.EffectEntries {
 		if effectEntry.Language.Name == "en" {
 			effect.Effect = effectEntry.Effect
@@ -132,17 +132,17 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 		}
 	}
 
-	target := core.Target{
+	target := golurk.Target{
 		Id:   targetJson.Id,
 		Name: targetJson.Name,
 	}
 
-	var meta *core.MoveMeta
+	var meta golurk.MoveMeta
 
 	if m.Meta != nil {
 		meta1, err := m.Meta.ToFullMeta()
 		if err != nil {
-			return nil, err
+			return golurk.MoveFull{}, err
 		}
 
 		meta = meta1
@@ -150,7 +150,7 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 
 	titleCaser := cases.Title(language.English)
 
-	move := &core.MoveFull{
+	move := golurk.MoveFull{
 		DamageClass: damageClassJson.Name,
 		EffectEntry: effect,
 		Target:      target,
@@ -164,8 +164,8 @@ func (m *MoveFullPre) ToFullMeta() (*core.MoveFull, error) {
 		Power:            m.Power,
 		PP:               m.PP,
 		Priority:         m.Priority,
-		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) core.StatChange {
-			return core.StatChange{
+		StatChanges: lo.Map(m.StatChanges, func(statPre StatChangePre, _ int) golurk.StatChange {
+			return golurk.StatChange{
 				Change:   statPre.Change,
 				StatName: statPre.Stat.Name,
 			}
@@ -183,14 +183,14 @@ func unwrap(err error) {
 
 // Fetches and downloads all move data from pokeapi and does extra requests
 // for important move data like damage classes and effect descriptions
-func main() {
+func moveMain(movesFileName string, movesMapName string) {
 	moveUrl := "https://pokeapi.co/api/v2/move/?offset=0&limit=1000"
 
 	type Response struct {
 		Count    int
 		Next     *string // Pointers because they can be nil
 		Previous *string
-		Results  []core.NamedApiResource
+		Results  []golurk.NamedApiResource
 	}
 
 	fullresponseJson := new(Response)
@@ -239,7 +239,7 @@ func main() {
 		err = json.Unmarshal(bytes, movePreJson)
 		unwrap(err)
 
-		moveJson, err := movePreJson.ToFullMeta()
+		moveJson, err := movePreJson.ToFull()
 		unwrap(err)
 
 		for _, pokemon := range moveJson.LearnedByPokemon {
@@ -249,10 +249,10 @@ func main() {
 		}
 
 		// Gross hack to get rid of LearnedByPokemon info
-		move := core.Move{
+		move := golurk.Move{
 			Accuracy:     moveJson.Accuracy,
 			DamageClass:  moveJson.DamageClass,
-			EffectChance: movePreJson.EffectChance,
+			EffectChance: moveJson.EffectChance,
 			EffectEntry:  moveJson.EffectEntry,
 			Meta:         moveJson.Meta,
 			Name:         moveJson.Name,
@@ -267,9 +267,6 @@ func main() {
 		// log.Printf("Move: %+v\n", moveJson)
 		allMoves = append(allMoves, move)
 	}
-
-	movesFileName := "./data/moves.json"
-	movesMapName := "./data/movesMap.json"
 
 	os.Remove(movesFileName)
 	os.Remove(movesMapName)

@@ -1,0 +1,8 @@
+github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
+github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/nathanieltooley/gokemon/golurk v0.0.0-20250823071431-a74e9d222221 h1:1ct4aBfdcq+uj+b6bjbO3Xc8sFVuGtNwwlNkcRZwsAU=
+github.com/nathanieltooley/gokemon/golurk v0.0.0-20250823071431-a74e9d222221/go.mod h1:7injZLhNY9MTcAOVTsobNud8WdJa6kgRg0gcp6IRnmk=
+github.com/samber/lo v1.51.0 h1:kysRYLbHy/MB7kQZf5DSN50JHmMsNEdeY24VzJFu7wI=
+github.com/samber/lo v1.51.0/go.mod h1:4+MXEGsJzbKGaUEQFKBq2xtfuznW9oz/WrgyzMzRoM0=
+golang.org/x/text v0.28.0 h1:rhazDwis8INMIwQ4tpjLDzUhx6RlXqZNPEM0huQojng=
+golang.org/x/text v0.28.0/go.mod h1:U8nCwOR8jO/marOQ0QbDiOngZVEBB7MAiitBuMjXiNU=

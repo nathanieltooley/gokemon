@@ -3,4 +3,5 @@ go 1.23.4
 use (
 	./golurk
 	./poketerm
+	./scripts
 )

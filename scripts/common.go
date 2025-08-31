@@ -2,17 +2,17 @@
 //
 // TODO: Perhaps remove these scripts and download / build the sqlite db directly from
 // pokeAPI's source code. This would require a lot of changes though.
-package scripts
+package main
 
 import (
 	"encoding/json"
 	"io"
 	"net/http"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-func FollowNamedResource[T any](n core.NamedApiResource) (T, error) {
+func FollowNamedResource[T any](n golurk.NamedApiResource) (T, error) {
 	response, err := http.Get(n.Url)
 	if err != nil {
 		// FIX: Feels very hacky

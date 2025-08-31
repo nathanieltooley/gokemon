@@ -1,38 +1,38 @@
 package golurk
 
 type EffectEntry struct {
-	Effect      string
+	Effect      string `json:"effect"`
 	ShortEffect string `json:"short_effect"`
 }
 
 type Target struct {
-	Id   int
-	Name string
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type NamedApiResource struct {
-	Name string
-	Url  string
+	Name string `json:"name"`
+	Url  string `json:"url"`
 }
 
 type StatChange struct {
-	Change   int
-	StatName string
+	Change   int    `json:"change"`
+	StatName string `json:"stat_name"`
 }
 
 // For values that are pointers, they are nullable
 type MoveMeta struct {
 	Ailment struct {
-		Id   int
-		Name string
-	}
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"ailment"`
 	AilmentChance int `json:"ailment_chance"`
 	FlinchChance  int `json:"flinch_chance"`
 	StatChance    int `json:"stat_chance"`
 	Category      struct {
-		Id   int
-		Name string
-	}
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"category"`
 
 	// Null means always hits once
 	MinHits *int `json:"min_hits"`
@@ -43,8 +43,8 @@ type MoveMeta struct {
 	// Null means always one turn
 	MaxTurns *int `json:"max_turns"`
 
-	Drain         int
-	Healing       int
+	Drain         int `json:"drain"`
+	Healing       int `json:"healing"`
 	CritRateBonus int `json:"crit_rate"`
 }
 
@@ -68,35 +68,34 @@ var EXPLOSIVE_MOVES = []string{
 }
 
 type MoveFull struct {
-	Accuracy         int
-	DamageClass      string `json:"damage_class"`
-	EffectChance     int
-	EffectEntry      EffectEntry
+	Accuracy         int                `json:"accuracy"`
+	DamageClass      string             `json:"damage_class"`
+	EffectChance     int                `json:"effect_chance"`
+	EffectEntry      EffectEntry        `json:"effect_entry"`
 	LearnedByPokemon []NamedApiResource `json:"learned_by_pokemon"`
-	Meta             *MoveMeta
-	Name             string
-	Power            int
-	PP               int
-	Priority         int
-	StatChanges      []StatChange `json:"stat_changes"`
-	Target           Target
-	Type             string
+	Meta             MoveMeta           `json:"meta"`
+	Name             string             `json:"name"`
+	Power            int                `json:"power"`
+	PP               int                `json:"pp"`
+	Priority         int                `json:"priority"`
+	StatChanges      []StatChange       `json:"stat_changes"`
+	Target           Target             `json:"target"`
+	Type             string             `json:"type"`
 }
 
 type Move struct {
-	Accuracy     int
-	DamageClass  string `json:"damage_class"`
-	EffectChance int
-	EffectEntry  EffectEntry
-	Meta         MoveMeta
-	// What is checked for nil-ness
-	Name        string
-	Power       int
-	PP          int
-	Priority    int
-	StatChanges []StatChange `json:"stat_changes"`
-	Target      Target
-	Type        string
+	Accuracy     int          `json:"accuracy"`
+	DamageClass  string       `json:"damage_class"`
+	EffectChance int          `json:"effect_chance"`
+	EffectEntry  EffectEntry  `json:"effect_entry"`
+	Meta         MoveMeta     `json:"meta"`
+	Name         string       `json:"name"`
+	Power        int          `json:"power"`
+	PP           int          `json:"pp"`
+	Priority     int          `json:"priority"`
+	StatChanges  []StatChange `json:"stat_changes"`
+	Target       Target       `json:"target"`
+	Type         string       `json:"type"`
 }
 
 func (m Move) IsNil() bool {

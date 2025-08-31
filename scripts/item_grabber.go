@@ -6,20 +6,20 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/nathanieltooley/gokemon/client/game/core"
+	"github.com/nathanieltooley/gokemon/golurk"
 )
 
-type Response struct {
-	Items []core.NamedApiResource
+type ItemResponse struct {
+	Items []golurk.NamedApiResource
 }
 
-func main() {
+func itemMain(itemFileName string) {
 	itemResponse, err := http.Get("https://pokeapi.co/api/v2/item-attribute/7/")
 	if err != nil {
 		panic(err)
 	}
 
-	parsedResponse := new(Response)
+	parsedResponse := new(ItemResponse)
 	responseBytes, err := io.ReadAll(itemResponse.Body)
 	if err != nil {
 		panic(err)
@@ -34,7 +34,6 @@ func main() {
 		items[i] = item.Name
 	}
 
-	itemFileName := "./data/items.json"
 	os.Remove(itemFileName)
 
 	itemsFile, err := os.Create(itemFileName)

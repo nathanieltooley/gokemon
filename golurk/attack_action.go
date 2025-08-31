@@ -17,8 +17,8 @@ var struggleMove = Move{
 	DamageClass: "physical",
 	Meta: MoveMeta{
 		Category: struct {
-			Id   int
-			Name string
+			Id   int    `json:"id"`
+			Name string `json:"name"`
 		}{
 			Name: "damage",
 		},
