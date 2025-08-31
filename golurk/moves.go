@@ -73,7 +73,7 @@ type MoveFull struct {
 	EffectChance     int                `json:"effect_chance"`
 	EffectEntry      EffectEntry        `json:"effect_entry"`
 	LearnedByPokemon []NamedApiResource `json:"learned_by_pokemon"`
-	Meta             *MoveMeta          `json:"meta"`
+	Meta             MoveMeta           `json:"meta"`
 	Name             string             `json:"name"`
 	Power            int                `json:"power"`
 	PP               int                `json:"pp"`
