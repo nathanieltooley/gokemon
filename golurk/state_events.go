@@ -134,6 +134,22 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		pp = moveVars.PP
 	}
 
+	// Ideally, the player should not be able to get into this situation as the client should stop them.
+	// However, in the case it fails or they cheat, the move will become struggle
+	if attackPokemon.TauntCount > 0 && move.DamageClass == "status" {
+		attackEventLogger().Info("Player somehow attempted to use a status move while taunted!", "move_name", move.Name)
+		move = struggleMove
+		pp = 1
+	}
+
+	// HACK: Bulbapedia says that if the user of taunt acts before the target, taunt only last 3 turns.
+	// The idea here is that if taunt is used before the attackPokemon's turn the taunt count will be 4 and we just set it to 3 before
+	// it get lowers at the end of the turn.
+	// This code assumes that no other actions will be added (as switches remove taunt and skip actions are a failsafe).
+	if attackPokemon.TauntCount == 4 {
+		attackPokemon.TauntCount = 3
+	}
+
 	// TODO: hard to test but would be nice to at some point
 	if attackPokemon.Ability.Name == "serene-grace" {
 		move.EffectChance *= 2
@@ -265,6 +281,13 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 				events = append(events, ohkoHandler(gameState, *attackPokemon, *defPokemon, defenderInt)...)
 			case "force-switch":
 				events = append(events, forceSwitchHandler(gameState, defender, defenderInt)...)
+			case "unique":
+				switch move.Name {
+				case "taunt":
+					defPokemon.TauntCount = 4
+				default:
+					attackEventLogger().Info("Unique attack has no handler!!!", "move_name", move.Name)
+				}
 			default:
 				attackEventLogger().Info("Move has no handler!!!", "move_name", move.Name, "move_category", move.Meta.Category.Name)
 			}
@@ -978,6 +1001,19 @@ func (event TypeChangeEvent) Update(gameState *GameState) ([]StateEvent, []strin
 	pokemon.BattleType = &event.PokemonType
 
 	return nil, []string{fmt.Sprintf("%s changed its type to %s!", pokemon.Name(), event.PokemonType.Name)}
+}
+
+type FinalUpdatesEvent struct{}
+
+func decrementTaunt(pokemon *Pokemon) {
+	pokemon.TauntCount = max(0, pokemon.TauntCount-1)
+}
+
+func (event FinalUpdatesEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	decrementTaunt(gameState.ClientPlayer.GetActivePokemon())
+	decrementTaunt(gameState.HostPlayer.GetActivePokemon())
+
+	return nil, nil
 }
 
 // MessageEvent is an event that only shows a message. No state updates occur.

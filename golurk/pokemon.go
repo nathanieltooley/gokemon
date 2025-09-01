@@ -126,6 +126,7 @@ type Pokemon struct {
 	InGameMoveInfo       [4]BattleMove `json:"-"`
 	FlashFire            bool          `json:"-"`
 	TruantShouldActivate bool          `json:"-"`
+	TauntCount           int           `json:"-"`
 }
 
 func (p Pokemon) Name() string {
