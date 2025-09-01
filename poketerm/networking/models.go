@@ -104,7 +104,7 @@ func (es EventSlice) GobEncode() ([]byte, error) {
 		// I really did not want to do this. Alas, my Go inexperience has caught up to me
 		// and I honest to god don't know how to do this any other way. Perhaps there was something I
 		// missed in std.reflect or some macro-like codegen solution? In any case if you know how to write this in a better way,
-		// please do not hesitate to submit a PR and fix this.
+		// please do not hesitate to submit a PR and fix this. Please. I beg of you.
 		switch event := event.(type) {
 		case golurk.SwitchEvent:
 			err = gobEncodeEvent(event, innerEncoder)
@@ -149,6 +149,8 @@ func (es EventSlice) GobEncode() ([]byte, error) {
 		case golurk.EndOfTurnAbilityCheck:
 			err = gobEncodeEvent(event, innerEncoder)
 		case golurk.TypeChangeEvent:
+			err = gobEncodeEvent(event, innerEncoder)
+		case golurk.FinalUpdatesEvent:
 			err = gobEncodeEvent(event, innerEncoder)
 		case golurk.MessageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
@@ -233,6 +235,8 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 			ev, err = gobDecodeEvent[golurk.TurnStartEvent](innerDecoder)
 		case "EndOfTurnAbilityCheck":
 			ev, err = gobDecodeEvent[golurk.EndOfTurnAbilityCheck](innerDecoder)
+		case "FinalUpdatesEvent":
+			ev, err = gobDecodeEvent[golurk.FinalUpdatesEvent](innerDecoder)
 		case "TypeChangeEvent":
 			ev, err = gobDecodeEvent[golurk.TypeChangeEvent](innerDecoder)
 		case "MessageEvent":

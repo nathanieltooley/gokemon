@@ -84,7 +84,8 @@ type MoveFull struct {
 }
 
 type Move struct {
-	Accuracy     int          `json:"accuracy"`
+	Accuracy int `json:"accuracy"`
+	// DamageClass is either status, physical, or special
 	DamageClass  string       `json:"damage_class"`
 	EffectChance int          `json:"effect_chance"`
 	EffectEntry  EffectEntry  `json:"effect_entry"`
