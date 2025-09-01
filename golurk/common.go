@@ -2,6 +2,7 @@ package golurk
 
 import (
 	"cmp"
+	"fmt"
 	"slices"
 
 	"github.com/samber/lo"
@@ -42,12 +43,13 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 		aSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch a := a.(type) {
-		case *AttackAction:
+		case AttackAction:
 			move := activePokemon.Moves[a.AttackerMove]
 			aPriority = move.Priority
-		case *SkipAction:
+		case SkipAction, *SkipAction:
 			aPriority = -100
 		default:
+			internalLogger.Error(fmt.Errorf("unaccounted for action while trying to sort action"), "")
 			return 0
 		}
 
@@ -55,16 +57,17 @@ func commonOtherActionHandling(gameState GameState, actions []Action) []StateEve
 		bSpeed = activePokemon.Speed(gameState.Weather)
 
 		switch b := b.(type) {
-		case *AttackAction:
+		case AttackAction:
 			if b.AttackerMove < 0 || b.AttackerMove >= len(activePokemon.Moves) {
 				return 0
 			}
 
 			move := activePokemon.Moves[b.AttackerMove]
 			bPriority = move.Priority
-		case *SkipAction:
+		case SkipAction:
 			bPriority = -100
 		default:
+			internalLogger.Error(fmt.Errorf("unaccounted for action while trying to sort action"), "")
 			return 0
 		}
 
@@ -220,6 +223,8 @@ func commonEndOfTurn(gameState *GameState) []StateEvent {
 		events = append(events, SandstormDamageEvent{PlayerIndex: HOST})
 		events = append(events, SandstormDamageEvent{PlayerIndex: PEER})
 	}
+
+	events = append(events, FinalUpdatesEvent{})
 
 	events = append(events, EndOfTurnAbilityCheck{PlayerID: HOST})
 	events = append(events, EndOfTurnAbilityCheck{PlayerID: PEER})
