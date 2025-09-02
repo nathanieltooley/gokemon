@@ -32,6 +32,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	newActivePkm := player.GetPokemon(event.SwitchIndex)
 
 	currentPokemon.ClearStatChanges()
+	currentPokemon.TauntCount = 0
 
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 	switch opposingPokemon.Ability.Name {
