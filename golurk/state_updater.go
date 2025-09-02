@@ -276,55 +276,58 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 				return
 			}
 
-			// Skip attack with para
+			// Possibly skip attack with para
 			if pokemon.Status == STATUS_PARA {
 				paraEvent := ParaEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of para", "pokemon_name", pokemon.Name())
-
 				events = append(events, paraEvent)
 				return
 			}
 
-			// Skip attack with sleep
+			// Possibly skip attack with sleep
 			if pokemon.Status == STATUS_SLEEP {
 				sleepEv := SleepEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of sleep", "pokemon_name", pokemon.Name())
-
 				events = append(events, sleepEv)
 				return
 			}
 
-			// Skip attack with frozen
+			// Possibly skip attack with frozen
 			if pokemon.Status == STATUS_FROZEN {
 				frzEv := FrozenEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of freeze", "pokemon_name", pokemon.Name())
-
 				events = append(events, frzEv)
 				return
 			}
 
-			// Skip attack with confusion
+			// Possibly skip attack with confusion
 			if pokemon.ConfusionCount > 0 {
 				confusionEv := ConfusionEvent{
 					PlayerIndex:         a.GetCtx().PlayerID,
 					FollowUpAttackEvent: a.UpdateState(gameState)[0],
 				}
 
-				internalLogger.Info("attack was skipped because of confusion", "pokemon_name", pokemon.Name())
-
 				events = append(events, confusionEv)
+				return
+			}
+
+			// Possibly skip attack with confusion
+			if pokemon.InfatuationTarget != -1 {
+				infatEv := InfatuationEvent{
+					PlayerIndex:         a.GetCtx().PlayerID,
+					FollowUpAttackEvent: a.UpdateState(gameState)[0],
+				}
+
+				events = append(events, infatEv)
 				return
 			}
 
