@@ -33,6 +33,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	currentPokemon.ClearStatChanges()
 	currentPokemon.TauntCount = 0
+	currentPokemon.InfatuationTarget = -1
 
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 	switch opposingPokemon.Ability.Name {
@@ -42,6 +43,14 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		if currentPokemon.HasType(&TYPE_STEEL) {
 			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Name())}
 		}
+	}
+
+	messages := make([]string, 0)
+
+	// If we are switching out the opposing pokemon's InfatuationTarget, remove their infatuation
+	if opposingPokemon.InfatuationTarget == player.ActivePokeIndex {
+		opposingPokemon.InfatuationTarget = -1
+		messages = append(messages, fmt.Sprintf("%s is no longer infatuated!", opposingPokemon.Name()))
 	}
 
 	internalLogger.WithName("switch_event").Info("", "player_name", player.Name, "pokemon_name", newActivePkm.Name())
@@ -92,7 +101,6 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// no matter what, pokemon should not truant on the turn they switch in
 	newActivePkm.TruantShouldActivate = false
 
-	messages := make([]string, 0)
 	if gameState.Turn == 0 || gameState.Turn == 1 {
 		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Name()))
 	} else {
