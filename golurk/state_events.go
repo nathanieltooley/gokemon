@@ -918,6 +918,28 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	return events, messages
 }
 
+type InfatuationEvent struct {
+	PlayerIndex         int
+	FollowUpAttackEvent StateEvent
+}
+
+func (event InfatuationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
+
+	infatuationChance := .50
+	infatuationCheck := gameState.CreateRng().Float64()
+
+	if infatuationCheck > infatuationChance {
+		messages := make([]string, 0)
+		internalLogger.WithName("infat_event").Info("infat pokemon failed attack", "pokemon_name", pokemon.Name(), "infat_check", infatuationCheck)
+		messages = append(messages, fmt.Sprintf("%s cannot attack because they are infatuation with the enemy!", pokemon.Name()))
+		return nil, messages
+	} else {
+		internalLogger.WithName("infat_event").Info("infat pokemon attacked", "pokemon_name", pokemon.Name(), "infat_check", infatuationCheck)
+		return []StateEvent{event.FollowUpAttackEvent}, nil
+	}
+}
+
 type SandstormDamageEvent struct {
 	PlayerIndex int
 }
