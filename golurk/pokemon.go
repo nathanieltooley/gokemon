@@ -111,6 +111,8 @@ type Pokemon struct {
 	Nature   Nature       `json:"nature"`
 	Ability  Ability      `json:"ability"`
 	Item     string       `json:"item"`
+	// Only valid values are male, female, and unknown (woke)
+	Gender string `json:"gender"`
 
 	// Battle Only Stats
 	BattleType           *PokemonType  `json:"-"`
@@ -127,6 +129,9 @@ type Pokemon struct {
 	FlashFire            bool          `json:"-"`
 	TruantShouldActivate bool          `json:"-"`
 	TauntCount           int           `json:"-"`
+	// Represents the opposing pokemon which this pokemon is infatuated with.
+	// -1 represents no infatuation.
+	InfatuationTarget int `json:"-"`
 }
 
 func (p Pokemon) Name() string {
