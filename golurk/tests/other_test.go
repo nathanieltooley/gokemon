@@ -61,3 +61,53 @@ func TestTaunt(t *testing.T) {
 		t.Fatalf("taunted pokemon used status move. attack stage: %d", enemyPokemon.Attack.Stage)
 	}
 }
+
+func TestInfatuation(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	pokemon.Gender = "male"
+	pokemon.Moves[0] = *golurk.GlobalData.GetMove("attract")
+	enemyPokemon.Gender = "female"
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+
+	if enemyPokemon.InfatuationTarget != 0 {
+		t.Fatalf("pokemon failed to become infatuated")
+	}
+
+	pokemon.Gender = "female"
+	enemyPokemon.InfatuationTarget = -1
+
+	gameState = getSimpleState(pokemon, enemyPokemon)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
+
+	if enemyPokemon.InfatuationTarget != -1 {
+		t.Fatalf("same-sex infatuation is illegal in the pokemon world")
+	}
+
+	pokemon.Gender = "unknown"
+	enemyPokemon.InfatuationTarget = -1
+
+	gameState = getSimpleState(pokemon, enemyPokemon)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
+
+	if enemyPokemon.InfatuationTarget != -1 {
+		t.Fatalf("nonbinary host pokemon infatuated binary client")
+	}
+
+	pokemon.Gender = "male"
+	enemyPokemon.Gender = "unknown"
+	enemyPokemon.InfatuationTarget = -1
+
+	gameState = getSimpleState(pokemon, enemyPokemon)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0)}))
+
+	if enemyPokemon.InfatuationTarget != -1 {
+		t.Fatalf("binary host pokemon infatuated nonbinary client")
+	}
+}
