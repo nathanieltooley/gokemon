@@ -227,7 +227,7 @@ func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, 
 					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
 				}
 			case EFFECT_INFATUATION:
-				if defPokemon.Gender != attackPokemon.Gender && defPokemon.Gender != "unknown" {
+				if defPokemon.Gender != attackPokemon.Gender && defPokemon.Gender != "unknown" && attackPokemon.Gender != "unknown" {
 					return []StateEvent{ApplyInfatuationEvent{PlayerIndex: defIndex}}
 				}
 			}
