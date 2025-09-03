@@ -56,6 +56,7 @@ const (
 
 const (
 	EFFECT_CONFUSION = iota
+	EFFECT_INFATUATION
 )
 
 const (

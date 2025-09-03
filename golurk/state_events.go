@@ -255,10 +255,10 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			case "damage", "damage+heal":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 			case "ailment":
-				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
+				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
 			case "damage+ailment":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
-				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
+				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
 			case "net-good-stats":
 				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
@@ -916,6 +916,20 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	internalLogger.WithName("confusion_event").Info("pokemon hit itself in confusion", "pokemon_name", pokemon.Name())
 
 	return events, messages
+}
+
+type ApplyInfatuationEvent struct {
+	PlayerIndex int
+	Target      int
+}
+
+func (event ApplyInfatuationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	evPlayer, opPlayer := getPlayerPair(gameState, event.PlayerIndex)
+	pokemon := evPlayer.GetActivePokemon()
+
+	pokemon.InfatuationTarget = event.Target
+
+	return nil, []string{fmt.Sprintf("%s is infatuated with %s", pokemon.Name(), opPlayer.Team[event.Target].Name())}
 }
 
 type InfatuationEvent struct {
