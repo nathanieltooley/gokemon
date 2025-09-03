@@ -29,6 +29,7 @@ func NewPokeBuilder(base *BasePokemon, rng *rand.Rand) *PokemonBuilder {
 		SpDef:    Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
 		RawSpeed: Stat{RawValue: 0, Ev: 0, Iv: 0, Stage: 0},
 		Nature:   NATURE_HARDY,
+		Gender:   "unknown",
 	}
 
 	return &PokemonBuilder{poke, *rng}

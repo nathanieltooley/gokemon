@@ -172,7 +172,7 @@ func ohkoHandler(state *GameState, attackPokemon Pokemon, defPokemon Pokemon, de
 	return events
 }
 
-func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
+func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
 	ailment, ok := STATUS_NAME_MAP[move.Meta.Ailment.Name]
 	rng := state.CreateRng()
 	if ok && defPokemon.Status == STATUS_NONE {
@@ -225,6 +225,10 @@ func ailmentHandler(state GameState, defPokemon Pokemon, defIndex int, move Move
 					attackEventLogger().Info("Confusion check passed.", "effect_chance", effectChance, "effect_check", effectCheck)
 
 					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
+				}
+			case EFFECT_INFATUATION:
+				if defPokemon.Gender != attackPokemon.Gender && defPokemon.Gender != "unknown" && attackPokemon.Gender != "unknown" {
+					return []StateEvent{ApplyInfatuationEvent{PlayerIndex: defIndex}}
 				}
 			}
 		}

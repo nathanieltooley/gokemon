@@ -57,7 +57,8 @@ var STATUS_NAME_MAP = map[string]int{
 }
 
 var EFFECT_NAME_MAP = map[string]int{
-	"confusion": EFFECT_CONFUSION,
+	"confusion":   EFFECT_CONFUSION,
+	"infatuation": EFFECT_INFATUATION,
 }
 
 var EXPLOSIVE_MOVES = []string{

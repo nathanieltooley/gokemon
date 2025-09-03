@@ -33,6 +33,7 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 
 	currentPokemon.ClearStatChanges()
 	currentPokemon.TauntCount = 0
+	currentPokemon.InfatuationTarget = -1
 
 	opposingPokemon := opposingPlayer.GetActivePokemon()
 	switch opposingPokemon.Ability.Name {
@@ -42,6 +43,14 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		if currentPokemon.HasType(&TYPE_STEEL) {
 			return nil, []string{fmt.Sprintf("%s could not switch out!", currentPokemon.Name())}
 		}
+	}
+
+	messages := make([]string, 0)
+
+	// If we are switching out the opposing pokemon's InfatuationTarget, remove their infatuation
+	if opposingPokemon.InfatuationTarget == player.ActivePokeIndex {
+		opposingPokemon.InfatuationTarget = -1
+		messages = append(messages, fmt.Sprintf("%s is no longer infatuated!", opposingPokemon.Name()))
 	}
 
 	internalLogger.WithName("switch_event").Info("", "player_name", player.Name, "pokemon_name", newActivePkm.Name())
@@ -92,7 +101,6 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// no matter what, pokemon should not truant on the turn they switch in
 	newActivePkm.TruantShouldActivate = false
 
-	messages := make([]string, 0)
 	if gameState.Turn == 0 || gameState.Turn == 1 {
 		messages = append(messages, fmt.Sprintf("%s sent in %s!", player.Name, newActivePkm.Name()))
 	} else {
@@ -247,10 +255,10 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			case "damage", "damage+heal":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
 			case "ailment":
-				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
+				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
 			case "damage+ailment":
 				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
-				events = append(events, ailmentHandler(*gameState, *defPokemon, defenderInt, move)...)
+				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
 			case "net-good-stats":
 				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
@@ -908,6 +916,42 @@ func (event ConfusionEvent) Update(gameState *GameState) ([]StateEvent, []string
 	internalLogger.WithName("confusion_event").Info("pokemon hit itself in confusion", "pokemon_name", pokemon.Name())
 
 	return events, messages
+}
+
+type ApplyInfatuationEvent struct {
+	PlayerIndex int
+	Target      int
+}
+
+func (event ApplyInfatuationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	evPlayer, opPlayer := getPlayerPair(gameState, event.PlayerIndex)
+	pokemon := evPlayer.GetActivePokemon()
+
+	pokemon.InfatuationTarget = event.Target
+
+	return nil, []string{fmt.Sprintf("%s is infatuated with %s", pokemon.Name(), opPlayer.Team[event.Target].Name())}
+}
+
+type InfatuationEvent struct {
+	PlayerIndex         int
+	FollowUpAttackEvent StateEvent
+}
+
+func (event InfatuationEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
+
+	infatuationChance := .50
+	infatuationCheck := gameState.CreateRng().Float64()
+
+	if infatuationCheck > infatuationChance {
+		messages := make([]string, 0)
+		internalLogger.WithName("infat_event").Info("infat pokemon failed attack", "pokemon_name", pokemon.Name(), "infat_check", infatuationCheck)
+		messages = append(messages, fmt.Sprintf("%s cannot attack because they are infatuation with the enemy!", pokemon.Name()))
+		return nil, messages
+	} else {
+		internalLogger.WithName("infat_event").Info("infat pokemon attacked", "pokemon_name", pokemon.Name(), "infat_check", infatuationCheck)
+		return []StateEvent{event.FollowUpAttackEvent}, nil
+	}
 }
 
 type SandstormDamageEvent struct {

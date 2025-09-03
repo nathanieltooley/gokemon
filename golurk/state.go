@@ -40,6 +40,7 @@ func NewState(localTeam []Pokemon, opposingTeam []Pokemon, seed rand.PCG) GameSt
 	// Make sure pokemon are inited correctly
 	for i, p := range localTeam {
 		p.CanAttackThisTurn = true
+		p.InfatuationTarget = -1
 
 		for i, m := range p.Moves {
 			if !m.IsNil() {
@@ -55,6 +56,7 @@ func NewState(localTeam []Pokemon, opposingTeam []Pokemon, seed rand.PCG) GameSt
 
 	for i, p := range opposingTeam {
 		p.CanAttackThisTurn = true
+		p.InfatuationTarget = -1
 
 		for i, m := range p.Moves {
 			if !m.IsNil() {
