@@ -15,7 +15,7 @@ func TestAttackMove(t *testing.T) {
 	aiPokemon.Moves[2] = mustNotBeNil(golurk.GlobalData.GetMove("tail-whip"))
 	aiPokemon.Moves[3] = mustNotBeNil(golurk.GlobalData.GetMove("scary-face"))
 
-	// do go tests run in parallel and are RNG impls thread-safe. asking for a friend
+	// do Go tests run in parallel and are RNG impls thread-safe? asking for a friend
 	gameState := golurk.NewState([]golurk.Pokemon{playerPokemon}, []golurk.Pokemon{aiPokemon}, testingSeed)
 
 	aiResult := golurk.BestAiAction(&gameState)

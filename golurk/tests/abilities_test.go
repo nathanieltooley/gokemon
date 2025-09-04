@@ -520,11 +520,11 @@ func TestDrought(t *testing.T) {
 
 func TestRainDish(t *testing.T) {
 	pokemon := getDummyPokemonWithAbility("rain-dish")
-	pokemon.Hp.Value = 1
 	enemyPokemon := getDummyPokemon()
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
 	gameState.Weather = golurk.WEATHER_RAIN
+	gameState.HostPlayer.GetActivePokemon().Hp.Value = 1
 
 	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
 

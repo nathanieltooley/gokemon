@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/nathanieltooley/gokemon/golurk"
@@ -10,14 +11,15 @@ func TestSpeed(t *testing.T) {
 	pokemon := getDummyPokemon()
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.RawSpeed.RawValue = 1000
-	pokemon.Attack.RawValue = 10000
-	enemyPokemon.RawSpeed.RawValue = 1
-
 	pokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("tackle")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
+	editPokemon := gameState.HostPlayer.GetActivePokemon()
+	editPokemon.RawSpeed.RawValue = 1000
+	editPokemon.Attack.RawValue = 10000
+
+	gameState.ClientPlayer.GetActivePokemon().RawSpeed.RawValue = 1
 	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0), golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
@@ -40,12 +42,11 @@ func TestTaunt(t *testing.T) {
 	pokemon := getDummyPokemon()
 	enemyPokemon := getDummyPokemon()
 
-	pokemon.RawSpeed.RawValue = 1000
-
 	pokemon.Moves[0] = *golurk.GlobalData.GetMove("taunt")
 	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("swords-dance")
 
 	gameState := getSimpleState(pokemon, enemyPokemon)
+	gameState.HostPlayer.GetActivePokemon().RawSpeed.RawValue = 1000
 	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.HOST, 0), golurk.NewAttackAction(golurk.PEER, 0)}))
 
 	pokemon = *gameState.HostPlayer.GetActivePokemon()
@@ -109,5 +110,46 @@ func TestInfatuation(t *testing.T) {
 
 	if enemyPokemon.InfatuationTarget != -1 {
 		t.Fatalf("binary host pokemon infatuated nonbinary client")
+	}
+}
+
+func TestValidation(t *testing.T) {
+	pokemon := getDummyPokemon()
+	pokemon.Hp.Ev = 999
+	pokemon.Attack.Ev = 999
+	pokemon.Def.Ev = 999
+	pokemon.SpDef.Ev = 999
+	pokemon.SpAttack.Ev = 999
+	pokemon.RawSpeed.Ev = 999
+
+	pokemon.Hp.Iv = 999
+	pokemon.Attack.Iv = 999
+	pokemon.Def.Iv = 999
+	pokemon.SpDef.Iv = 999
+	pokemon.SpAttack.Iv = 999
+	pokemon.RawSpeed.Iv = 999
+
+	pokemon.Init()
+
+	basePokemon := getDummyPokemon()
+	basePokemon.Hp.Ev = 252
+	basePokemon.Attack.Ev = 252
+	basePokemon.Def.Ev = 6
+	basePokemon.SpAttack.Ev = 0
+	basePokemon.SpDef.Ev = 0
+	basePokemon.RawSpeed.Ev = 0
+
+	basePokemon.Hp.Iv = 31
+	basePokemon.Attack.Iv = 31
+	basePokemon.Def.Iv = 31
+	basePokemon.SpAttack.Iv = 31
+	basePokemon.SpDef.Iv = 31
+	basePokemon.RawSpeed.Iv = 31
+
+	basePokemon.Init()
+	basePokemon.ReCalcStats()
+
+	if !reflect.DeepEqual(pokemon, basePokemon) {
+		t.Fatalf("incorrect validation. expected %+v \n\n got %+v", basePokemon, pokemon)
 	}
 }
