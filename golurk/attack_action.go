@@ -35,6 +35,27 @@ type AttackAction struct {
 	AttackerMove int
 }
 
+type attackHandlerContext struct {
+	gameState GameState
+	attacker  int
+	defender  int
+	move      Move
+}
+
+func newAttackHandlerContext(gameState GameState, attacker int, defender int, move Move) attackHandlerContext {
+	return attackHandlerContext{gameState, attacker, defender, move}
+}
+
+func (ctx attackHandlerContext) attackPokemon() Pokemon {
+	attackPlayer := ctx.gameState.GetPlayer(ctx.attacker)
+	return *attackPlayer.GetActivePokemon()
+}
+
+func (ctx attackHandlerContext) defPokemon() Pokemon {
+	defPlayer := ctx.gameState.GetPlayer(ctx.defender)
+	return *defPlayer.GetActivePokemon()
+}
+
 func NewAttackAction(attacker int, attackMove int) AttackAction {
 	return AttackAction{
 		Ctx:          NewActionCtx(attacker),
@@ -48,32 +69,35 @@ func (a AttackAction) UpdateState(state GameState) []StateEvent {
 	return []StateEvent{AttackEvent{AttackerID: a.Ctx.PlayerID, MoveID: a.AttackerMove}}
 }
 
-func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
+func damageMoveHandler(ctx attackHandlerContext) []StateEvent {
 	events := make([]StateEvent, 0)
 	crit := false
 
-	rng := state.CreateRng()
+	attackPokemon := ctx.attackPokemon()
+	defPokemon := ctx.defPokemon()
+
+	rng := ctx.gameState.CreateRng()
 
 	if rng.Float32() < attackPokemon.CritChance() {
 		crit = true
 		attackEventLogger().Info("Attack Crit!", "chance", attackPokemon.CritChance())
 	}
 
-	effectiveness := defPokemon.DefenseEffectiveness(GetAttackTypeMapping(move.Type))
+	effectiveness := defPokemon.DefenseEffectiveness(GetAttackTypeMapping(ctx.move.Type))
 
 	if crit && (defPokemon.Ability.Name == "battle-armor" || defPokemon.Ability.Name == "shell-armor") {
-		events = append(events, AbilityActivationEvent{ActivatorInt: defIndex, AbilityName: defPokemon.Ability.Name})
+		events = append(events, AbilityActivationEvent{ActivatorInt: ctx.defender, AbilityName: defPokemon.Ability.Name})
 		crit = false
 	}
 
-	damage := Damage(attackPokemon, defPokemon, move, crit, state.Weather, rng)
+	damage := Damage(attackPokemon, defPokemon, ctx.move, crit, ctx.gameState.Weather, rng)
 
 	if defPokemon.Ability.Name == "sturdy" {
 		if damage >= defPokemon.Hp.Value && defPokemon.Hp.Value == defPokemon.MaxHp {
 			// set the defending pokemon's hp to 1
 			damage = defPokemon.MaxHp - 1
 			events = append(events,
-				SimpleAbilityActivationEvent(&state, defIndex),
+				SimpleAbilityActivationEvent(&ctx.gameState, ctx.defender),
 				NewFmtMessageEvent("%s held on!", defPokemon.Name()),
 			)
 		}
@@ -82,7 +106,7 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 	if defPokemon.Ability.Name == "wonder-guard" {
 		if effectiveness < 2 {
 			events = append(events,
-				SimpleAbilityActivationEvent(&state, defIndex),
+				SimpleAbilityActivationEvent(&ctx.gameState, ctx.defender),
 				NewFmtMessageEvent("%s does not take any damage!", defPokemon.Name()),
 			)
 
@@ -90,23 +114,23 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 		}
 	}
 
-	if defPokemon.Ability.Name == "lightning-rod" && move.Type == TYPENAME_ELECTRIC {
-		events = append(events, SimpleAbilityActivationEvent(&state, defIndex))
+	if defPokemon.Ability.Name == "lightning-rod" && ctx.move.Type == TYPENAME_ELECTRIC {
+		events = append(events, SimpleAbilityActivationEvent(&ctx.gameState, ctx.defender))
 	}
 
-	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: damage, Crit: crit})
+	events = append(events, DamageEvent{PlayerIndex: ctx.defender, Damage: damage, Crit: crit})
 
 	attackEventLogger().Info("Attack Event!", "attacker", attackPokemon.Name(), "defender", defPokemon.Name(), "damage", damage)
 
-	if move.Meta.Drain > 0 {
+	if ctx.move.Meta.Drain > 0 {
 		var drainedHealth uint = 0
 
 		cappedDamage := math.Min(float64(defPokemon.Hp.Value), float64(damage))
 
-		drainPercent := float32(move.Meta.Drain) / float32(100)
+		drainPercent := float32(ctx.move.Meta.Drain) / float32(100)
 		drainedHealth = uint(float32(cappedDamage) * drainPercent)
 
-		events = append(events, HealEvent{Heal: drainedHealth, PlayerIndex: attIndex})
+		events = append(events, HealEvent{Heal: drainedHealth, PlayerIndex: ctx.attacker})
 
 		drainedHealthPercent := int((float32(drainedHealth) / float32(attackPokemon.MaxHp)) * 100)
 
@@ -114,15 +138,15 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 	}
 
 	// Recoil
-	if move.Meta.Drain < 0 {
+	if ctx.move.Meta.Drain < 0 {
 		// Recoil will only be blocked by Rock Head (except for struggle)
-		if move.Name == "struggle" || attackPokemon.Ability.Name != "rock-head" {
-			recoilPercent := (float32(move.Meta.Drain) / 100)
+		if ctx.move.Name == "struggle" || attackPokemon.Ability.Name != "rock-head" {
+			recoilPercent := (float32(ctx.move.Meta.Drain) / 100)
 			selfDamage := float32(attackPokemon.MaxHp) * recoilPercent
 
-			events = append(events, NewFmtMessageEvent("%s took %d%% recoil damage", attackPokemon.Name(), int(math.Abs(float64(move.Meta.Drain)))))
+			events = append(events, NewFmtMessageEvent("%s took %d%% recoil damage", attackPokemon.Name(), int(math.Abs(float64(ctx.move.Meta.Drain)))))
 			// flip sign here because recoil is considered negative Drain healing in pokeapi
-			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: attIndex, SupressMessage: true})
+			events = append(events, DamageEvent{Damage: uint(selfDamage * -1), PlayerIndex: ctx.attacker, SupressMessage: true})
 
 			attackEventLogger().Info("Recoil", "recoil_percent", recoilPercent, "self_damage", selfDamage)
 		}
@@ -142,25 +166,27 @@ func damageMoveHandler(state GameState, attackPokemon Pokemon, attIndex int, def
 		events = append(events, NewMessageEvent(effectivenessText))
 	}
 
-	if defPokemon.Ability.Name == "color-change" && move.Name != "struggle" {
-		moveType := GetAttackTypeMapping(move.Type)
+	if defPokemon.Ability.Name == "color-change" && ctx.move.Name != "struggle" {
+		moveType := GetAttackTypeMapping(ctx.move.Type)
 		if !defPokemon.HasType(moveType) {
-			events = append(events, TypeChangeEvent{ChangerInt: defIndex, PokemonType: *GetAttackTypeMapping(move.Type)})
+			events = append(events, TypeChangeEvent{ChangerInt: ctx.defender, PokemonType: *GetAttackTypeMapping(ctx.move.Type)})
 		}
 	}
 
 	return events
 }
 
-func ohkoHandler(state *GameState, attackPokemon Pokemon, defPokemon Pokemon, defIndex int) []StateEvent {
+func ohkoHandler(ctx attackHandlerContext) []StateEvent {
+	attackPokemon := ctx.attackPokemon()
+	defPokemon := ctx.defPokemon()
 	if defPokemon.Level > attackPokemon.Level {
 		return []StateEvent{NewMessageEvent("It failed!. Opponent's level is too high!")}
 	}
 
-	rng := state.CreateRng()
+	rng := ctx.gameState.CreateRng()
 
 	events := make([]StateEvent, 0)
-	events = append(events, DamageEvent{PlayerIndex: defIndex, Damage: defPokemon.Hp.Value})
+	events = append(events, DamageEvent{PlayerIndex: ctx.defender, Damage: defPokemon.Hp.Value})
 
 	randCheck := rng.Float64()
 	if randCheck < 0.01 {
@@ -172,12 +198,15 @@ func ohkoHandler(state *GameState, attackPokemon Pokemon, defPokemon Pokemon, de
 	return events
 }
 
-func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, defIndex int, move Move) []StateEvent {
-	ailment, ok := STATUS_NAME_MAP[move.Meta.Ailment.Name]
-	rng := state.CreateRng()
+func ailmentHandler(ctx attackHandlerContext) []StateEvent {
+	defPokemon := ctx.defPokemon()
+	attackPokemon := ctx.attackPokemon()
+
+	ailment, ok := STATUS_NAME_MAP[ctx.move.Meta.Ailment.Name]
+	rng := ctx.gameState.CreateRng()
 	if ok && defPokemon.Status == STATUS_NONE {
 		ailmentCheck := rng.IntN(100)
-		ailmentChance := move.Meta.AilmentChance
+		ailmentChance := ctx.move.Meta.AilmentChance
 
 		// in pokeapi speak, 0 here means the chance is 100% (at least as it relates to moves like toxic and poison-powder)
 		// might have to fix edge-cases here
@@ -189,15 +218,15 @@ func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, 
 			attackEventLogger().Info("Ailment check succeeded!", "chance", ailmentChance, "ailment_check", ailmentCheck)
 
 			// Manual override of toxic so that it applies toxic and not poison
-			if move.Name == "toxic" {
+			if ctx.move.Name == "toxic" {
 				ailment = STATUS_TOXIC
 			}
 
-			event := AilmentEvent{PlayerIndex: defIndex, Ailment: ailment}
+			event := AilmentEvent{PlayerIndex: ctx.defender, Ailment: ailment}
 
 			// Make sure the pokemon didn't avoid ailment with ability or such
 			if defPokemon.Status != STATUS_NONE {
-				attackEventLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Name(), "ailment_name", move.Meta.Ailment.Name, "ailment_id", ailment)
+				attackEventLogger().Info("Pokemon afflicted with ailment", "pokemon_name", defPokemon.Name(), "ailment_name", ctx.move.Meta.Ailment.Name, "ailment_id", ailment)
 			} else {
 				attackEventLogger().Info("Pokemon removed ailment with ability", "ability_name", defPokemon.Ability.Name, "ailment_id", ailment)
 			}
@@ -209,9 +238,9 @@ func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, 
 
 	}
 
-	effect, ok := EFFECT_NAME_MAP[move.Meta.Ailment.Name]
+	effect, ok := EFFECT_NAME_MAP[ctx.move.Meta.Ailment.Name]
 	if ok {
-		effectChance := move.Meta.AilmentChance
+		effectChance := ctx.move.Meta.AilmentChance
 		if effectChance == 0 {
 			effectChance = 100
 		}
@@ -224,11 +253,11 @@ func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, 
 				if defPokemon.Ability.Name != "own-tempo" {
 					attackEventLogger().Info("Confusion check passed.", "effect_chance", effectChance, "effect_check", effectCheck)
 
-					return []StateEvent{ApplyConfusionEvent{PlayerIndex: defIndex}}
+					return []StateEvent{ApplyConfusionEvent{PlayerIndex: ctx.defender}}
 				}
 			case EFFECT_INFATUATION:
 				if defPokemon.Gender != attackPokemon.Gender && defPokemon.Gender != "unknown" && attackPokemon.Gender != "unknown" {
-					return []StateEvent{ApplyInfatuationEvent{PlayerIndex: defIndex}}
+					return []StateEvent{ApplyInfatuationEvent{PlayerIndex: ctx.defender}}
 				}
 			}
 		}
@@ -237,16 +266,18 @@ func ailmentHandler(state GameState, attackPokemon Pokemon, defPokemon Pokemon, 
 	return nil
 }
 
-func healHandler(state *GameState, pokemonIndex int, move Move) StateEvent {
-	healPercent := float64(move.Meta.Healing) / 100
-	return HealPercEvent{PlayerIndex: pokemonIndex, HealPerc: healPercent}
+// creates a heal event for attacker
+func healHandler(ctx attackHandlerContext) StateEvent {
+	healPercent := float64(ctx.move.Meta.Healing) / 100
+	return HealPercEvent{PlayerIndex: ctx.attacker, HealPerc: healPercent}
 }
 
-func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []StateEvent {
-	defPokemon := defPlayer.GetActivePokemon()
+func forceSwitchHandler(ctx attackHandlerContext) []StateEvent {
+	defPokemon := ctx.defPokemon()
+	defPlayer := ctx.gameState.GetPlayer(ctx.defender)
 	if defPokemon.Ability.Name == "suction-cups" {
 		return []StateEvent{
-			SimpleAbilityActivationEvent(state, defIndex),
+			SimpleAbilityActivationEvent(&ctx.gameState, ctx.defender),
 			NewFmtMessageEvent("%s cannot be forced out!", defPokemon.Name()),
 		}
 	}
@@ -274,12 +305,12 @@ func forceSwitchHandler(state *GameState, defPlayer *Player, defIndex int) []Sta
 		return []StateEvent{NewFmtMessageEvent(fmt.Sprintf("%s has no Pokemon left to switch in!", defPlayer.Name))}
 	}
 
-	rng := state.CreateRng()
+	rng := ctx.gameState.CreateRng()
 
 	choiceIndex := rng.IntN(len(alivePokemon))
 
 	return []StateEvent{
-		SwitchEvent{PlayerIndex: defIndex, SwitchIndex: alivePokemon[choiceIndex].Index},
+		SwitchEvent{PlayerIndex: ctx.defender, SwitchIndex: alivePokemon[choiceIndex].Index},
 	}
 }
 

@@ -247,18 +247,20 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			}
 		}
 
+		handlerContext := newAttackHandlerContext(*gameState, event.AttackerID, defenderInt, move)
+
 		if !defImmune {
 			// TODO: handle these categories
 			// - swagger
 			// - unique
 			switch move.Meta.Category.Name {
 			case "damage", "damage+heal":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(handlerContext)...)
 			case "ailment":
-				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
+				events = append(events, ailmentHandler(handlerContext)...)
 			case "damage+ailment":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
-				events = append(events, ailmentHandler(*gameState, *attackPokemon, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(handlerContext)...)
+				events = append(events, ailmentHandler(handlerContext)...)
 			case "net-good-stats":
 				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					// since its "net-good-stats", the stat change always has to benefit the user
@@ -271,7 +273,7 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 				})
 			// Damages and then CHANGES the targets stats
 			case "damage+lower":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(handlerContext)...)
 				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					events = append(events, NewStatChangeEvent(defenderInt, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
@@ -280,16 +282,16 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			// and this is important because moves like draco-meteor and overheat
 			// lower the user's stats but are in this category
 			case "damage+raise":
-				events = append(events, damageMoveHandler(*gameState, *attackPokemon, event.AttackerID, *defPokemon, defenderInt, move)...)
+				events = append(events, damageMoveHandler(handlerContext)...)
 				lo.ForEach(move.StatChanges, func(statChange StatChange, _ int) {
 					events = append(events, NewStatChangeEvent(event.AttackerID, statChange.StatName, statChange.Change, move.Meta.StatChance))
 				})
 			case "heal":
-				events = append(events, healHandler(gameState, event.AttackerID, move))
+				events = append(events, healHandler(handlerContext))
 			case "ohko":
-				events = append(events, ohkoHandler(gameState, *attackPokemon, *defPokemon, defenderInt)...)
+				events = append(events, ohkoHandler(handlerContext)...)
 			case "force-switch":
-				events = append(events, forceSwitchHandler(gameState, defender, defenderInt)...)
+				events = append(events, forceSwitchHandler(handlerContext)...)
 			case "unique":
 				switch move.Name {
 				case "taunt":
