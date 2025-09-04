@@ -295,7 +295,9 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			case "unique":
 				switch move.Name {
 				case "taunt":
-					defPokemon.TauntCount = 4
+					if defPokemon.Ability.Name != "oblivious" {
+						defPokemon.TauntCount = 4
+					}
 				default:
 					attackEventLogger().Info("Unique attack has no handler!!!", "move_name", move.Name)
 				}

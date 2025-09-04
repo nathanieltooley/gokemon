@@ -874,3 +874,38 @@ func TestMagPull(t *testing.T) {
 		t.Fatalf("non-steel-type could not switch against magnet-pull")
 	}
 }
+
+func TestOblivious(t *testing.T) {
+	pokemon := getDummyPokemon()
+	pokemon.Ability.Name = "oblivious"
+	pokemon.Gender = "male"
+
+	enemyPokemon := getDummyPokemon()
+	enemyPokemon.Ability.Name = "intimidate"
+	enemyPokemon.Moves[0] = *golurk.GlobalData.GetMove("attract")
+	enemyPokemon.Moves[1] = *golurk.GlobalData.GetMove("taunt")
+	enemyPokemon.Gender = "female"
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.AI, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Attack.Stage != 0 {
+		t.Fatalf("oblivious pokemon intimidated. attack stage: %d", pokemon.Attack.Stage)
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.InfatuationTarget != -1 {
+		t.Fatalf("oblivious pokemon was infatuatated")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 1)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.TauntCount != 0 {
+		t.Fatalf("oblivious pokemon was taunted")
+	}
+}
