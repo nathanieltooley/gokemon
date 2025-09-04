@@ -329,6 +329,8 @@ func (p *Pokemon) Init() {
 	p.SpDef.CapStat()
 	p.RawSpeed.CapStat()
 
+	p.Level = min(100, p.Level)
+
 	evs := []*uint{&p.Hp.Ev, &p.Attack.Ev, &p.Def.Ev, &p.SpAttack.Ev, &p.SpDef.Ev, &p.RawSpeed.Ev}
 
 	var runningTotal uint

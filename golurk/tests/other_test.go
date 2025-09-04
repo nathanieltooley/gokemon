@@ -129,6 +129,9 @@ func TestValidation(t *testing.T) {
 	pokemon.SpAttack.Iv = 999
 	pokemon.RawSpeed.Iv = 999
 
+	pokemon.Level = 999
+	pokemon.MaxHp = 999
+
 	pokemon.Init()
 
 	basePokemon := getDummyPokemon()
@@ -145,6 +148,8 @@ func TestValidation(t *testing.T) {
 	basePokemon.SpAttack.Iv = 31
 	basePokemon.SpDef.Iv = 31
 	basePokemon.RawSpeed.Iv = 31
+
+	basePokemon.Level = 100
 
 	basePokemon.Init()
 	basePokemon.ReCalcStats()
