@@ -39,35 +39,17 @@ func RandomTeam() []Pokemon {
 func NewState(localTeam []Pokemon, opposingTeam []Pokemon, seed rand.PCG) GameState {
 	// Make sure pokemon are inited correctly
 	for i, p := range localTeam {
-		p.CanAttackThisTurn = true
-		p.InfatuationTarget = -1
+		initPokemon := p
+		initPokemon.Init()
 
-		for i, m := range p.Moves {
-			if !m.IsNil() {
-				p.InGameMoveInfo[i] = BattleMove{
-					Info: m,
-					PP:   m.PP,
-				}
-			}
-		}
-
-		localTeam[i] = p
+		localTeam[i] = initPokemon
 	}
 
 	for i, p := range opposingTeam {
-		p.CanAttackThisTurn = true
-		p.InfatuationTarget = -1
+		initPokemon := p
+		initPokemon.Init()
 
-		for i, m := range p.Moves {
-			if !m.IsNil() {
-				p.InGameMoveInfo[i] = BattleMove{
-					Info: m,
-					PP:   m.PP,
-				}
-			}
-		}
-
-		opposingTeam[i] = p
+		opposingTeam[i] = initPokemon
 	}
 
 	localPlayer := Player{

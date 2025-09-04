@@ -88,6 +88,11 @@ func (s Stat) GetStage() int {
 	return s.Stage
 }
 
+func (s *Stat) CapStat() {
+	s.Iv = min(MAX_IV, s.Iv)
+	s.Ev = min(MAX_EV, s.Ev)
+}
+
 type Nature struct {
 	Name          string
 	StatModifiers [5]float32
@@ -301,6 +306,45 @@ func (p *Pokemon) ClearStatChanges() {
 	p.CritStage = 0
 	p.AccuracyStage = 0
 	p.EvasionStage = 0
+}
+
+func (p *Pokemon) Init() {
+	p.CanAttackThisTurn = true
+	p.InfatuationTarget = -1
+
+	for i, m := range p.Moves {
+		if !m.IsNil() {
+			p.InGameMoveInfo[i] = BattleMove{
+				Info: m,
+				PP:   m.PP,
+			}
+		}
+	}
+
+	p.Hp.Iv = min(MAX_IV, p.Hp.Iv)
+	p.Hp.Ev = min(MAX_EV, p.Hp.Ev)
+	p.Attack.CapStat()
+	p.Def.CapStat()
+	p.SpAttack.CapStat()
+	p.SpDef.CapStat()
+	p.RawSpeed.CapStat()
+
+	evs := []*uint{&p.Hp.Ev, &p.Attack.Ev, &p.Def.Ev, &p.SpAttack.Ev, &p.SpDef.Ev, &p.RawSpeed.Ev}
+
+	var runningTotal uint
+	for _, ev := range evs {
+		remainingPoints := MAX_TOTAL_EV - int(runningTotal)
+		// too many points allocated
+		if remainingPoints <= 0 {
+			*ev = 0
+		} else if remainingPoints < MAX_EV {
+			*ev = uint(remainingPoints)
+		}
+
+		runningTotal += *ev
+	}
+
+	p.ReCalcStats()
 }
 
 func CreateEVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, speed uint) ([6]uint8, error) {
