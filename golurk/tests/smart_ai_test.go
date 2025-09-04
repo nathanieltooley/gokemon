@@ -35,6 +35,7 @@ func TestSlowMove(t *testing.T) {
 	aiPokemon.Moves[3] = mustNotBeNil(golurk.GlobalData.GetMove("scary-face"))
 
 	gameState := golurk.NewState([]golurk.Pokemon{playerPokemon}, []golurk.Pokemon{aiPokemon}, golurk.CreateRandomStateSeed())
+	gameState.HostPlayer.GetActivePokemon().RawSpeed.RawValue = 1000
 
 	aiResult := golurk.BestAiAction(&gameState)
 
