@@ -47,3 +47,18 @@ func TestSandstormBuff(t *testing.T) {
 	damage = golurk.Damage(enemyPokemon, sandPokemon, *golurk.GlobalData.GetMove("vine-whip"), false, golurk.WEATHER_SANDSTORM, testingRng)
 	checkDamageRange(t, damage, 112, 136)
 }
+
+func TestRainChanges(t *testing.T) {
+	waterPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("squirtle"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	firePokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("charmander"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+
+	damage := golurk.Damage(waterPokemon, firePokemon, *golurk.GlobalData.GetMove("water-gun"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 86, 104)
+	damage = golurk.Damage(waterPokemon, firePokemon, *golurk.GlobalData.GetMove("water-gun"), false, golurk.WEATHER_RAIN, testingRng)
+	checkDamageRange(t, damage, 132, 156)
+
+	damage = golurk.Damage(firePokemon, waterPokemon, *golurk.GlobalData.GetMove("ember"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 21, 24)
+	damage = golurk.Damage(firePokemon, waterPokemon, *golurk.GlobalData.GetMove("ember"), false, golurk.WEATHER_RAIN, testingRng)
+	checkDamageRange(t, damage, 9, 12)
+}
