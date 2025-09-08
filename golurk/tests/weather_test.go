@@ -26,9 +26,8 @@ func TestSandstormChip(t *testing.T) {
 }
 
 func TestSandstormBuff(t *testing.T) {
-	sandPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("geodude"), testingRng).SetPerfectIvs().SetLevel(100).Build()
-	enemyPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("bulbasaur"), testingRng).SetPerfectIvs().SetLevel(100).Build()
-
+	sandPokemon := getPerfDummyPokemon("geodude")
+	enemyPokemon := getPerfDummyPokemon("bulbasaur")
 	// test solar beam debuff and spdef buff
 	damage := golurk.Damage(enemyPokemon, sandPokemon, *golurk.GlobalData.GetMove("solar-beam"), false, 0, testingRng)
 	checkDamageRange(t, damage, 892, 1056)
@@ -49,8 +48,8 @@ func TestSandstormBuff(t *testing.T) {
 }
 
 func TestRainChanges(t *testing.T) {
-	waterPokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("squirtle"), testingRng).SetPerfectIvs().SetLevel(100).Build()
-	firePokemon := golurk.NewPokeBuilder(golurk.GlobalData.GetPokemonByName("charmander"), testingRng).SetPerfectIvs().SetLevel(100).Build()
+	waterPokemon := getPerfDummyPokemon("squirtle")
+	firePokemon := getPerfDummyPokemon("charmander")
 
 	damage := golurk.Damage(waterPokemon, firePokemon, *golurk.GlobalData.GetMove("water-gun"), false, golurk.WEATHER_NONE, testingRng)
 	checkDamageRange(t, damage, 86, 104)
@@ -61,4 +60,50 @@ func TestRainChanges(t *testing.T) {
 	checkDamageRange(t, damage, 21, 24)
 	damage = golurk.Damage(firePokemon, waterPokemon, *golurk.GlobalData.GetMove("ember"), false, golurk.WEATHER_RAIN, testingRng)
 	checkDamageRange(t, damage, 9, 12)
+}
+
+func TestSunDamage(t *testing.T) {
+	waterPokemon := getPerfDummyPokemon("squirtle")
+	firePokemon := getPerfDummyPokemon("charmander")
+
+	damage := golurk.Damage(waterPokemon, firePokemon, *golurk.GlobalData.GetMove("water-gun"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 86, 104)
+	damage = golurk.Damage(waterPokemon, firePokemon, *golurk.GlobalData.GetMove("water-gun"), false, golurk.WEATHER_SUN, testingRng)
+	checkDamageRange(t, damage, 42, 50)
+
+	damage = golurk.Damage(firePokemon, waterPokemon, *golurk.GlobalData.GetMove("ember"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 21, 24)
+	damage = golurk.Damage(firePokemon, waterPokemon, *golurk.GlobalData.GetMove("ember"), false, golurk.WEATHER_SUN, testingRng)
+	checkDamageRange(t, damage, 30, 36)
+}
+
+func TestSunFreeze(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	move := *golurk.GlobalData.GetMove("ice-beam")
+	move.Accuracy = 100
+	move.Meta.AilmentChance = 100
+	move.Power = 0
+
+	enemyPokemon.Moves[0] = move
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Status != golurk.STATUS_FROZEN {
+		t.Fatalf("pokemon was not frozen")
+	}
+
+	pokemon.Status = 0
+
+	gameState = getSimpleState(pokemon, enemyPokemon)
+	gameState.Weather = golurk.WEATHER_SUN
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	if pokemon.Status == golurk.STATUS_FROZEN {
+		t.Fatalf("pokemon was frozen in the sun")
+	}
 }
