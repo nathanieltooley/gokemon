@@ -38,6 +38,11 @@ func getDummyPokemonWithAbility(ability string) golurk.Pokemon {
 	return pkm
 }
 
+func getPerfDummyPokemon(pokemonName string) golurk.Pokemon {
+	base := golurk.GlobalData.GetPokemonByName(pokemonName)
+	return golurk.NewPokeBuilder(base, testingRng).SetPerfectIvs().SetLevel(100).Build()
+}
+
 func getSimpleState(playerPkm golurk.Pokemon, enemyPkm golurk.Pokemon) golurk.GameState {
 	gameState := golurk.NewState([]golurk.Pokemon{playerPkm}, []golurk.Pokemon{enemyPkm}, golurk.CreateRandomStateSeed())
 	return gameState
