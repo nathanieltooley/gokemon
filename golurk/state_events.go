@@ -517,7 +517,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 			}, nil
 		}
 	case STATUS_FROZEN:
-		if pokemon.Ability.Name == "magma-armor" {
+		if pokemon.Ability.Name == "magma-armor" || gameState.Weather == WEATHER_SUN || gameState.Weather == WEATHER_EXTREME_SUN {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be frozen", pokemon.Name()),
