@@ -120,6 +120,16 @@ func TestSnowDebuff(t *testing.T) {
 	checkDamageRange(t, damage, 16, 19)
 }
 
+func TestSnowDefBuff(t *testing.T) {
+	pokemon := getPerfDummyPokemon("jynx")
+	enemyPokemon := getPerfDummyPokemon("charmander")
+
+	damage := golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("flame-charge"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 144, 170)
+	damage = golurk.Damage(enemyPokemon, pokemon, *golurk.GlobalData.GetMove("flame-charge"), false, golurk.WEATHER_SNOW, testingRng)
+	checkDamageRange(t, damage, 96, 114)
+}
+
 func TestHailChip(t *testing.T) {
 	pokemon := getDummyPokemon()
 	enemyPokemon := getPerfDummyPokemon("jynx")
