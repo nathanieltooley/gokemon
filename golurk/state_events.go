@@ -174,6 +174,11 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Name())}
 	}
 
+	// TODO: hard to test but would be nice to at some point
+	if (gameState.Weather == WEATHER_HAIL || gameState.Weather == WEATHER_SNOW) && move.Name == "blizzard" {
+		move.Accuracy = 100
+	}
+
 	events := make([]StateEvent, 0)
 	messages := make([]string, 0)
 	messages = append(messages, fmt.Sprintf("%s used %s", attackPokemon.Name(), move.Name))
