@@ -70,11 +70,22 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// --- Activate Abilities
 	switch newActivePkm.Ability.Name {
 	case "drizzle":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_RAIN})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_RAIN})
+		}
 	case "sand-stream":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SANDSTORM})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SANDSTORM})
+		}
 	case "drought":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SUN})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SUN})
+		}
+	case "cloud-nine", "air-lock":
+		gameState.DisabledWeather = gameState.Weather
+		gameState.Weather = WEATHER_NONE
+
+		messages = append(messages, "The effects of weather disappeared")
 	case "intimidate":
 		opPokemon := opposingPlayer.GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
@@ -1102,7 +1113,15 @@ func (event FinalUpdatesEvent) Update(gameState *GameState) ([]StateEvent, []str
 	decrementTaunt(gameState.ClientPlayer.GetActivePokemon())
 	decrementTaunt(gameState.HostPlayer.GetActivePokemon())
 
-	return nil, nil
+	messages := make([]string, 0)
+
+	if gameState.DisabledWeather != WEATHER_NONE && !gameState.AbilityInPlay("cloud-nine") && !gameState.AbilityInPlay("air-lock") {
+		gameState.Weather = gameState.DisabledWeather
+		gameState.DisabledWeather = WEATHER_NONE
+		messages = append(messages, "The effects of weather have reappeared")
+	}
+
+	return nil, messages
 }
 
 // MessageEvent is an event that only shows a message. No state updates occur.

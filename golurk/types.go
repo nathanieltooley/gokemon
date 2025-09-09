@@ -22,7 +22,10 @@ type GameState struct {
 	ClientPlayer Player
 	Turn         int
 	Weather      int
-	Networked    bool
+	// To avoid additional checks for cloud-nine and disabled weather, weather is disabled
+	// by changing the Weather field and set DisabledWeather to that weather so it can be changed back.
+	DisabledWeather int
+	Networked       bool
 	// An RngSource is stored here directly instead of inside an instance of rand.Rand.
 	// This helps in the case of multiplayer where no pointers or interfaces need to be sent,
 	// the client just creates the rand.Rand struct when they need it
@@ -112,6 +115,10 @@ func (g *GameState) CreateRng() *rand.Rand {
 // do not affect the original
 func (g *GameState) CreateNewRng() rand.Rand {
 	return *rand.New(&g.RngSource)
+}
+
+func (g GameState) AbilityInPlay(abilityName string) bool {
+	return g.HostPlayer.GetActivePokemon().Ability.Name == abilityName || g.ClientPlayer.GetActivePokemon().Ability.Name == abilityName
 }
 
 func (p Player) GetActivePokemon() *Pokemon {
