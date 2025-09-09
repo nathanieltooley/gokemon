@@ -107,3 +107,15 @@ func TestSunFreeze(t *testing.T) {
 		t.Fatalf("pokemon was frozen in the sun")
 	}
 }
+
+func TestSnowDebuff(t *testing.T) {
+	pokemon := getPerfDummyPokemon("bulbasaur")
+	enemyPokemon := getPerfDummyPokemon("bulbasaur")
+
+	damage := golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("solar-beam"), false, golurk.WEATHER_NONE, testingRng)
+	checkDamageRange(t, damage, 32, 38)
+	damage = golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("solar-beam"), false, golurk.WEATHER_SNOW, testingRng)
+	checkDamageRange(t, damage, 16, 19)
+	damage = golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("solar-beam"), false, golurk.WEATHER_HAIL, testingRng)
+	checkDamageRange(t, damage, 16, 19)
+}
