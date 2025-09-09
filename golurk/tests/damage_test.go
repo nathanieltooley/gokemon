@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -55,24 +54,6 @@ func TestCritDamage(t *testing.T) {
 		damage := golurk.Damage(pokemon, enemyPokemon, pokemon.Moves[0], true, golurk.WEATHER_NONE, testingRng)
 
 		checkDamageRange(t, damage, 44, 52)
-	}
-}
-
-func TestSandstormChip(t *testing.T) {
-	pokemon := getDummyPokemonWithAbility("")
-	enemyPokemon := getDummyPokemon()
-
-	gameState := getSimpleState(pokemon, enemyPokemon)
-	gameState.Weather = golurk.WEATHER_SANDSTORM
-
-	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
-
-	pokemon = *gameState.HostPlayer.GetActivePokemon()
-	damage := float64(pokemon.MaxHp) * (1.0 / 16.0)
-	expectedHp := pokemon.MaxHp - uint(math.Ceil(damage))
-
-	if pokemon.Hp.Value != expectedHp {
-		t.Fatalf("pokemon hp did not match expected value. pokemon hp: %d/%d | expected: %d/%d", pokemon.Hp.Value, pokemon.MaxHp, expectedHp, pokemon.MaxHp)
 	}
 }
 

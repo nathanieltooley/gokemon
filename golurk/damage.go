@@ -95,6 +95,18 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 		return 0
 	}
 
+	if weather == WEATHER_SANDSTORM && defendent.HasType(&TYPE_ROCK) && move.DamageClass == DAMAGETYPE_SPECIAL {
+		d = uint(float64(d) * 1.5)
+	}
+
+	if weather == WEATHER_SNOW && defendent.HasType(&TYPE_ICE) && move.DamageClass == DAMAGETYPE_PHYSICAL {
+		d = uint(float64(d) * 1.5)
+	}
+
+	if (weather == WEATHER_SANDSTORM || weather == WEATHER_HAIL || weather == WEATHER_SNOW) && (move.Name == "solar-beam" || move.Name == "solar-blade") {
+		power = int(float64(power) * 0.5)
+	}
+
 	var critBoost float64 = 1
 	if crit && defendent.Ability.Name != "battle-armor" && defendent.Ability.Name != "shell-armor" {
 		critBoost = 1.5

@@ -909,3 +909,93 @@ func TestOblivious(t *testing.T) {
 		t.Fatalf("oblivious pokemon was taunted")
 	}
 }
+
+func TestAirLock(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("air-lock")
+	pokemon2 := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	move := *golurk.GlobalData.GetMove("tackle")
+	move.Power = 9999
+	enemyPokemon.Moves[0] = move
+
+	gameState := golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon}, testingSeed)
+	gameState.Weather = golurk.WEATHER_RAIN
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("air-lock did not remove weather effects")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
+
+	if gameState.Weather != golurk.WEATHER_RAIN && gameState.DisabledWeather != golurk.WEATHER_NONE {
+		t.Fatalf("air-lock was not reverted after pokemon switch")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("air-lock did not remove weather effects")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("air-lock's effect was removed with while switching in same air-lock pokemon")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != 0 {
+		t.Fatalf("pokemon should have died")
+	}
+
+	if gameState.Weather != golurk.WEATHER_RAIN && gameState.DisabledWeather != golurk.WEATHER_NONE {
+		t.Fatalf("air-lock was not reverted after pokemon death")
+	}
+}
+
+func TestCloudNine(t *testing.T) {
+	pokemon := getDummyPokemonWithAbility("cloud-nine")
+	pokemon2 := getDummyPokemon()
+	enemyPokemon := getDummyPokemon()
+
+	move := *golurk.GlobalData.GetMove("tackle")
+	move.Power = 9999
+	enemyPokemon.Moves[0] = move
+
+	gameState := golurk.NewState([]golurk.Pokemon{pokemon, pokemon2}, []golurk.Pokemon{enemyPokemon}, testingSeed)
+	gameState.Weather = golurk.WEATHER_RAIN
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("cloud-nine did not remove weather effects")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 1)}))
+
+	if gameState.Weather != golurk.WEATHER_RAIN && gameState.DisabledWeather != golurk.WEATHER_NONE {
+		t.Fatalf("cloud-nine was not reverted after pokemon switch")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("cloud-nine did not remove weather effects")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewSwitchAction(&gameState, golurk.HOST, 0)}))
+	if gameState.Weather != golurk.WEATHER_NONE && gameState.DisabledWeather != golurk.WEATHER_RAIN {
+		t.Fatalf("cloud-nine's effect was removed with while switching in same air-lock pokemon")
+	}
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{golurk.NewAttackAction(golurk.AI, 0)}))
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+
+	if pokemon.Hp.Value != 0 {
+		t.Fatalf("pokemon should have died")
+	}
+
+	if gameState.Weather != golurk.WEATHER_RAIN && gameState.DisabledWeather != golurk.WEATHER_NONE {
+		t.Fatalf("cloud-nine was not reverted after pokemon death")
+	}
+}

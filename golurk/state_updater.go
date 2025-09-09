@@ -386,6 +386,11 @@ func endOfTurnEvents(gameState *GameState) []StateEvent {
 		events = append(events, SandstormDamageEvent{PlayerIndex: PEER})
 	}
 
+	if gameState.Weather == WEATHER_HAIL {
+		events = append(events, HailDamageEvent{PlayerIndex: HOST})
+		events = append(events, HailDamageEvent{PlayerIndex: PEER})
+	}
+
 	events = append(events, FinalUpdatesEvent{})
 
 	events = append(events, EndOfTurnAbilityCheck{PlayerID: HOST})

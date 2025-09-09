@@ -70,11 +70,22 @@ func (event SwitchEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 	// --- Activate Abilities
 	switch newActivePkm.Ability.Name {
 	case "drizzle":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_RAIN})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_RAIN})
+		}
 	case "sand-stream":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SANDSTORM})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SANDSTORM})
+		}
 	case "drought":
-		followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SUN})
+		if gameState.DisabledWeather == WEATHER_NONE {
+			followUpEvents = append(followUpEvents, WeatherEvent{NewWeather: WEATHER_SUN})
+		}
+	case "cloud-nine", "air-lock":
+		gameState.DisabledWeather = gameState.Weather
+		gameState.Weather = WEATHER_NONE
+
+		messages = append(messages, "The effects of weather disappeared")
 	case "intimidate":
 		opPokemon := opposingPlayer.GetActivePokemon()
 		if opPokemon.Ability.Name != "oblivious" && opPokemon.Ability.Name != "own-tempo" && opPokemon.Ability.Name != "inner-focus" {
@@ -172,6 +183,11 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 		return []StateEvent{
 			SimpleAbilityActivationEvent(gameState, defenderInt),
 		}, []string{fmt.Sprintf("%s is not affected by sound based moves!", defPokemon.Name())}
+	}
+
+	// TODO: hard to test but would be nice to at some point
+	if (gameState.Weather == WEATHER_HAIL || gameState.Weather == WEATHER_SNOW) && move.Name == "blizzard" {
+		move.Accuracy = 100
 	}
 
 	events := make([]StateEvent, 0)
@@ -517,7 +533,7 @@ func (event AilmentEvent) Update(gameState *GameState) ([]StateEvent, []string) 
 			}, nil
 		}
 	case STATUS_FROZEN:
-		if pokemon.Ability.Name == "magma-armor" {
+		if pokemon.Ability.Name == "magma-armor" || gameState.Weather == WEATHER_SUN || gameState.Weather == WEATHER_EXTREME_SUN {
 			return []StateEvent{
 				SimpleAbilityActivationEvent(gameState, event.PlayerIndex),
 				NewFmtMessageEvent("%s cannot be frozen", pokemon.Name()),
@@ -993,6 +1009,41 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 	}, messages
 }
 
+type HailDamageEvent struct {
+	PlayerIndex int
+}
+
+var (
+	hailNonDamageTypes     = []*PokemonType{&TYPE_ICE}
+	hailNonDamageAbilities = []string{"ice-body", "snow-cloak", "magic-guard", "overcoat"}
+)
+
+func (event HailDamageEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
+
+	if slices.Contains(hailNonDamageTypes, pokemon.Base.Type1) || slices.Contains(sandNonDamageTypes, pokemon.Base.Type2) {
+		return nil, nil
+	}
+
+	if slices.Contains(hailNonDamageAbilities, pokemon.Ability.Name) {
+		return nil, nil
+	}
+
+	if pokemon.Item == "safety-goggles" {
+		return nil, nil
+	}
+
+	dmg := float64(pokemon.MaxHp) * (1.0 / 16.0)
+	messages := []string{
+		"Hail continues to fall",
+		fmt.Sprintf("%s was buffeted by the Hail!", pokemon.Name()),
+	}
+	dmgInt := uint(math.Ceil(dmg))
+	return []StateEvent{
+		DamageEvent{Damage: dmgInt, PlayerIndex: event.PlayerIndex, SupressMessage: true},
+	}, messages
+}
+
 type TurnStartEvent struct{}
 
 func (event TurnStartEvent) Update(gameState *GameState) ([]StateEvent, []string) {
@@ -1062,7 +1113,15 @@ func (event FinalUpdatesEvent) Update(gameState *GameState) ([]StateEvent, []str
 	decrementTaunt(gameState.ClientPlayer.GetActivePokemon())
 	decrementTaunt(gameState.HostPlayer.GetActivePokemon())
 
-	return nil, nil
+	messages := make([]string, 0)
+
+	if gameState.DisabledWeather != WEATHER_NONE && !gameState.AbilityInPlay("cloud-nine") && !gameState.AbilityInPlay("air-lock") {
+		gameState.Weather = gameState.DisabledWeather
+		gameState.DisabledWeather = WEATHER_NONE
+		messages = append(messages, "The effects of weather have reappeared")
+	}
+
+	return nil, messages
 }
 
 // MessageEvent is an event that only shows a message. No state updates occur.
