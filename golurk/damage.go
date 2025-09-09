@@ -99,6 +99,10 @@ func Damage(attacker Pokemon, defendent Pokemon, move Move, crit bool, weather i
 		d = uint(float64(d) * 1.5)
 	}
 
+	if weather == WEATHER_SNOW && defendent.HasType(&TYPE_ICE) && move.DamageClass == DAMAGETYPE_PHYSICAL {
+		d = uint(float64(d) * 1.5)
+	}
+
 	if (weather == WEATHER_SANDSTORM || weather == WEATHER_HAIL || weather == WEATHER_SNOW) && (move.Name == "solar-beam" || move.Name == "solar-blade") {
 		power = int(float64(power) * 0.5)
 	}
