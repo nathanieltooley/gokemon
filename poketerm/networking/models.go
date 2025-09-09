@@ -148,6 +148,8 @@ func (es EventSlice) GobEncode() ([]byte, error) {
 			err = gobEncodeEvent(event, innerEncoder)
 		case golurk.SandstormDamageEvent:
 			err = gobEncodeEvent(event, innerEncoder)
+		case golurk.HailDamageEvent:
+			err = gobEncodeEvent(event, innerEncoder)
 		case golurk.TurnStartEvent:
 			err = gobEncodeEvent(event, innerEncoder)
 		case golurk.EndOfTurnAbilityCheck:
@@ -239,6 +241,8 @@ func (es *EventSlice) GobDecode(buf []byte) error {
 			ev, err = gobDecodeEvent[golurk.InfatuationEvent](innerDecoder)
 		case "SandstormDamageEvent":
 			ev, err = gobDecodeEvent[golurk.SandstormDamageEvent](innerDecoder)
+		case "HailDamageEvent":
+			ev, err = gobDecodeEvent[golurk.HailDamageEvent](innerDecoder)
 		case "TurnStartEvent":
 			ev, err = gobDecodeEvent[golurk.TurnStartEvent](innerDecoder)
 		case "EndOfTurnAbilityCheck":

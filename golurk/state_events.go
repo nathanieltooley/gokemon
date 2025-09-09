@@ -993,6 +993,41 @@ func (event SandstormDamageEvent) Update(gameState *GameState) ([]StateEvent, []
 	}, messages
 }
 
+type HailDamageEvent struct {
+	PlayerIndex int
+}
+
+var (
+	hailNonDamageTypes     = []*PokemonType{&TYPE_ICE}
+	hailNonDamageAbilities = []string{"ice-body", "snow-cloak", "magic-guard", "overcoat"}
+)
+
+func (event HailDamageEvent) Update(gameState *GameState) ([]StateEvent, []string) {
+	pokemon := gameState.GetPlayer(event.PlayerIndex).GetActivePokemon()
+
+	if slices.Contains(hailNonDamageTypes, pokemon.Base.Type1) || slices.Contains(sandNonDamageTypes, pokemon.Base.Type2) {
+		return nil, nil
+	}
+
+	if slices.Contains(hailNonDamageAbilities, pokemon.Ability.Name) {
+		return nil, nil
+	}
+
+	if pokemon.Item == "safety-goggles" {
+		return nil, nil
+	}
+
+	dmg := float64(pokemon.MaxHp) * (1.0 / 16.0)
+	messages := []string{
+		"Hail continues to fall",
+		fmt.Sprintf("%s was buffeted by the Hail!", pokemon.Name()),
+	}
+	dmgInt := uint(math.Ceil(dmg))
+	return []StateEvent{
+		DamageEvent{Damage: dmgInt, PlayerIndex: event.PlayerIndex, SupressMessage: true},
+	}, messages
+}
+
 type TurnStartEvent struct{}
 
 func (event TurnStartEvent) Update(gameState *GameState) ([]StateEvent, []string) {
