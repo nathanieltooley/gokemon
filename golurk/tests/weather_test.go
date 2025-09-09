@@ -119,3 +119,26 @@ func TestSnowDebuff(t *testing.T) {
 	damage = golurk.Damage(pokemon, enemyPokemon, *golurk.GlobalData.GetMove("solar-beam"), false, golurk.WEATHER_HAIL, testingRng)
 	checkDamageRange(t, damage, 16, 19)
 }
+
+func TestHailChip(t *testing.T) {
+	pokemon := getDummyPokemon()
+	enemyPokemon := getPerfDummyPokemon("jynx")
+
+	gameState := getSimpleState(pokemon, enemyPokemon)
+	gameState.Weather = golurk.WEATHER_HAIL
+
+	golurk.ApplyEventsToState(&gameState, golurk.ProcessTurn(&gameState, []golurk.Action{}))
+
+	pokemon = *gameState.HostPlayer.GetActivePokemon()
+	enemyPokemon = *gameState.ClientPlayer.GetActivePokemon()
+	damage := float64(pokemon.MaxHp) * (1.0 / 16.0)
+	expectedHp := pokemon.MaxHp - uint(math.Ceil(damage))
+
+	if pokemon.Hp.Value != expectedHp {
+		t.Fatalf("pokemon hp did not match expected value. pokemon hp: %d/%d | expected: %d/%d", pokemon.Hp.Value, pokemon.MaxHp, expectedHp, pokemon.MaxHp)
+	}
+
+	if enemyPokemon.Hp.Value != enemyPokemon.MaxHp {
+		t.Fatalf("ice-type pokemon took damage in hail. pokemon hp: %d/%d", enemyPokemon.Hp.Value, enemyPokemon.MaxHp)
+	}
+}
