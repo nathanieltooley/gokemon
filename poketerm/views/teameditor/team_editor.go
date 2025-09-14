@@ -286,6 +286,7 @@ func (m editPokemonModel) View() string {
 	info := fmt.Sprintf(`
             Name: %s
             Level: %d
+		Gender: %s
             HP: %d:%d:%d
             Attack: %d:%d:%d
             Defense: %d:%d:%d
@@ -306,6 +307,7 @@ func (m editPokemonModel) View() string {
             `,
 		m.currentPokemon.Name(),
 		m.currentPokemon.Level,
+		m.currentPokemon.Gender,
 
 		m.currentPokemon.Hp.Value,
 		m.currentPokemon.Hp.Iv,

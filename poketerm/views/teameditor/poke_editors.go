@@ -21,6 +21,40 @@ type editor interface {
 	Update(*editPokemonModel, tea.Msg) (editor, tea.Cmd)
 }
 
+type wrappingSelector struct {
+	focused int
+	maxLen  int
+}
+
+func (ws *wrappingSelector) Next() {
+	ws.focused++
+
+	if ws.focused > ws.maxLen-1 {
+		ws.focused = 0
+	}
+}
+
+func (ws *wrappingSelector) Prev() {
+	ws.focused--
+
+	if ws.focused < 0 {
+		ws.focused = ws.maxLen - 1
+	}
+}
+
+func (ws *wrappingSelector) Update(msg tea.Msg) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyTab {
+			ws.Next()
+		}
+
+		if msg.Type == tea.KeyShiftTab {
+			ws.Prev()
+		}
+	}
+}
+
 // Component that regulates focus of text inputs
 // TODO: Refactor this out to a separate component
 type inputSelector struct {
@@ -71,7 +105,12 @@ func (is inputSelector) Update(msg tea.Msg) (inputSelector, tea.Cmd) {
 }
 
 type detailsEditor struct {
-	is inputSelector
+	ws              wrappingSelector
+	isEditingGender bool
+
+	nameInput      textinput.Model
+	levelInput     textinput.Model
+	genderSelector list.Model
 }
 
 const (
@@ -80,6 +119,14 @@ const (
 
 	DE_LEN
 )
+
+type genderItem struct {
+	string
+}
+
+func (g genderItem) FilterValue() string {
+	return g.string
+}
 
 func newDetailsEditor(pokeInfo golurk.Pokemon) detailsEditor {
 	nameInput := textinput.New()
@@ -94,51 +141,92 @@ func newDetailsEditor(pokeInfo golurk.Pokemon) detailsEditor {
 	levelInput.CharLimit = 3
 	levelInput.SetValue(strconv.FormatUint(uint64(pokeInfo.Level), 10))
 
+	genderSelector := list.New([]list.Item{genderItem{"Male"}, genderItem{"Female"}, genderItem{"Unknown"}}, rendering.NewSimpleListDelegate(), 10, 10)
+
 	return detailsEditor{
-		newInputSelector([]textinput.Model{nameInput, levelInput}),
+		nameInput:      nameInput,
+		levelInput:     levelInput,
+		genderSelector: genderSelector,
+
+		ws: wrappingSelector{maxLen: 3},
 	}
 }
 
 func (e detailsEditor) View() string {
-	views := make([]string, 0)
-	for _, input := range e.is.inputs {
-		views = append(views, input.View())
+	if e.isEditingGender {
+		return e.genderSelector.View()
+	} else {
+		views := make([]string, 0)
+		views = append(views, e.nameInput.View())
+		views = append(views, e.levelInput.View())
+		genderString := "Select Gender"
+		if e.ws.focused == 2 {
+			views = append(views, lipgloss.NewStyle().Foreground(rendering.HighlightedColor).Render(genderString))
+		} else {
+			views = append(views, genderString)
+		}
+
+		return lipgloss.JoinVertical(lipgloss.Left, views...)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, views...)
 }
 
 func (e detailsEditor) Update(rootModel *editPokemonModel, msg tea.Msg) (editor, tea.Cmd) {
 	var cmd tea.Cmd
 	currentPokemon := rootModel.currentPokemon
 
-	e.is, cmd = e.is.Update(msg)
+	e.ws.Update(msg)
 
-	for i := range e.is.inputs {
-		switch i {
-		case DE_NAME:
-			nameValue := e.is.inputs[i].Value()
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if (msg.Type == tea.KeyEsc || msg.Type == tea.KeyEnter) && e.isEditingGender {
+			e.isEditingGender = false
+		}
 
-			if nameValue != "" {
-				currentPokemon.Nickname = nameValue
-			}
+		if msg.Type == tea.KeyEnter && e.ws.focused == 2 {
+			e.isEditingGender = true
+			e.ws.focused = 0
+		}
+	}
 
-		case DE_LEVEL:
-			levelValue := e.is.inputs[i].Value()
+	if e.isEditingGender {
+		e.genderSelector, cmd = e.genderSelector.Update(msg)
 
-			if levelValue != "" {
-				parsedLevel, err := strconv.ParseInt(levelValue, 0, 64)
+		currentPokemon.Gender = e.genderSelector.SelectedItem().FilterValue()
+		return e, cmd
+	}
 
-				if err != nil {
-					invalidValue := e.is.inputs[i].Value()
-					e.is.inputs[i].SetValue(invalidValue[:len(invalidValue)-1])
-				} else {
-					parsedLevel = int64(math.Min(100, float64(parsedLevel)))
+	switch e.ws.focused {
+	case DE_NAME:
+		e.nameInput.Focus()
+		e.levelInput.Blur()
+		e.nameInput, cmd = e.nameInput.Update(msg)
+	case DE_LEVEL:
+		e.levelInput.Focus()
+		e.nameInput.Blur()
+		e.levelInput, cmd = e.levelInput.Update(msg)
+	case 2:
+		e.levelInput.Blur()
+		e.nameInput.Blur()
+	}
 
-					currentPokemon.Level = uint(parsedLevel)
-					currentPokemon.ReCalcStats()
-				}
-			}
+	nameValue := e.nameInput.Value()
+	if nameValue != "" {
+		currentPokemon.Nickname = nameValue
+	}
 
+	levelValue := e.levelInput.Value()
+
+	if levelValue != "" {
+		parsedLevel, err := strconv.ParseInt(levelValue, 0, 64)
+
+		if err != nil {
+			invalidValue := e.levelInput.Value()
+			e.levelInput.SetValue(invalidValue[:len(invalidValue)-1])
+		} else {
+			parsedLevel = int64(math.Min(100, float64(parsedLevel)))
+
+			currentPokemon.Level = uint(parsedLevel)
+			currentPokemon.ReCalcStats()
 		}
 	}
 
