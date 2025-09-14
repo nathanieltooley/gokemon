@@ -10,9 +10,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type SimpleItem interface {
-	Value() string
-}
 type simpleDelegate struct {
 	HighlightedItemStyle lipgloss.Style
 	ItemStyle            lipgloss.Style
@@ -30,16 +27,10 @@ func (d simpleDelegate) Height() int {
 func (d simpleDelegate) Spacing() int                            { return d.spacing }
 func (d simpleDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d simpleDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(SimpleItem)
-	if !ok {
-		fmt.Fprint(w, "Invalid Item!")
-		return
-	}
-
 	if index == m.Index() {
-		fmt.Fprint(w, d.HighlightedItemStyle.Render(i.Value()))
+		fmt.Fprint(w, d.HighlightedItemStyle.Render(listItem.FilterValue()))
 	} else {
-		fmt.Fprint(w, d.ItemStyle.Render(i.Value()))
+		fmt.Fprint(w, d.ItemStyle.Render(listItem.FilterValue()))
 	}
 }
 
