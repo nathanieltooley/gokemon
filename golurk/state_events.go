@@ -263,6 +263,50 @@ func (event AttackEvent) Update(gameState *GameState) ([]StateEvent, []string) {
 			}
 		}
 
+		// TODO: untested, lol
+		if lo.Contains(CONTACT_MOVES, move.Name) {
+			switch defPokemon.Ability.Name {
+			case "flame-body":
+				effectChance := .3
+				effectCheck := rng.Float64()
+
+				if effectCheck < effectChance {
+					events = append(events, AilmentEvent{PlayerIndex: event.AttackerID, Ailment: STATUS_BURN})
+				}
+			case "poison-point":
+				effectChance := .3
+				effectCheck := rng.Float64()
+
+				if effectCheck < effectChance {
+					events = append(events, AilmentEvent{PlayerIndex: event.AttackerID, Ailment: STATUS_POISON})
+				}
+			case "effect-spore":
+				effectCheck := rng.Float64()
+
+				if effectCheck < 3.33 {
+					events = append(events, AilmentEvent{PlayerIndex: event.AttackerID, Ailment: STATUS_POISON})
+				} else if effectCheck < 6.66 {
+					events = append(events, AilmentEvent{PlayerIndex: event.AttackerID, Ailment: STATUS_PARA})
+				} else if effectCheck < 9.99 {
+					events = append(events, AilmentEvent{PlayerIndex: event.AttackerID, Ailment: STATUS_SLEEP})
+				}
+			case "rough-skin":
+				dmg := float64(attackPokemon.MaxHp) * (1.0 / 16.0)
+				dmgInt := uint(dmg)
+
+				events = append(events, DamageEvent{PlayerIndex: event.AttackerID, Damage: dmgInt})
+			case "cute-charm":
+				effectChance := .3
+				effectCheck := rng.Float64()
+
+				if effectCheck < effectChance {
+					if OppositeGenders(*attackPokemon, *defPokemon) {
+						events = append(events, ApplyInfatuationEvent{PlayerIndex: event.AttackerID, Target: defender.ActivePokeIndex})
+					}
+				}
+			}
+		}
+
 		handlerContext := newAttackHandlerContext(*gameState, event.AttackerID, defenderInt, move)
 
 		if !defImmune {

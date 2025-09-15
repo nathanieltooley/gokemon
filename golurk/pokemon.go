@@ -3,6 +3,7 @@ package golurk
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	err "errors"
 )
@@ -415,6 +416,13 @@ func CreateIVSpread(hp uint, attack uint, def uint, spAttack uint, spDef uint, s
 	ivs[5] = uint8(speed)
 
 	return ivs, nil
+}
+
+func OppositeGenders(p1 Pokemon, p2 Pokemon) bool {
+	p1Gender := strings.ToLower(p1.Gender)
+	p2Gender := strings.ToLower(p2.Gender)
+
+	return p1Gender != p2Gender && p1Gender != "unknown" && p2Gender != "unknown"
 }
 
 func calcStat(baseValue uint, level uint, iv uint, ev uint, natureMod float32) uint {

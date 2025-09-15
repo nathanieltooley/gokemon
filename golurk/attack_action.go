@@ -256,7 +256,7 @@ func ailmentHandler(ctx attackHandlerContext) []StateEvent {
 					return []StateEvent{ApplyConfusionEvent{PlayerIndex: ctx.defender}}
 				}
 			case EFFECT_INFATUATION:
-				if defPokemon.Gender != attackPokemon.Gender && defPokemon.Gender != "unknown" && attackPokemon.Gender != "unknown" && defPokemon.Ability.Name != "oblivious" {
+				if OppositeGenders(attackPokemon, defPokemon) && defPokemon.Ability.Name != "oblivious" {
 					return []StateEvent{ApplyInfatuationEvent{PlayerIndex: ctx.defender}}
 				}
 			}
