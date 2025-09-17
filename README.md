@@ -3,19 +3,20 @@
 </div>
 
 # Gokemon
-Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be a fairly accurate, if feature-lacking, simulation of newer-gen Pokemon battle mechanics.
-Gokemon will not feature previous generations' mechanics, abilities, stats, or bugs the way a battle simulator like Pokemon Showdown does.
+Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be a fairly accurate, if feature-lacking, simulation of Pokemon singles battles. Singleplayer against an AI
+and LAN multiplayer modes are available. Gokemon will not feature previous generations' mechanics, abilities, stats, or bugs the way a battle simulator like Pokemon Showdown does.
+All mechanics and Pokemon are based off of their latest appearances.
 
 > [!WARNING]
-> This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 Pokemon and <50% of abilities introduced in Gen 3.
-> The goal for now is to get all Pokemon and Pokemon abilites from Gens 1-3 added into the game (though the mechanics would be from Gen 8). If there are any features you wish to see added, feel free to open
-> an issue or pull request.
+> This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 - 3 Pokemon and ~99% of abilities introduced in Gen 3.
+> While move data up to Gen 9 is included, most moves are not fully implemented (Like Protect blocking damage, Substitution, etc.)
+> The next major plan is to add in-battle items. Double battles are up in the air. If there are any features you wish to see added, feel free to open an issue or pull request.
 
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
 > [!NOTE]
-> The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable will output nothing.
+> The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable outside of a terminal / command prompt will output nothing.
 
 ### Building from source
 
@@ -29,13 +30,13 @@ git clone https://github.com/nathanieltooley/gokemon.git
 ```
 Inside the cloned repo you can build Gokemon using the following command:
 ```
-go build main.go
+go build -o gokemon ./poketerm
 ```
-to change the name of the executable, use the -o flag:
+And then execute:
 ```
-go build -o gokemon main.go
+./poketerm
 ```
 or run the game without building an executable:
 ```
-go run main.go
+go run ./poketerm
 ```
