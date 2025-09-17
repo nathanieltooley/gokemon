@@ -22,6 +22,7 @@ builds:
       - linux
       - windows
       - darwin
+    main: ./poketerm/
 
 archives:
   - formats: [tar.gz]
