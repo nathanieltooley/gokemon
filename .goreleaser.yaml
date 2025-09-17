@@ -11,9 +11,9 @@ version: 2
 before:
   hooks:
     # You may remove this if you don't use go modules.
-    - go mod tidy
+    # - go work sync
     # you may remove this if you don't need go generate
-    - go generate ./...
+    # - go generate ./...
 
 builds:
   - env:
