@@ -15,6 +15,10 @@ All mechanics and Pokemon are based off of their latest appearances.
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
+> [!NOTE]
+> Windows will probably flag this as a virus and try to delete the file or prevent it's execution. I would recommend letting it through the antivirus rather than temporarily disabling it
+> when running the program. I don't know if theres a realistic way for me to fix this so you'll just have to trust me :)
+
 ### Building from source
 
 The other way is to build / run the code directly on your computer using Go.
