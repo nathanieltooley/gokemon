@@ -15,9 +15,6 @@ All mechanics and Pokemon are based off of their latest appearances.
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
-> [!NOTE]
-> The executable needs to be run inside of a terminal / command prompt. Double-clicking or otherwise directly running the executable outside of a terminal / command prompt will output nothing.
-
 ### Building from source
 
 The other way is to build / run the code directly on your computer using Go.
