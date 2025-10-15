@@ -252,8 +252,10 @@ func (m TeamSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		gameState.Networked = true
 
-		// TODO: Make this a cmd so that it doesn't block
-		networking.SendData(m.networkInfo.Conn, gameState)
+		// this has to be a pointer to gamestate for some reason
+		if err := networking.SendData(m.networkInfo.Conn, &gameState); err != nil {
+			log.Fatal().Err(err).Msg("host: could not send gamestate")
+		}
 
 		return NewMainGameModel(gameState, golurk.HOST, m.networkInfo.Conn), tick()
 	case networking.TeamSelectionPacket:
