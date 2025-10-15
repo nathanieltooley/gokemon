@@ -499,6 +499,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.ctx.currentSmState = SM_USER_ACTION_SENT
 
+		log.Debug().Int("playerSide", m.ctx.playerSide).Msg("player inited")
 		m.inited = true
 	}
 
@@ -553,5 +554,5 @@ func hostNetworkHandler(netInfo networking.NetReaderInfo, action golurk.Action, 
 
 	networking.SendMessage(netInfo.Conn, networking.MESSAGE_TURNRESOLVE, networking.TurnResolveMessage{turnResult})
 
-	return turnResult
+	return networking.TurnResolveMessage{turnResult}
 }
