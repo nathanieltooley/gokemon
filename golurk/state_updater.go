@@ -70,8 +70,10 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 
 	for _, action := range actions {
 		internalLogger.V(1).Info("Player Action", "player_id", action.GetCtx().PlayerID, "action_name", reflect.TypeOf(action).Name())
+		internalLogger.V(1).Info(fmt.Sprintf("%+v", action))
 	}
 
+	internalLogger.WithName("state_updater").V(1).Info("handling possible switches")
 	events = append(events, switchEvents(*gameState, switches)...)
 
 	// Properly end turn after force switches are dealt with
@@ -100,6 +102,7 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 		clientPokemon.CanAttackThisTurn = false
 	}
 
+	internalLogger.WithName("state_updater").V(1).Info("handling other actions")
 	events = append(events, actionEvents(*gameState, otherActions)...)
 
 	// we don't want to modify the original state just yet but we need play through what events have already happened
@@ -109,6 +112,7 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 		Events: events,
 	})
 
+	internalLogger.WithName("state_updater").V(1).Info("checking for game over")
 	gameOverValue := clonedState.GameOver()
 	switch gameOverValue {
 	case HOST:
@@ -145,6 +149,7 @@ func ProcessTurn(gameState *GameState, actions []Action) TurnResult {
 		}
 	}
 
+	internalLogger.WithName("state_updater").V(1).Info("handling end of turn events")
 	events = append(events, endOfTurnEvents(gameState)...)
 
 	gameState.Turn++
@@ -192,6 +197,7 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 	// Sort Other Actions
 	// TODO: Fix this so that instead of sorting ahead of time, whenever an action is processed, it grabs the "fastest" action next.
 	// This way, previous actions that change speed can affect the order of following actions. This will mainly be important for double battles.
+	internalLogger.WithName("state_updater").V(1).Info("sorting other actions")
 	slices.SortFunc(actions, func(a, b Action) int {
 		var aSpeed int
 		var bSpeed int
@@ -203,8 +209,10 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 
 		switch a := a.(type) {
 		case AttackAction:
-			move := activePokemon.Moves[a.AttackerMove]
-			aPriority = move.Priority
+			if a.AttackerMove >= 0 && a.AttackerMove < len(activePokemon.Moves) {
+				move := activePokemon.Moves[a.AttackerMove]
+				aPriority = move.Priority
+			}
 		case SkipAction, *SkipAction:
 			aPriority = -100
 		default:
@@ -217,12 +225,10 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 
 		switch b := b.(type) {
 		case AttackAction:
-			if b.AttackerMove < 0 || b.AttackerMove >= len(activePokemon.Moves) {
-				return 0
+			if b.AttackerMove >= 0 && b.AttackerMove < len(activePokemon.Moves) {
+				move := activePokemon.Moves[b.AttackerMove]
+				bPriority = move.Priority
 			}
-
-			move := activePokemon.Moves[b.AttackerMove]
-			bPriority = move.Priority
 		case SkipAction:
 			bPriority = -100
 		default:
@@ -230,7 +236,7 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 			return 0
 		}
 
-		internalLogger.V(2).Info("sort debug",
+		internalLogger.V(1).Info("sort debug",
 			"aPlayer", a.GetCtx().PlayerID,
 			"bPlayer", b.GetCtx().PlayerID,
 			"aSpeed", aSpeed,
@@ -260,7 +266,7 @@ func actionEvents(gameState GameState, actions []Action) []StateEvent {
 		case AttackAction, *AttackAction, SkipAction, *SkipAction:
 			player := gameState.GetPlayer(a.GetCtx().PlayerID)
 
-			internalLogger.V(2).Info("attack state update",
+			internalLogger.V(1).Info("attack state update",
 				"attackIndex", i,
 				"attackerSpeed", player.GetActivePokemon().Speed(gameState.Weather),
 				"attackerRawSpeed", player.GetActivePokemon().RawSpeed.CalcValue(),
