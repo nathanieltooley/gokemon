@@ -93,14 +93,12 @@ func acceptAction(reader io.Reader) (golurk.Action, error) {
 
 	messageParts := bytes.SplitN(actionBytes, []byte{'\n'}, 2)
 
-	log.Debug().Msgf("action content: %s", actionBytes)
-
-	// Print out all parts of the message
-	messagePartsEvent := log.Debug().Int("messageParts", len(messageParts))
-	for i, msg := range messageParts {
-		messagePartsEvent = messagePartsEvent.Bytes(fmt.Sprintf("messagePart%d", i), msg)
-	}
-	messagePartsEvent.Msg("")
+	// // Print out all parts of the message
+	// messagePartsEvent := log.Debug().Int("messageParts", len(messageParts))
+	// for i, msg := range messageParts {
+	// 	messagePartsEvent = messagePartsEvent.Bytes(fmt.Sprintf("messagePart%d", i), msg)
+	// }
+	// messagePartsEvent.Msg("")
 
 	concreteName := string(messageParts[0])
 	actionContentBuffer := bytes.NewBuffer(messageParts[1])
@@ -154,8 +152,6 @@ func AcceptMessage(conn net.Conn) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug().Msgf("Message size: %d", len(readBytes))
 
 	buffer := bytes.NewReader(readBytes)
 
