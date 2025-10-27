@@ -37,6 +37,13 @@ func NewModel() MainMenuModel {
 				return newOptionsMenu(backtrack.PushNew(func() tea.Model { return NewModel() })), nil
 			},
 		},
+		{
+			Name: "Help",
+			OnClick: func() (tea.Model, tea.Cmd) {
+				backtrack := components.NewBreadcrumb()
+				return newHelpMenu(backtrack.PushNew(func() tea.Model { return NewModel() })), nil
+			},
+		},
 	}
 
 	return MainMenuModel{
