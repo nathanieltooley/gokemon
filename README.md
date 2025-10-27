@@ -4,20 +4,19 @@
 
 # Gokemon
 Gokemon is a CLI Pokemon battle simulator written in Go. Gokemon attempts to be a fairly accurate, if feature-lacking, simulation of Pokemon singles battles. Singleplayer against an AI
-and LAN multiplayer modes are available. Gokemon will not feature previous generations' mechanics, abilities, stats, or bugs the way a battle simulator like Pokemon Showdown does.
-All mechanics and Pokemon are based off of their latest appearances.
+and LAN multiplayer modes are available. All mechanics and Pokemon are based off of their latest appearances (as of 2024).
 
 > [!WARNING]
 > This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 - 3 Pokemon and ~99% of abilities introduced in Gen 3.
-> While move data up to Gen 9 is included, most moves are not fully implemented (Like Protect blocking damage, Substitution, etc.)
+> While move data up to Gen 9 is included, most moves' secondary effects are not implemented
 > The next major plan is to add in-battle items. Double battles are up in the air. If there are any features you wish to see added, feel free to open an issue or pull request.
 
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
 
 > [!NOTE]
-> Windows will probably flag this as a virus and try to delete the file or prevent it's execution. I would recommend letting it through the antivirus rather than temporarily disabling it
-> when running the program. I don't know if theres a realistic way for me to fix this so you'll just have to trust me :)
+> Windows may or may not flag this as a virus / malware so Windows Antivirus may have to be disabled during installation and explicitly allowed.
+> Building / Running from source should avoid this issue. If you know why this happens and how to fix it do feel free to open an issue.
 
 ### Building from source
 
