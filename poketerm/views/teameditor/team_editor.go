@@ -163,7 +163,7 @@ func (m editTeamModel) View() string {
 	dialog := lipgloss.JoinVertical(lipgloss.Left, infoHeaderStyle.Render(header), body)
 	selection := lipgloss.JoinVertical(lipgloss.Center, infoStyle.Render(dialog), m.addPokemonList.View())
 
-	return rendering.GlobalCenter(lipgloss.JoinHorizontal(lipgloss.Center, selection, m.teamView.View()))
+	return rendering.GlobalCenter(lipgloss.JoinVertical(lipgloss.Center, lipgloss.JoinHorizontal(lipgloss.Center, selection, m.teamView.View()), "Press S to Save Team"))
 }
 
 func (m editTeamModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
