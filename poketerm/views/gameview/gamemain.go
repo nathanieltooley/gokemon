@@ -341,6 +341,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// send a sync message every second
 			if m.ctx.playerSide == golurk.HOST && m.tickCount%int64(global.GameTicksPerSecond) == 0 {
+				log.Debug().Msg("sending client sync message")
 				_ = networking.SendMessage(m.netInfo.Conn, networking.MESSAGE_UPDATETIMER, networking.UpdateTimerMessage{
 					Directive:     networking.DIR_SYNC,
 					NewHostTime:   m.ctx.state.HostPlayer.MultiTimerTick,
@@ -488,7 +489,7 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Start message reading loops
 	if !m.inited {
-		cmds = append(cmds, tick())
+		// cmds = append(cmds, tick())
 
 		if m.ctx.state.Networked {
 			cmds = append(cmds, func() tea.Msg {
