@@ -381,6 +381,9 @@ func (m MainGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			m.eventQueue.AddEvents(msg.Result.Events)
+			if m.ctx.playerSide == golurk.PEER {
+				m.ctx.state.Turn += 1
+			}
 
 		// Game Over Check
 		case golurk.RESULT_GAMEOVER:
