@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/11738814-cb8a-4349-884d-a66fbe5ddfca" width="50%"/>
+  <img alt="The Gokemon Logo: a pokeball stylized like the Golang Gopher" src="https://github.com/user-attachments/assets/11738814-cb8a-4349-884d-a66fbe5ddfca" width="50%"/>
 </div>
 
 # Gokemon
@@ -10,6 +10,11 @@ and LAN multiplayer modes are available. All mechanics and Pokemon are based off
 > This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 - 3 Pokemon and ~99% of abilities introduced in Gen 3.
 > While move data up to Gen 9 is included, most moves' secondary effects are not implemented
 > The next major plan is to add in-battle items. Double battles are up in the air. If there are any features you wish to see added, feel free to open an issue or pull request.
+
+
+<div align="center">
+  <img width="75%" alt="A view of the battle screen. Waiting for the player to select an action." src="https://github.com/user-attachments/assets/a10a2a70-2db5-4597-a995-af4fdd5d9ea3" />
+</div>
 
 ## Installation
 The easiest way to install is to download the latest pre-compiled binary executable for your system from the [releases tab](https://github.com/nathanieltooley/gokemon/releases). 
