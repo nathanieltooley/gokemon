@@ -9,7 +9,7 @@ and LAN multiplayer modes are available. All mechanics and Pokemon are based off
 > [!WARNING]
 > This project is still very much under construction! Gokemon currently contains the Pokemon data of Gen 1 - 3 Pokemon and ~99% of abilities introduced in Gen 3.
 > While move data up to Gen 9 is included, most moves' secondary effects are not implemented
-> The next major plan is to add in-battle items. Double battles are up in the air. If there are any features you wish to see added, feel free to open an issue or pull request.
+> If there are any features you wish to see added, feel free to open an issue or pull request.
 
 
 <div align="center">
